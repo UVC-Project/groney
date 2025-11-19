@@ -146,3 +146,6 @@ GreenSchoolyardICT/
 
 # Ignore Mac OS Finder files everywhere
 **/.DS_Store
+
+# Prisma
+/generated/prisma

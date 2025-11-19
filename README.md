@@ -4,16 +4,33 @@ A gamified platform for Dutch primary schools to engage students in green school
 
 ## ⚡ Quick Start
 
+### Automated Setup (Recommended)
+
+```bash
+git clone <repository-url>
+cd groney
+./scripts/setup.sh
+cd frontend && npm install && npm run dev
+```
+
+### Manual Setup
+
 ```bash
 # 1. Clone and setup
 git clone <repository-url>
 cd groney
 cp .env.example .env
 
-# 2. Choose your approach:
+# 2. Install dependencies
+npm install
+
+# 3. Start database and run migrations
+docker-compose up postgres redis minio -d
+npm run prisma:push  # or prisma:migrate for production
+
+# 4. Choose your approach:
 
 # Option A: Lightweight (Recommended - 500MB RAM)
-docker-compose up postgres redis minio -d
 cd frontend && npm install && npm run dev
 
 # Option B: Full stack (5GB RAM)
@@ -57,8 +74,18 @@ cd groney
 # 2. Copy environment variables
 cp .env.example .env
 
-# 3. Install root dependencies (optional)
+# 3. Install dependencies
 npm install
+
+# 4. Start database services
+docker-compose up postgres redis minio -d
+
+# 5. Wait for database to be ready (about 10 seconds)
+# Then push Prisma schema to database
+npm run prisma:push
+
+# 6. (Optional) Open Prisma Studio to view database
+npm run prisma:studio
 ```
 
 ### Choose Your Development Approach
@@ -91,9 +118,12 @@ Run only the infrastructure and develop locally:
 
 ```bash
 # Terminal 1: Start only databases
-docker-compose up postgres redis minio
+docker-compose up postgres redis minio -d
 
-# Terminal 2: Run frontend locally
+# Terminal 2: Push database schema (first time only)
+npm run prisma:push
+
+# Terminal 3: Run frontend locally
 cd frontend
 npm install
 npm run dev
@@ -118,6 +148,27 @@ cd backend/services/auth-service
 npm install
 npm run dev
 ```
+
+### Database Management with Prisma
+
+```bash
+# Generate Prisma Client (after schema changes)
+npm run prisma:generate
+
+# Push schema changes to database (development)
+npm run prisma:push
+
+# Create and apply migrations (production-ready)
+npm run prisma:migrate
+
+# Open Prisma Studio (database GUI)
+npm run prisma:studio
+```
+
+**When to use what:**
+- `prisma:push` - Quick prototyping, development (no migration history)
+- `prisma:migrate` - Production, team collaboration (creates migration files)
+- `prisma:generate` - After pulling schema changes from git
 
 ### Testing
 
