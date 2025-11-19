@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-student;
+  }
+
+  /* Ensure touch targets are accessible */
+  button,
+  a {
+    @apply min-h-touch-target;
+  }
+}
+
+@layer components {
+  /* Game-style button */
+  .btn-game {
+    @apply bg-grass-green text-white font-bold py-3 px-6 rounded-game shadow-game;
+    @apply hover:bg-grass-green-dark active:scale-95 transition-all;
+    @apply min-h-touch-target min-w-touch-target;
+  }
+
+  .btn-game-secondary {
+    @apply bg-sky-blue text-white font-bold py-3 px-6 rounded-game shadow-game;
+    @apply hover:bg-sky-blue-dark active:scale-95 transition-all;
+    @apply min-h-touch-target min-w-touch-target;
+  }
+
+  /* Card styles */
+  .card-game {
+    @apply bg-white rounded-game shadow-game-lg p-6;
+  }
+
+  /* Stat bar */
+  .stat-bar {
+    @apply h-4 bg-gray-200 rounded-full overflow-hidden;
+  }
+
+  .stat-bar-fill {
+    @apply h-full transition-all duration-300 ease-out;
+  }
+}
+
+@layer utilities {
+  /* Respect reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
