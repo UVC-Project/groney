@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/start.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node dist/start.js",
     "test": "vitest"
   },
   "dependencies": {
