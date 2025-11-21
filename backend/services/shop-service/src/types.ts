@@ -1,27 +1,3 @@
-// backend/src/types.ts
-
-export interface User {
-    id: string;
-    username: string;
-    firstName: string;
-    lastName: string;
-    email?: string;
-    profileImageUrl?: string;
-    role: 'student' | 'teacher';
-    classId?: string;
-    createdAt: string;
-    updatedAt: string;
-}
-
-export interface Class {
-    id: string;
-    name: string;
-    school: string;
-    classCode: string;
-    createdById?: string;
-    createdAt: string;
-}
-
 export interface Mascot {
     id: string;
     classId: string;

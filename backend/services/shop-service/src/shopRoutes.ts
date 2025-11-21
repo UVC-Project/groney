@@ -1,4 +1,3 @@
-// backend/src/shopRoutes.ts
 import { Router } from 'express';
 import { groenyItems, mascots, purchases } from './shopData';
 import type { Mascot, Purchase } from './types';
@@ -7,13 +6,11 @@ const router = Router();
 
 function getMascot(classId: string): Mascot {
     const mascot = mascots[classId];
-    if (!mascot) {
-        throw new Error('Mascot not found');
-    }
+    if (!mascot) throw new Error('Mascot not found');
     return mascot;
 }
 
-// GET /api/mascot/:classId
+// GET /mascot/:classId
 router.get('/mascot/:classId', (req, res) => {
     try {
         const mascot = getMascot(req.params.classId);
@@ -23,10 +20,9 @@ router.get('/mascot/:classId', (req, res) => {
     }
 });
 
-// GET /api/shop/items?userId=...
+// GET /shop/items?userId=...
 router.get('/shop/items', (req, res) => {
     const userId = req.query.userId as string | undefined;
-
     const ownedIds = new Set(
         purchases
             .filter((p) => !userId || p.userId === userId)
@@ -41,7 +37,7 @@ router.get('/shop/items', (req, res) => {
     res.json(itemsWithOwned);
 });
 
-// POST /api/shop/purchase
+// POST /shop/purchase
 router.post('/shop/purchase', (req, res) => {
     const { userId, classId, itemId } = req.body as {
         userId: string;
@@ -54,13 +50,9 @@ router.post('/shop/purchase', (req, res) => {
     }
 
     const mascot = getMascot(classId);
-
     const item = groenyItems.find((i) => i.id === itemId);
-    if (!item) {
-        return res.status(404).json({ message: 'Item not found' });
-    }
+    if (!item) return res.status(404).json({ message: 'Item not found' });
 
-    // already bought?
     const alreadyOwned = purchases.some(
         (p) => p.userId === userId && p.itemId === itemId
     );
@@ -87,16 +79,12 @@ router.post('/shop/purchase', (req, res) => {
     res.json({ mascot, purchase });
 });
 
-// POST /api/mascot/equip
+// POST /mascot/equip
 router.post('/mascot/equip', (req, res) => {
-    const { classId, itemId } = req.body as {
-        classId: string;
-        itemId: string;
-    };
+    const { classId, itemId } = req.body as { classId: string; itemId: string };
 
     const mascot = getMascot(classId);
     const item = groenyItems.find((i) => i.id === itemId);
-
     if (!item) {
         return res.status(404).json({ message: 'Wearable item not found' });
     }

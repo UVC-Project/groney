@@ -1,6 +1,5 @@
 import type { ShopItem, Purchase, Mascot } from './types';
 
-// Groeny items
 export const groenyItems: ShopItem[] = [
     {
         id: 'red-cap',
@@ -56,7 +55,6 @@ export const groenyItems: ShopItem[] = [
 
 export const purchases: Purchase[] = [];
 
-// One demo class mascot
 export const mascots: Record<string, Mascot> = {
     'class-1': {
         id: 'mascot-class-1',
@@ -68,7 +66,7 @@ export const mascots: Record<string, Mascot> = {
         hunger: 100,
         happiness: 100,
         cleanliness: 100,
-        coins: 5, // matches your screenshot
+        coins: 5,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     }
