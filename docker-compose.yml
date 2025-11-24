@@ -1,0 +1,225 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: groney-postgres
+    environment:
+      POSTGRES_DB: groney
+      POSTGRES_USER: groney_user
+      POSTGRES_PASSWORD: groney_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U groney_user -d groney"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for sessions and caching
+  redis:
+    image: redis:7-alpine
+    container_name: groney-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./backend/services/api-gateway
+      dockerfile: Dockerfile
+    container_name: groney-api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      AUTH_SERVICE_URL: http://auth-service:3001
+      MASCOT_SERVICE_URL: http://mascot-engine:3002
+      MISSION_SERVICE_URL: http://mission-service:3003
+      SUBMISSION_SERVICE_URL: http://submission-service:3004
+      SHOP_SERVICE_URL: http://shop-service:3005
+      CALCULATION_SERVICE_URL: http://calculation-service:3006
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/services/api-gateway:/app
+      - /app/node_modules
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./backend/services/auth-service
+      dockerfile: Dockerfile
+    container_name: groney-auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://groney_user:groney_password@postgres:5432/groney
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-secret-key-change-in-production
+      JWT_EXPIRES_IN: 7d
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/services/auth-service:/app
+      - /app/node_modules
+
+  # Mascot Engine Service
+  mascot-engine:
+    build:
+      context: ./backend/services/mascot-engine
+      dockerfile: Dockerfile
+    container_name: groney-mascot-engine
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      DATABASE_URL: postgresql://groney_user:groney_password@postgres:5432/groney
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/services/mascot-engine:/app
+      - /app/node_modules
+
+  # Mission Service
+  mission-service:
+    build:
+      context: ./backend/services/mission-service
+      dockerfile: Dockerfile
+    container_name: groney-mission-service
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DATABASE_URL: postgresql://groney_user:groney_password@postgres:5432/groney
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/services/mission-service:/app
+      - /app/node_modules
+
+  # Submission Service
+  submission-service:
+    build:
+      context: ./backend/services/submission-service
+      dockerfile: Dockerfile
+    container_name: groney-submission-service
+    ports:
+      - "3004:3004"
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      DATABASE_URL: postgresql://groney_user:groney_password@postgres:5432/groney
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: groney-uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    volumes:
+      - ./backend/services/submission-service:/app
+      - /app/node_modules
+
+  # Shop Service
+  shop-service:
+    build:
+      context: ./backend/services/shop-service
+      dockerfile: Dockerfile
+    container_name: groney-shop-service
+    ports:
+      - "3005:3005"
+    environment:
+      NODE_ENV: development
+      PORT: 3005
+      DATABASE_URL: postgresql://groney_user:groney_password@postgres:5432/groney
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/services/shop-service:/app
+      - /app/node_modules
+
+  # Calculation Service
+  calculation-service:
+    build:
+      context: ./backend/services/calculation-service
+      dockerfile: Dockerfile
+    container_name: groney-calculation-service
+    ports:
+      - "3006:3006"
+    environment:
+      NODE_ENV: development
+      PORT: 3006
+      DATABASE_URL: postgresql://groney_user:groney_password@postgres:5432/groney
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/services/calculation-service:/app
+      - /app/node_modules
+
+  # MinIO for object storage (S3-compatible)
+  minio:
+    image: minio/minio:latest
+    container_name: groney-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Frontend (SvelteKit)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: groney-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: http://localhost:3000
+    depends_on:
+      - api-gateway
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

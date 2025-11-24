@@ -95,8 +95,10 @@ dist
 .temp
 .cache
 
-# Sveltekit cache directory
+# SvelteKit build output and cache
 .svelte-kit/
+build/
+**/build/
 
 # vitepress build output
 **/.vitepress/dist
@@ -138,4 +140,13 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-.DS_STORE
+# Kiro
+.kiro/
+GreenSchoolyardICT/
+
+# Ignore Mac OS Finder files everywhere
+**/.DS_Store
+
+# Prisma
+/generated/prisma
+
