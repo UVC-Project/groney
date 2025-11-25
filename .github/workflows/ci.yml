@@ -4,13 +4,38 @@ on:
   push:
     branches:
       - main
-      - feature/**
-      - feat/**
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    
+
+    # 1. Define the Database Service
+    services:
+      postgres:
+        image: postgres:15 # Use the version matching your production DB
+        env:
+          POSTGRES_USER: myuser
+          POSTGRES_PASSWORD: mypassword
+          POSTGRES_DB: mytestdb
+        ports:
+          - 5432:5432
+        # Health check ensures DB is ready before steps run
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    # 2. Set the connection string for the runner to use
+    env:
+      DATABASE_URL: postgresql://myuser:mypassword@localhost:5432/mytestdb
+      # If your app needs a separate shadow DB for Prisma migrations in tests:
+      # SHADOW_DATABASE_URL: postgresql://myuser:mypassword@localhost:5432/shadowdb 
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -18,11 +43,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.19.6'
+          node-version: '20.x'
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install # Good for CI environments
+        run: npm install
+
+      # Optional: Create the DB schema if your tests expect it
+      # - name: Run Migrations
+      #   run: npx prisma migrate deploy
 
       - name: Generate Prisma Client
         run: npx prisma generate
@@ -31,7 +60,7 @@ jobs:
         run: npm run lint --workspaces --if-present
 
       - name: Test
-        run: npm run test --workspaces --if-present # Proves 2.2 Working Software
+        run: npm run test --workspaces --if-present
 
       - name: Build
         run: npm run build --workspaces --if-present
