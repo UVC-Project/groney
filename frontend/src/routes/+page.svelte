@@ -1,5 +1,12 @@
 <script>
   import ScrollToTopButton from '$lib/components/ScrollToTop.svelte';
+  import LogoutModal from '$lib/components/LogoutModal.svelte';
+  
+  let showLogoutModal = false;
+
+   function logout() {
+    showLogoutModal = false;
+  }
 </script>
 
 <!-- Main container -->
@@ -8,8 +15,9 @@
 <!-- Welcome text + username -->
  <div class="flex justify-between items-center mb-6">
    <p class="text-gray-700 text-lg mb-4">Welcome, Boy!</p>
-       <button class="text-gray-700 text-lg mb-4 hover:text-green-500">Logout</button>
+       <button class="text-gray-700 text-lg mb-4 hover:text-green-500 " on:click={() => showLogoutModal = true}>Logout</button>
   </div>
+
 <!-- Title -->
     <h1 class="text-4xl md:text-6xl font-extrabold text-center text-gray-800 mb-4">Groeny</h1>
   
@@ -50,18 +58,21 @@
       <p class="font-extrabold text-xl text-blue-600">100%</p>
     </div>
 
+<!-- Hunger -->
     <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-orange-500">
       <div class="text-3xl mb-1">🍎</div>
       <p class="text-gray-800 text-sm">HUNGER</p>
       <p class="font-extrabold text-xl text-orange-500">100%</p>
     </div>
 
+<!-- Happiness -->
     <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-sky-500">
       <div class="text-3xl mb-1">🥰</div>
       <p class="text-gray-800 text-sm">HAPPINESS</p>
       <p class="font-extrabold text-xl text-sky-500">100%</p>
     </div>
 
+<!-- Love -->
     <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-pink-500">
       <div class="text-3xl mb-1">💖</div>
       <p class="text-gray-800 text-sm">LOVE</p>
@@ -69,12 +80,12 @@
     </div>
   </div>
 
-  <!-- Recent activities -->
+<!-- Recent activities -->
 <div class="max-w-5xl mx-auto mt-10">
   <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-4">Recent activities</h2>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-    <!-- Card 1 -->
+<!-- Card 1 -->
     <article class="bg-white rounded-[32px] shadow-lg p-4 md:p-5 border-b-4 border-green-400">
       <h3 class="font-semibold text-gray-800 mb-3 text-sm md:text-base">Boy completed Water the Flowers!</h3>
 
@@ -85,7 +96,7 @@
       <p class="text-xs md:text-sm text-gray-800">23/11/2025</p>
     </article>
 
-    <!-- Card 2 -->
+<!-- Card 2 -->
     <article class="bg-white rounded-[32px] shadow-lg p-4 md:p-5 border-b-4 border-green-400">
       <h3 class="font-semibold text-gray-800 mb-3 text-sm md:text-base">Boy completed Harvest Vegetables!</h3>
 
@@ -97,5 +108,6 @@
     </article>
   </div>
 </div>
-</div>
+<LogoutModal open={showLogoutModal} onCancel={() => showLogoutModal = false} onConfirm={logout}/>
 <ScrollToTopButton />
+</div>
