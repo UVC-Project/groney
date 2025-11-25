@@ -34,7 +34,7 @@
 <!-- Mascot circle -->
   <div class="flex justify-center mb-4">
     <div class="w-80 h-80 rounded-full border-8 border-sky-300 flex items-center justify-center bg-white shadow-lg">
-      <img src="/src/lib/assets/images/groeny.png" class="w-64" alt="Groeny">
+      <img src="/src/lib/assets/images/groeny.gif" class="w-64" alt="Groeny">
     </div>
   </div>
 
