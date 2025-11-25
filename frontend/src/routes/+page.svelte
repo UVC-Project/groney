@@ -1,7 +1,8 @@
 <script>
   import ScrollToTopButton from '$lib/components/ScrollToTop.svelte';
   import LogoutModal from '$lib/components/LogoutModal.svelte';
-  
+  import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
+
   let showLogoutModal = false;
 
    function logout() {
@@ -14,8 +15,11 @@
 
 <!-- Welcome text + username -->
  <div class="flex justify-between items-center mb-6">
-   <p class="text-gray-700 text-lg mb-4">Welcome, Boy!</p>
-       <button class="text-gray-700 text-lg mb-4 hover:text-green-500 " on:click={() => showLogoutModal = true}>Logout</button>
+   <p class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white text-sm font-medium text-gray-800 shadow-lg">Welcome, Boy!</p>
+   <div class="flex items-center gap-4">
+      <BackgroundPicker />
+       <button class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white hover:bg-gray-300 text-sm font-medium text-gray-800 shadow-lg" on:click={() => showLogoutModal = true}>Logout</button>
+    </div>
   </div>
 
 <!-- Title -->
