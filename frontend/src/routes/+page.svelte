@@ -1,3 +1,7 @@
+<script>
+  import ScrollToTopButton from '$lib/components/ScrollToTop.svelte';
+</script>
+
 <!-- Main container -->
 <div class="container mx-auto px-4 py-10">
 
@@ -92,3 +96,4 @@
   </div>
 </div>
 </div>
+<ScrollToTopButton />
