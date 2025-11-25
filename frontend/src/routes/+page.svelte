@@ -1,45 +1,94 @@
-<div class="container mx-auto px-4 py-6">
-  <div class="text-center mb-8">
-    <h1 class="text-4xl md:text-6xl font-bold text-white drop-shadow-lg mb-2">Groeny</h1>
-    <p class="text-lg md:text-2xl text-white drop-shadow">Welcome to your Green Schoolyard!</p>
+<!-- Main container -->
+<div class="container mx-auto px-4 py-10">
+
+<!-- Welcome text + username -->
+ <div class="flex justify-between items-center mb-6">
+   <p class="text-gray-600 text-lg mb-4">Welcome, Boy!</p>
+       <button class="text-gray-600 text-lg mb-4">Logout</button>
+  </div>
+<!-- Title -->
+    <h1 class="text-4xl md:text-6xl font-extrabold text-center text-gray-800 mb-4">Groeny</h1>
+  
+<!-- Level + coins -->
+  <div class="flex justify-center gap-3 mb-6">
+    <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-700">🎖️ 5</div>
+    <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-700">🪙 50</div>
   </div>
 
-  <!-- Placeholder for mascot display -->
-  <div class="bg-white rounded-game shadow-game-lg p-6 mb-6 text-center">
-    <div class="text-6xl mb-4">🌱</div>
-    <h2 class="text-2xl font-bold text-grass-green mb-2">Meet Groeny!</h2>
-    <p class="text-gray-600">Your digital mascot is waiting for you...</p>
-  </div>
-
-  <!-- Placeholder for stats -->
-  <div class="grid grid-cols-2 gap-4 mb-6">
-    <div class="bg-white rounded-card shadow-game p-4 border-l-4 border-stat-thirst">
-      <div class="text-2xl mb-1">💧</div>
-      <div class="text-sm text-gray-600">Thirst</div>
-      <div class="text-xl font-bold">100</div>
-    </div>
-    <div class="bg-white rounded-card shadow-game p-4 border-l-4 border-stat-hunger">
-      <div class="text-2xl mb-1">🍎</div>
-      <div class="text-sm text-gray-600">Hunger</div>
-      <div class="text-xl font-bold">100</div>
-    </div>
-    <div class="bg-white rounded-card shadow-game p-4 border-l-4 border-stat-happiness">
-      <div class="text-2xl mb-1">😊</div>
-      <div class="text-sm text-gray-600">Happiness</div>
-      <div class="text-xl font-bold">100</div>
-    </div>
-    <div class="bg-white rounded-card shadow-game p-4 border-l-4 border-stat-cleanliness">
-      <div class="text-2xl mb-1">✨</div>
-      <div class="text-sm text-gray-600">Cleanliness</div>
-      <div class="text-xl font-bold">100</div>
+<!-- Mascot circle -->
+  <div class="flex justify-center mb-4">
+    <div class="w-80 h-80 rounded-full border-8 border-sky-300 flex items-center justify-center bg-white shadow-lg">
+      <img src="/src/lib/assets/images/groeny.png" class="w-64" alt="Groeny">
     </div>
   </div>
 
-  <!-- Placeholder for activity feed -->
-  <div class="bg-white rounded-game shadow-game-lg p-6">
-    <h3 class="text-xl font-bold text-grass-green mb-4">Recent Activities</h3>
-    <p class="text-gray-500 text-center py-4">
-      No activities yet. Complete missions to see them here!
-    </p>
+<!-- Health badge -->
+  <div class="flex justify-center mb-6">
+    <div class="bg-green-100 px-4 py-1 rounded-full font-semibold text-green-600 text-sm shadow">100% Health</div>
   </div>
+
+<!-- XP Progress -->
+  <div class="max-w-md mx-auto mb-10">
+    <p class="text-gray-600 mb-1 text-sm">XP Progress</p>
+    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+      <div class="bg-green-500 h-full w-[85%]"></div>
+    </div>
+    <p class="text-right text-gray-600 text-sm mt-1">85 / 100</p>
+  </div>
+
+<!-- Stats Row -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+    <div class="bg-white rounded-3xl shadow p-4 text-center border">
+      <div class="text-3xl mb-1">💧</div>
+      <p class="text-gray-500 text-sm">THIRST</p>
+      <p class="font-extrabold text-xl text-blue-600">100%</p>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow p-4 text-center border">
+      <div class="text-3xl mb-1">🍎</div>
+      <p class="text-gray-500 text-sm">HUNGER</p>
+      <p class="font-extrabold text-xl text-orange-500">100%</p>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow p-4 text-center border">
+      <div class="text-3xl mb-1">🥰</div>
+      <p class="text-gray-500 text-sm">HAPPINESS</p>
+      <p class="font-extrabold text-xl text-sky-500">100%</p>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow p-4 text-center border">
+      <div class="text-3xl mb-1">💖</div>
+      <p class="text-gray-500 text-sm">LOVE</p>
+      <p class="font-extrabold text-xl text-pink-500">100%</p>
+    </div>
+  </div>
+
+  <!-- Recent activities -->
+<div class="max-w-5xl mx-auto mt-10">
+  <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-4">Recent activities</h2>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+    <!-- Card 1 -->
+    <article class="bg-white rounded-[32px] shadow-lg p-4 md:p-5 border">
+      <h3 class="font-semibold text-gray-800 mb-3 text-sm md:text-base">Boy completed Water the Flowers!</h3>
+
+      <div class="overflow-hidden rounded-2xl mb-3">
+        <img src="/src/lib/assets/images/water.jpg" alt="Water the Flowers" class="w-full h-44 md:h-56 object-cover">
+      </div>
+
+      <p class="text-xs md:text-sm text-gray-500">23/11/2025</p>
+    </article>
+
+    <!-- Card 2 -->
+    <article class="bg-white rounded-[32px] shadow-lg p-4 md:p-5 border">
+      <h3 class="font-semibold text-gray-800 mb-3 text-sm md:text-base">Boy completed Harvest Vegetables!</h3>
+
+      <div class="overflow-hidden rounded-2xl mb-3">
+        <img src="/src/lib/assets/images/harvest.jpg" alt="Harvest Vegetables" class="w-full h-44 md:h-56 object-cover">
+      </div>
+
+      <p class="text-xs md:text-sm text-gray-500">28/11/2025</p>
+    </article>
+  </div>
+</div>
 </div>
