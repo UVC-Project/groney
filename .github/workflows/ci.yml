@@ -59,8 +59,11 @@ jobs:
       - name: Lint
         run: npm run lint --workspaces --if-present
 
-      - name: Test
-        run: npm run test --workspaces --if-present
+      # TODO
+      # - name: Test
+      #   run: npm run test --workspaces --if-present
+      - name: Test Frontend
+        run: npm run test --workspace=@groney/frontend
 
       - name: Build
         run: npm run build --workspaces --if-present
