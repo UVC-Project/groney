@@ -125,12 +125,12 @@ describe('Home Page - Business Logic', () => {
 
   describe('Activity Feed Logic', () => {
     it('should handle empty activity list', () => {
-      const activities: any[] = [];
+      const activities: unknown[] = [];
       expect(activities.length).toBe(0);
     });
 
     it('should display empty state message when no activities', () => {
-      const activities: any[] = [];
+      const activities: unknown[] = [];
       const emptyMessage = 'No activities yet. Complete missions to see them here!';
       
       expect(activities.length).toBe(0);
