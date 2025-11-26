@@ -1,9 +1,12 @@
 <script lang="ts">
   import PageWrapper from '$lib/components/PageWrapper.svelte';
+  import mapImage from '$lib/assets/school_map.png';
 </script>
 
 <PageWrapper title="Schoolyard Map">
-  <div class="text-6xl mb-4">🗺️</div>
-  <h2 class="text-2xl font-bold text-grass-green mb-2">Explore Your Schoolyard</h2>
-  <p class="text-gray-600">The interactive map will be available soon!</p>
+  <img
+			src="{mapImage}"
+			alt="Hand-drawn map of the schoolyard with school, playground, and garden."
+			class="map-image"
+		/>
 </PageWrapper>
