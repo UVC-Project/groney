@@ -1,103 +1,78 @@
-// prisma/seed.ts
-
-// Import PrismaClient and the enums we defined in the schema
-import { PrismaClient, MissionCategory, MissionStatus, SectorType } from '@prisma/client';
+import { PrismaClient, MissionCategory, MissionStatus, SectorType, UserRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seeding...');
+  console.log('🌱 Seeding demo teacher, class, sector, and missions...');
 
-  // 1. We need a Class and a Sector first to link missions to.
-  // Let's create a dummy class and sector if they don't exist.
-  const teacher = await prisma.user.upsert({
-    where: { username: 'teacher_demo' },
-    update: {},
-    create: {
+  // 1. Create a teacher user
+  const teacher = await prisma.user.create({
+    data: {
       username: 'teacher_demo',
-      password: 'password123', // In real app, hash this!
-      role: 'TEACHER',
-    }
+      password: 'password123', // remember: hash in real app!
+      role: UserRole.TEACHER,
+    },
   });
 
-  const demoClass = await prisma.class.upsert({
-    where: { classCode: 'DEMO101' },
-    update: {},
-    create: {
+  // 2. Create a class that belongs to that teacher
+  const demoClass = await prisma.class.create({
+    data: {
       name: 'Demo Class',
       school: 'Demo School',
-      classCode: 'DEMO101',
+      classCode: 'DEMO100',
       teacherId: teacher.id,
-    }
+    },
   });
 
-  // Create a general sector for the yard
-  const yardSector = await prisma.sector.create({
+  // 3. Create a sector with a few missions
+  await prisma.sector.create({
     data: {
-        name: 'Main Yard',
-        type: SectorType.GARDEN,
-        classId: demoClass.id
-    }
-  })
-
-
-  console.log('...Deleting old missions to avoid duplicates...');
-  await prisma.mission.deleteMany({});
-
-
-  console.log('...Creating new map missions...');
-  // Array of missions to insert with coordinates
-  const missions = [
-    {
-      title: 'Water the Big Oak',
-      description: 'The big oak tree near the playground looks thirsty.',
-      xpReward: 15,
-      coinReward: 10,
-      coordinates_x: 25.5, // ~25% from left
-      coordinates_y: 60.2, // ~60% from top
-      category: MissionCategory.THIRST,
-      status: MissionStatus.AVAILABLE,
-      sectorId: yardSector.id, // Link to the sector we just created
+      name: 'Main Yard',
+      type: SectorType.GARDEN,
+      classId: demoClass.id,
+      missions: {
+        create: [
+          {
+            title: 'Water the Big Oak',
+            description: 'The big oak tree near the playground looks thirsty.',
+            xpReward: 15,
+            coinReward: 10,
+            category: MissionCategory.THIRST,
+            status: MissionStatus.AVAILABLE,
+            coordinates_x: 25.5,
+            coordinates_y: 60.2,
+          },
+          {
+            title: 'Feed the School Chickens',
+            description: 'Go to the coop and give the chickens their grain.',
+            xpReward: 20,
+            coinReward: 15,
+            category: MissionCategory.HUNGER,
+            status: MissionStatus.AVAILABLE,
+            coordinates_x: 78.0,
+            coordinates_y: 35.5,
+          },
+          {
+            title: 'Tidy the Flower Bed',
+            description: 'Pick up any litter around the entrance flower bed.',
+            xpReward: 10,
+            coinReward: 5,
+            category: MissionCategory.HAPPINESS,
+            status: MissionStatus.AVAILABLE,
+            coordinates_x: 45.0,
+            coordinates_y: 85.0,
+          },
+        ],
+      },
     },
-    {
-      title: 'Feed the School Chickens',
-      description: 'Go to the coop and give the chickens their grain.',
-      xpReward: 20,
-      coinReward: 15,
-      coordinates_x: 78.0,
-      coordinates_y: 35.5,
-      category: MissionCategory.HUNGER,
-      status: MissionStatus.AVAILABLE,
-      sectorId: yardSector.id,
-    },
-    {
-      title: 'Tidy the Flower Bed',
-      description: 'Pick up any litter around the entrance flower bed.',
-      xpReward: 10,
-      coinReward: 5,
-      coordinates_x: 45.0,
-      coordinates_y: 85.0,
-      category: MissionCategory.HAPPINESS,
-      status: MissionStatus.AVAILABLE,
-      sectorId: yardSector.id,
-    },
-  ];
+  });
 
-  // Loop through and create each mission in the database
-  for (const missionData of missions) {
-    const mission = await prisma.mission.create({
-      data: missionData,
-    });
-    console.log(`Created mission: ${mission.title}`);
-  }
-
-  console.log('✅ Seeding finished.');
+  console.log('✅ Database seeded!');
 }
 
-// Execute the script
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('❌ Seeding failed:', e);
     process.exit(1);
   })
   .finally(async () => {
