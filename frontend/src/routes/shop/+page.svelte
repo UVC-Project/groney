@@ -2,21 +2,51 @@
   import PageWrapper from '$lib/components/PageWrapper.svelte';
   import type { PageData } from './$types';
 
+  // ============================
+  //   IMPORT SHOP IMAGES
+  // ============================
+  import RedCapImg from '$lib/assets/images/shop/red-cap.png';
+  import BlueCapImg from '$lib/assets/images/shop/blue-cap.png';
+  import BowTieImg from '$lib/assets/images/shop/bow-tie.png';
+  import SunglassesImg from '$lib/assets/images/shop/sunglasses.png';
+  import RainbowColorsImg from '$lib/assets/images/shop/rainbow-colors.png';
+
   export let data: PageData;
 
   type Tab = 'groeny' | 'schoolyard';
   let activeTab: Tab = 'groeny';
 
-  // Local state for Sprint 1 so we can “fake” Buy / Apply
+  type Item = PageData['items'][number];
+
+  // Image lookup by item.id
+  const imageMap: Record<string, string> = {
+    'red-cap': RedCapImg,
+    'blue-cap': BlueCapImg,
+    'bow-tie': BowTieImg,
+    'sunglasses': SunglassesImg,
+    'rainbow-colors': RainbowColorsImg
+  };
+
+  function getItemImage(item: Item): string | null {
+    if (imageMap[item.id]) return imageMap[item.id];
+    // fallback if backend provides one
+    // @ts-ignore
+    if (item.imageUrl) return item.imageUrl;
+    return null;
+  }
+
+  // ============================
+  //   SPRINT 1 LOCAL STATE
+  // ============================
   let coins = data.coins;
-  let items = data.items.slice(); // shallow copy
+  let items = data.items.slice(); // avoid mutating original data
 
   function onBuyClick(id: string) {
     const item = items.find((i) => i.id === id);
     if (!item || item.owned) return;
 
     if (coins < item.price) {
-      alert('Not enough coins yet – real validation comes in Sprint 2.');
+      alert('Not enough coins yet – server validation comes in Sprint 2.');
       return;
     }
 
@@ -33,21 +63,21 @@
 </script>
 
 <PageWrapper title="Shop">
-  <!-- Coins pill -->
+  <!-- ===================== -->
+  <!--   COINS BADGE         -->
+  <!-- ===================== -->
   <div class="flex justify-center mb-6">
-    <div
-            class="bg-yellow-300 rounded-full px-8 py-3 shadow-lg flex items-center gap-3 border-2 border-yellow-400"
-    >
+    <div class="bg-yellow-300 rounded-full px-8 py-3 shadow-lg flex items-center gap-3 border-2 border-yellow-400">
       <span class="text-2xl">🪙</span>
       <span class="font-semibold text-xl">{coins}</span>
     </div>
   </div>
 
-  <!-- Tabs -->
+  <!-- ===================== -->
+  <!--        TABS           -->
+  <!-- ===================== -->
   <div class="flex justify-center mb-8">
-    <div
-            class="bg-white rounded-full shadow-inner flex overflow-hidden border border-green-300"
-    >
+    <div class="bg-white rounded-full shadow-inner flex overflow-hidden border border-green-300">
       <button
               class={`px-6 py-2 text-sm font-semibold transition-colors ${
           activeTab === 'groeny'
@@ -58,6 +88,7 @@
       >
         Groeny Items
       </button>
+
       <button
               class={`px-6 py-2 text-sm font-semibold transition-colors ${
           activeTab === 'schoolyard'
@@ -72,26 +103,25 @@
   </div>
 
   {#if activeTab === 'groeny'}
-    <!-- Items grid -->
+    <!-- ===================== -->
+    <!--       ITEMS GRID       -->
+    <!-- ===================== -->
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-10">
       {#each items as item}
-        <article
-                class="bg-white rounded-3xl shadow-md border-4 border-amber-300 flex flex-col overflow-hidden"
-        >
-          <!-- Image / main content -->
+        <article class="bg-white rounded-3xl shadow-md border-4 border-amber-300 flex flex-col overflow-hidden">
+          <!-- IMAGE + TEXT -->
           <div class="flex-1 flex flex-col items-center justify-center p-6">
-            {#if item.imageUrl}
+            {#if getItemImage(item)}
               <div class="h-24 mb-4 flex items-center justify-center">
-                <img src={item.imageUrl} alt={item.name} class="max-h-24" />
+                <img src={getItemImage(item)} alt={item.name} class="max-h-24" />
               </div>
             {/if}
+
             <h3 class="font-semibold text-gray-800">{item.name}</h3>
-            <p class="text-xs text-gray-500 text-center mt-1">
-              {item.description}
-            </p>
+            <p class="text-xs text-gray-500 text-center mt-1">{item.description}</p>
           </div>
 
-          <!-- Footer bar -->
+          <!-- FOOTER BAR -->
           <div class="px-6 py-3 bg-sky-100 flex items-center justify-between">
             {#if item.owned}
               <span class="text-xs font-semibold text-emerald-600">Owned</span>
@@ -123,11 +153,16 @@
         </article>
       {/each}
     </div>
+
   {:else}
-    <!-- Schoolyard tab placeholder -->
+
+    <!-- ===================== -->
+    <!--  SCHOOLYARD PLACEHOLDER -->
+    <!-- ===================== -->
     <div class="text-center text-gray-500 pb-10">
       <p class="font-medium mb-1">Schoolyard Supplies</p>
       <p class="text-sm">This section will be implemented in a later sprint.</p>
     </div>
+
   {/if}
 </PageWrapper>
