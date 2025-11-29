@@ -1,0 +1,177 @@
+INSERT INTO classes (
+  "id",
+  "name",
+  "school",
+  "classCode",
+  "createdAt",
+  "updatedAt"
+)
+VALUES (
+  'class-garden-101',
+  'Groep 6A',
+  'Basisschool De Regenboog',
+  'GARDEN-101',
+  NOW(),
+  NOW()
+)
+ON CONFLICT ("classCode") DO NOTHING;
+
+
+INSERT INTO sectors (
+  "id",
+  "classId",
+  "name",
+  "type",
+  "createdAt",
+  "updatedAt"
+)
+VALUES
+  (
+    'sector-trees',
+    'class-garden-101',
+    'Boomgaard',
+    'TREES',
+    NOW(),
+    NOW()
+  ),
+  (
+    'sector-pond',
+    'class-garden-101',
+    'Vijver',
+    'POND',
+    NOW(),
+    NOW()
+  ),
+  (
+    'sector-garden',
+    'class-garden-101',
+    'Moestuin',
+    'GARDEN',
+    NOW(),
+    NOW()
+  )
+ON CONFLICT ("id") DO NOTHING;
+
+
+INSERT INTO missions (
+  "id",
+  "sectorId",
+  "title",
+  "description",
+  "xpReward",
+  "coinReward",
+  "thirstBoost",
+  "hungerBoost",
+  "happinessBoost",
+  "cleanlinessBoost",
+  "requiresPhoto",
+  "requiresQR",
+  "coordinates_x",
+  "coordinates_y",
+  "category",
+  "status",
+  "createdAt",
+  "updatedAt"
+)
+VALUES
+  (
+    'mission-water-trees',
+    'sector-trees',
+    'Geef de bomen water',
+    'Gebruik de gieters en geef minstens drie bomen water.',
+    50,
+    10,
+    25,
+    0,
+    5,
+    0,
+    TRUE,
+    FALSE,
+    30.0,
+    40.0,
+    'THIRST',
+    'AVAILABLE',
+    NOW(),
+    NOW()
+  ),
+  (
+    'mission-collect-leaves',
+    'sector-trees',
+    'Bladeren opruimen',
+    'Vul één grote emmer bladeren en maak de plek netjes.',
+    60,
+    15,
+    0,
+    0,
+    5,
+    30,
+    TRUE,
+    FALSE,
+    45.0,
+    55.0,
+    'CLEANLINESS',
+    'AVAILABLE',
+    NOW(),
+    NOW()
+  ),
+  (
+    'mission-feed-ducks',
+    'sector-pond',
+    'Voer de eenden (verantwoord!)',
+    'Lees wat eenden mogen eten en geef ze daarna verantwoord voer.',
+    70,
+    20,
+    0,
+    25,
+    15,
+    0,
+    TRUE,
+    FALSE,
+    65.0,
+    35.0,
+    'HUNGER',
+    'AVAILABLE',
+    NOW(),
+    NOW()
+  ),
+  (
+    'mission-plant-seeds',
+    'sector-garden',
+    'Plant nieuwe zaden',
+    'Plant vijf zaden in de moestuin en geef ze water.',
+    80,
+    25,
+    10,
+    0,
+    20,
+    0,
+    TRUE,
+    FALSE,
+    55.0,
+    70.0,
+    'HAPPINESS',
+    'AVAILABLE',
+    NOW(),
+    NOW()
+  ),
+  (
+    'mission-weed-garden',
+    'sector-garden',
+    'Onkruid wieden',
+    'Verwijder onkruid uit een hoek van de moestuin.',
+    90,
+    30,
+    0,
+    0,
+    0,
+    35,
+    TRUE,
+    FALSE,
+    60.0,
+    60.0,
+    'CLEANLINESS',
+    'AVAILABLE',
+    NOW(),
+    NOW()
+  )
+ON CONFLICT ("id") DO NOTHING;
