@@ -15,16 +15,15 @@ model User {
   username  String   @unique
   password  String
   role      UserRole
-  classId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  class       Class?        @relation(fields: [classId], references: [id])
+  classMember ClassUser[]
+
   submissions Submission[]
   purchases   Purchase[]
   activities  Activity[]
 
-  @@index([classId])
   @@map("users")
 }
 
@@ -39,11 +38,10 @@ model Class {
   name       String
   school     String
   classCode  String   @unique
-  teacherId  String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  users       User[]
+  members ClassUser[]
   mascot      Mascot?
   sectors     Sector[]
   activities  Activity[]
@@ -52,6 +50,17 @@ model Class {
 
   @@index([classCode])
   @@map("classes")
+}
+
+model ClassUser {
+  classId String
+  userId  String
+
+  class Class @relation(fields: [classId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@id([classId, userId])
+  @@map("class_users")
 }
 
 // Mascot model
