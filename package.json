@@ -16,9 +16,6 @@
     "prisma:studio": "prisma studio",
     "prisma:push": "prisma db push"
   },
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
-  },
   "devDependencies": {
     "@types/node": "^20.19.25",
     "eslint": "^8.55.0",
@@ -27,7 +24,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@prisma/client": "^7.0.0",
+    "@prisma/client": "^7.0.1",
     "prisma": "^7.0.0"
   }
 }
