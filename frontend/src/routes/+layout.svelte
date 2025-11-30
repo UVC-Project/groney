@@ -1,14 +1,15 @@
 <script lang="ts">
   import '../app.css';
   import BottomNav from '$lib/components/BottomNav.svelte';
+  import { selectedBackground } from '$lib/stores/backgroundTheme';
+
+  $: bgClass = $selectedBackground.className;
 </script>
 
-<div class="min-h-screen bg-gradient-to-b from-sky-blue-light to-grass-green-light">
-  <!-- Main content area with bottom padding for nav -->
+<div class={`min-h-screen ${bgClass}`}>
   <main class="pb-20">
     <slot />
   </main>
 
-  <!-- Bottom navigation -->
   <BottomNav />
 </div>
