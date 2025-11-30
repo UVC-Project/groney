@@ -23,6 +23,101 @@
     { id: '3', name: '7C', school: 'Amsterdam Primary' },
   ];
 
+  const mockSectors = [
+    { id: '1', name: 'Trees', type: 'trees' as const, description: 'Care for our school trees', icon: '🌳', color: 'emerald' },
+    { id: '2', name: 'Flowers', type: 'flowers' as const, description: 'Maintain the flower beds', icon: '🌸', color: 'pink' },
+    { id: '3', name: 'Pond', type: 'pond' as const, description: 'Keep the pond clean', icon: '🦆', color: 'blue' },
+    { id: '4', name: 'Chickens', type: 'chickens' as const, description: 'Feed and care for chickens', icon: '🐔', color: 'amber' },
+    { id: '5', name: 'Garden', type: 'garden' as const, description: 'Tend to the vegetable garden', icon: '🥕', color: 'orange' },
+  ];
+
+  const mockMissions = [
+    {
+      id: '1',
+      sectorId: '1',
+      title: 'Water the Trees',
+      description: 'Water all trees in the schoolyard',
+      xpReward: 15,
+      coinReward: 10,
+      thirstBoost: 20,
+      hungerBoost: 0,
+      happinessBoost: 5,
+      cleanlinessBoost: 0,
+    },
+    {
+      id: '2',
+      sectorId: '1',
+      title: 'Remove Dead Branches',
+      description: 'Clean up fallen branches and leaves',
+      xpReward: 20,
+      coinReward: 15,
+      thirstBoost: 0,
+      hungerBoost: 0,
+      happinessBoost: 10,
+      cleanlinessBoost: 15,
+    },
+    {
+      id: '3',
+      sectorId: '2',
+      title: 'Plant New Flowers',
+      description: 'Plant seasonal flowers in the beds',
+      xpReward: 25,
+      coinReward: 20,
+      thirstBoost: 10,
+      hungerBoost: 5,
+      happinessBoost: 15,
+      cleanlinessBoost: 5,
+    },
+    {
+      id: '4',
+      sectorId: '2',
+      title: 'Weed the Flower Beds',
+      description: 'Remove weeds from flower areas',
+      xpReward: 10,
+      coinReward: 8,
+      thirstBoost: 5,
+      hungerBoost: 0,
+      happinessBoost: 5,
+      cleanlinessBoost: 10,
+    },
+    {
+      id: '5',
+      sectorId: '3',
+      title: 'Clean the Pond',
+      description: 'Remove debris from the pond',
+      xpReward: 30,
+      coinReward: 25,
+      thirstBoost: 15,
+      hungerBoost: 0,
+      happinessBoost: 10,
+      cleanlinessBoost: 20,
+    },
+    {
+      id: '6',
+      sectorId: '4',
+      title: 'Feed the Chickens',
+      description: 'Give food and fresh water to chickens',
+      xpReward: 15,
+      coinReward: 12,
+      thirstBoost: 10,
+      hungerBoost: 20,
+      happinessBoost: 15,
+      cleanlinessBoost: 0,
+    },
+    {
+      id: '7',
+      sectorId: '5',
+      title: 'Harvest Vegetables',
+      description: 'Collect ripe vegetables from the garden',
+      xpReward: 20,
+      coinReward: 18,
+      thirstBoost: 5,
+      hungerBoost: 25,
+      happinessBoost: 20,
+      cleanlinessBoost: 0,
+    },
+  ];
+
   let currentClassId = $state('1');
 
   const mockClassData = {
@@ -44,6 +139,14 @@
   // Computed values for current class
   let currentClass = $derived(mockAllClasses.find((c) => c.id === currentClassId));
   let hasMultipleClasses = $derived(mockAllClasses.length > 1);
+
+  // Group missions by sector
+  let missionsBySector = $derived(
+    mockSectors.map((sector) => ({
+      ...sector,
+      missions: mockMissions.filter((m) => m.sectorId === sector.id),
+    }))
+  );
 
   function handleLogout() {
     // TODO: Implement logout functionality
@@ -393,9 +496,103 @@
         </div>
       </div>
     {:else if activeTab === 'missions'}
-      <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-6">
-        <h2 class="text-xl font-bold text-slate-800 mb-4">Missions</h2>
-        <p class="text-slate-600">Missions content coming soon...</p>
+      <div class="space-y-6">
+        <!-- Header with Create Mission Button -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-800">Missions</h2>
+            <p class="text-sm text-slate-600 mt-1">Manage tasks for your students</p>
+          </div>
+          <button
+            class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/30 min-h-touch-target"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Create Mission</span>
+          </button>
+        </div>
+
+        <!-- Missions Grouped by Sector -->
+        {#each missionsBySector as sector}
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
+            <!-- Sector Header -->
+            <div class="px-4 sm:px-6 py-4 border-b border-slate-200/60 bg-gradient-to-r from-{sector.color}-50 to-{sector.color}-100/50">
+              <div class="flex items-center gap-3">
+                <span class="text-3xl">{sector.icon}</span>
+                <div class="flex-1 min-w-0">
+                  <h3 class="text-lg font-bold text-slate-800">{sector.name}</h3>
+                  <p class="text-sm text-slate-600">{sector.description}</p>
+                </div>
+                <span class="px-3 py-1 bg-white/80 rounded-full text-sm font-semibold text-slate-700">
+                  {sector.missions.length} mission{sector.missions.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+
+            <!-- Missions List -->
+            <div class="p-4 sm:p-6">
+              {#if sector.missions.length > 0}
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {#each sector.missions as mission}
+                    <div class="bg-slate-50/80 rounded-xl p-4 border border-slate-200 hover:border-{sector.color}-300 hover:shadow-md transition-all">
+                      <h4 class="font-semibold text-slate-800 mb-2">{mission.title}</h4>
+                      <p class="text-sm text-slate-600 mb-4 line-clamp-2">{mission.description}</p>
+
+                      <!-- Rewards -->
+                      <div class="flex flex-wrap gap-2 mb-3">
+                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-md text-xs font-semibold">
+                          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          {mission.xpReward} XP
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-md text-xs font-semibold">
+                          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd" />
+                          </svg>
+                          {mission.coinReward}
+                        </span>
+                      </div>
+
+                      <!-- Stat Boosts -->
+                      {#if mission.thirstBoost > 0 || mission.hungerBoost > 0 || mission.happinessBoost > 0 || mission.cleanlinessBoost > 0}
+                        <div class="flex flex-wrap gap-1.5 text-xs">
+                          {#if mission.thirstBoost > 0}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded">
+                              💧 +{mission.thirstBoost}
+                            </span>
+                          {/if}
+                          {#if mission.hungerBoost > 0}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-50 text-orange-700 rounded">
+                              🍎 +{mission.hungerBoost}
+                            </span>
+                          {/if}
+                          {#if mission.happinessBoost > 0}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-50 text-yellow-700 rounded">
+                              😊 +{mission.happinessBoost}
+                            </span>
+                          {/if}
+                          {#if mission.cleanlinessBoost > 0}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 rounded">
+                              ✨ +{mission.cleanlinessBoost}
+                            </span>
+                          {/if}
+                        </div>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {:else}
+                <div class="text-center py-8">
+                  <div class="text-4xl mb-2">{sector.icon}</div>
+                  <p class="text-slate-500">No missions yet for {sector.name}</p>
+                  <p class="text-sm text-slate-400 mt-1">Click "Create Mission" to add one</p>
+                </div>
+              {/if}
+            </div>
+          </div>
+        {/each}
       </div>
     {:else if activeTab === 'submissions'}
       <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-6">
