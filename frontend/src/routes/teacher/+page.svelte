@@ -13,6 +13,26 @@
   .animate-slide-up {
     animation: slide-up 0.3s ease-out;
   }
+
+  /* Respect user's motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Ensure minimum touch target size on mobile */
+  @media (max-width: 768px) {
+    button,
+    select {
+      min-height: 48px;
+    }
+  }
 </style>
 
 <script lang="ts">
@@ -46,6 +66,10 @@
   let toastMessage = $state<string>('');
   let toastType = $state<'success' | 'error'>('success');
   let toastVisible = $state(false);
+
+  // Focus management for accessibility
+  let createClassDialogRef = $state<HTMLDivElement | null>(null);
+  let createMissionDialogRef = $state<HTMLDivElement | null>(null);
 
   // Mission form state
   let missionForm = $state({
@@ -124,10 +148,20 @@
 
   function openCreateClassDialog() {
     isCreateClassDialogOpen = true;
+    // Focus the dialog after it opens
+    setTimeout(() => {
+      createClassDialogRef?.focus();
+    }, 100);
   }
 
   function closeCreateClassDialog() {
     isCreateClassDialogOpen = false;
+  }
+
+  function handleDialogKeydown(event: KeyboardEvent, closeHandler: () => void) {
+    if (event.key === 'Escape') {
+      closeHandler();
+    }
   }
 
   function handleCreateClass(event: Event) {
@@ -174,6 +208,10 @@
 
   function openCreateMissionDialog() {
     isCreateMissionDialogOpen = true;
+    // Focus the dialog after it opens
+    setTimeout(() => {
+      createMissionDialogRef?.focus();
+    }, 100);
   }
 
   function closeCreateMissionDialog() {
@@ -1184,9 +1222,10 @@
     tabindex="-1"
   >
     <div
+      bind:this={createClassDialogRef}
       class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
       onclick={(e) => e.stopPropagation()}
-      onkeydown={(e) => e.stopPropagation()}
+      onkeydown={(e) => handleDialogKeydown(e, closeCreateClassDialog)}
       role="dialog"
       aria-modal="true"
       aria-labelledby="dialog-title"
@@ -1272,9 +1311,10 @@
     tabindex="-1"
   >
     <div
+      bind:this={createMissionDialogRef}
       class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
       onclick={(e) => e.stopPropagation()}
-      onkeydown={(e) => e.stopPropagation()}
+      onkeydown={(e) => handleDialogKeydown(e, closeCreateMissionDialog)}
       role="dialog"
       aria-modal="true"
       aria-labelledby="mission-dialog-title"
