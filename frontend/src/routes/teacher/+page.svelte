@@ -907,9 +907,159 @@
         {/if}
       </div>
     {:else if activeTab === 'map'}
-      <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-6">
-        <h2 class="text-xl font-bold text-slate-800 mb-4">Schoolyard Map</h2>
-        <p class="text-slate-600">Map content coming soon...</p>
+      <div class="space-y-6">
+        <!-- Header -->
+        <div>
+          <h2 class="text-2xl font-bold text-slate-800">Schoolyard Map</h2>
+          <p class="text-sm text-slate-600 mt-1">Visual overview of all sectors and their missions</p>
+        </div>
+
+        <!-- Legend -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-xl shadow-md shadow-slate-200/50 border border-slate-200/60 p-4">
+          <h3 class="text-sm font-semibold text-slate-700 mb-3">Sector Types</h3>
+          <div class="flex flex-wrap gap-3">
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded bg-emerald-500"></div>
+              <span class="text-sm text-slate-600">🌳 Trees</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded bg-pink-500"></div>
+              <span class="text-sm text-slate-600">🌸 Flowers</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded bg-blue-500"></div>
+              <span class="text-sm text-slate-600">🦆 Pond</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded bg-amber-500"></div>
+              <span class="text-sm text-slate-600">🐔 Chickens</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded bg-orange-500"></div>
+              <span class="text-sm text-slate-600">🥕 Garden</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Map Grid -->
+        {#if sectorsData.length > 0}
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {#each missionsBySector as sector}
+              <div
+                class="group relative bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border-2 overflow-hidden transition-all hover:shadow-xl hover:scale-105 cursor-pointer"
+                class:border-emerald-300={sector.color === 'emerald'}
+                class:hover:border-emerald-500={sector.color === 'emerald'}
+                class:border-pink-300={sector.color === 'pink'}
+                class:hover:border-pink-500={sector.color === 'pink'}
+                class:border-blue-300={sector.color === 'blue'}
+                class:hover:border-blue-500={sector.color === 'blue'}
+                class:border-amber-300={sector.color === 'amber'}
+                class:hover:border-amber-500={sector.color === 'amber'}
+                class:border-orange-300={sector.color === 'orange'}
+                class:hover:border-orange-500={sector.color === 'orange'}
+              >
+                <!-- Sector Header -->
+                <div
+                  class="px-5 py-4 transition-colors"
+                  class:bg-emerald-50={sector.color === 'emerald'}
+                  class:group-hover:bg-emerald-100={sector.color === 'emerald'}
+                  class:bg-pink-50={sector.color === 'pink'}
+                  class:group-hover:bg-pink-100={sector.color === 'pink'}
+                  class:bg-blue-50={sector.color === 'blue'}
+                  class:group-hover:bg-blue-100={sector.color === 'blue'}
+                  class:bg-amber-50={sector.color === 'amber'}
+                  class:group-hover:bg-amber-100={sector.color === 'amber'}
+                  class:bg-orange-50={sector.color === 'orange'}
+                  class:group-hover:bg-orange-100={sector.color === 'orange'}
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <span class="text-4xl transition-transform group-hover:scale-110">{sector.icon}</span>
+                      <div>
+                        <h3 class="text-lg font-bold text-slate-800">{sector.name}</h3>
+                        <p class="text-xs text-slate-600">{sector.type}</p>
+                      </div>
+                    </div>
+                    <div
+                      class="px-3 py-1 rounded-full text-sm font-bold"
+                      class:bg-emerald-200={sector.color === 'emerald'}
+                      class:text-emerald-800={sector.color === 'emerald'}
+                      class:bg-pink-200={sector.color === 'pink'}
+                      class:text-pink-800={sector.color === 'pink'}
+                      class:bg-blue-200={sector.color === 'blue'}
+                      class:text-blue-800={sector.color === 'blue'}
+                      class:bg-amber-200={sector.color === 'amber'}
+                      class:text-amber-800={sector.color === 'amber'}
+                      class:bg-orange-200={sector.color === 'orange'}
+                      class:text-orange-800={sector.color === 'orange'}
+                    >
+                      {sector.missions.length}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Sector Body -->
+                <div class="p-5">
+                  <p class="text-sm text-slate-600 mb-4">{sector.description}</p>
+
+                  <!-- Mission Count Info -->
+                  <div class="flex items-center gap-2 text-sm">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    <span class="text-slate-700 font-medium">
+                      {sector.missions.length} {sector.missions.length === 1 ? 'mission' : 'missions'} available
+                    </span>
+                  </div>
+
+                  <!-- Mission Preview (show first 2) -->
+                  {#if sector.missions.length > 0}
+                    <div class="mt-4 space-y-2">
+                      {#each sector.missions.slice(0, 2) as mission}
+                        <div class="flex items-start gap-2 p-2 bg-slate-50 rounded-lg">
+                          <svg class="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                          </svg>
+                          <span class="text-xs text-slate-700 line-clamp-1">{mission.title}</span>
+                        </div>
+                      {/each}
+                      {#if sector.missions.length > 2}
+                        <p class="text-xs text-slate-500 italic pl-6">
+                          +{sector.missions.length - 2} more...
+                        </p>
+                      {/if}
+                    </div>
+                  {:else}
+                    <div class="mt-4 p-3 bg-slate-50 rounded-lg text-center">
+                      <p class="text-xs text-slate-500">No missions yet</p>
+                    </div>
+                  {/if}
+                </div>
+
+                <!-- Hover Overlay -->
+                <div class="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+              </div>
+            {/each}
+
+            <!-- Placeholder for future sectors -->
+            <div class="bg-slate-100/50 backdrop-blur-sm rounded-2xl border-2 border-dashed border-slate-300 p-6 flex flex-col items-center justify-center min-h-[280px] hover:border-slate-400 hover:bg-slate-100 transition-all cursor-pointer">
+              <div class="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center mb-3">
+                <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <h3 class="text-sm font-semibold text-slate-600 mb-1">Add New Sector</h3>
+              <p class="text-xs text-slate-500 text-center">Expand your schoolyard</p>
+            </div>
+          </div>
+        {:else}
+          <!-- Empty State -->
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-12 text-center">
+            <div class="text-6xl mb-4">🗺️</div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">No Sectors Yet</h3>
+            <p class="text-slate-600">Initialize your class to create default sectors</p>
+          </div>
+        {/if}
       </div>
     {/if}
   </main>
