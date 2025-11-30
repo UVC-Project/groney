@@ -12,7 +12,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@prisma/client": "^7.0.0",
+    "@prisma/client": "^5.22.0",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.3.1",
     "drizzle-orm": "^0.29.2",
@@ -29,7 +29,7 @@
     "@types/jsonwebtoken": "^9.0.5",
     "drizzle-kit": "^0.20.9",
     "fast-check": "^3.15.0",
-    "prisma": "^7.0.0",
+    "prisma": "^5.22.0",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
     "vitest": "^1.1.0"
