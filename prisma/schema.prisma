@@ -100,8 +100,12 @@ enum SectorType {
   TREES
   FLOWERS
   POND
-  CHICKENS
+  ANIMALS
   GARDEN
+  PLAYGROUND
+  COMPOST
+  OTHER
+  CHICKENS // @deprecated - use ANIMALS instead
 }
 
 // Mission model

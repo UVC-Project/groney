@@ -81,6 +81,93 @@ router.get('/sectors', requireTeacher, async (req: Request, res: Response) => {
 	}
 });
 
+// POST /api/teacher/sectors - Create a new sector
+router.post('/sectors', requireTeacher, async (req: Request, res: Response) => {
+	try {
+		const userId = (req as any).userId;
+		const { name, type } = req.body;
+
+		// Validation
+		if (!name || name.length < 2) {
+			return res.status(400).json({ error: 'Bad Request', message: 'Sector name must be at least 2 characters' });
+		}
+		const validTypes = ['TREES', 'FLOWERS', 'POND', 'ANIMALS', 'GARDEN', 'PLAYGROUND', 'COMPOST', 'OTHER', 'CHICKENS'];
+		if (!type || !validTypes.includes(type)) {
+			return res.status(400).json({ error: 'Bad Request', message: 'Invalid sector type' });
+		}
+
+		const classId = await getActiveClassId(userId);
+		if (!classId) {
+			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
+		}
+
+		// Check if sector name already exists in this class
+		const existingSector = await prisma.sector.findFirst({
+			where: {
+				classId,
+				name,
+			},
+		});
+		if (existingSector) {
+			return res.status(400).json({ error: 'Bad Request', message: 'A sector with this name already exists' });
+		}
+
+		// Create the sector
+		const sector = await prisma.sector.create({
+			data: {
+				classId,
+				name,
+				type,
+			},
+		});
+
+		console.log('Created sector:', sector.id);
+		res.status(201).json(sector);
+	} catch (error) {
+		console.error('Error creating sector:', error);
+		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to create sector' });
+	}
+});
+
+// DELETE /api/teacher/sectors/:id - Delete a sector
+router.delete('/sectors/:id', requireTeacher, async (req: Request, res: Response) => {
+	try {
+		const userId = (req as any).userId;
+		const sectorId = req.params.id;
+
+		const classId = await getActiveClassId(userId);
+		if (!classId) {
+			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
+		}
+
+		// Verify sector belongs to teacher's class
+		const sector = await prisma.sector.findFirst({
+			where: {
+				id: sectorId,
+				classId,
+			},
+			include: {
+				missions: true,
+			},
+		});
+
+		if (!sector) {
+			return res.status(404).json({ error: 'Not Found', message: 'Sector not found' });
+		}
+
+		// Delete the sector (cascades to missions due to schema)
+		await prisma.sector.delete({
+			where: { id: sectorId },
+		});
+
+		console.log('Deleted sector:', sectorId, 'with', sector.missions.length, 'missions');
+		res.json({ success: true, message: 'Sector deleted successfully', deletedMissions: sector.missions.length });
+	} catch (error) {
+		console.error('Error deleting sector:', error);
+		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to delete sector' });
+	}
+});
+
 // GET /api/teacher/missions - Returns all missions for teacher's class with sector info
 router.get('/missions', requireTeacher, async (req: Request, res: Response) => {
 	try {

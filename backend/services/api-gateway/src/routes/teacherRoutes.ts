@@ -122,6 +122,13 @@ router.use(
 			if (req.headers['x-user-role']) {
 				proxyReq.setHeader('x-user-role', req.headers['x-user-role'] as string);
 			}
+			// Forward JSON body for POST requests
+			if (req.body && Object.keys(req.body).length > 0) {
+				const bodyData = JSON.stringify(req.body);
+				proxyReq.setHeader('Content-Type', 'application/json');
+				proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+				proxyReq.write(bodyData);
+			}
 		},
 	})
 );

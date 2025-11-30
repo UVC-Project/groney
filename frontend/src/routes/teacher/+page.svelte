@@ -67,14 +67,17 @@
   let activeTab = $state<'overview' | 'missions' | 'submissions' | 'map'>('overview');
   let isCreateClassDialogOpen = $state(false);
   let isCreateMissionDialogOpen = $state(false);
+  let isCreateSectorDialogOpen = $state(false);
   let copySuccess = $state(false);
   let isClassSelectorOpen = $state(false);
   let isSwitchingClass = $state(false);
   let isCreatingMission = $state(false);
   let isCreatingClass = $state(false);
+  let isCreatingSector = $state(false);
   let submissionsView = $state<'grid' | 'list'>('grid');
   let reviewingSubmissionId = $state<string | null>(null);
   let missionFormErrors = $state<Record<string, string>>({});
+  let sectorFormErrors = $state<Record<string, string>>({});
   
   // Toast notification state
   let toastMessage = $state<string>('');
@@ -89,6 +92,12 @@
   let classForm = $state({
     className: '',
     schoolName: '',
+  });
+
+  // Sector form state
+  let sectorForm = $state({
+    name: '',
+    type: 'TREES' as 'TREES' | 'FLOWERS' | 'POND' | 'ANIMALS' | 'GARDEN' | 'PLAYGROUND' | 'COMPOST' | 'OTHER',
   });
 
   // Mission form state
@@ -118,13 +127,17 @@
   // Helper function to get sector display properties
   function getSectorDisplay(type: string) {
     const displays: Record<string, { icon: string; color: string }> = {
-      trees: { icon: '🌳', color: 'emerald' },
-      flowers: { icon: '🌸', color: 'pink' },
-      pond: { icon: '🦆', color: 'blue' },
-      chickens: { icon: '🐔', color: 'amber' },
-      garden: { icon: '🥕', color: 'orange' },
+      TREES: { icon: '\u{1F333}', color: 'emerald' },
+      FLOWERS: { icon: '\u{1F338}', color: 'pink' },
+      POND: { icon: '\u{1F986}', color: 'blue' },
+      ANIMALS: { icon: '\u{1F43E}', color: 'amber' },
+      GARDEN: { icon: '\u{1F955}', color: 'orange' },
+      PLAYGROUND: { icon: '\u{1F3AA}', color: 'purple' },
+      COMPOST: { icon: '\u{267B}\u{FE0F}', color: 'lime' },
+      OTHER: { icon: '\u{1F4CD}', color: 'slate' },
+      CHICKENS: { icon: '\u{1F414}', color: 'amber' },
     };
-    return displays[type] || { icon: '🌱', color: 'green' };
+    return displays[type.toUpperCase()] || { icon: '\u{1F331}', color: 'green' };
   }
 
   // Toast notification function
@@ -388,6 +401,120 @@
       showToast('Failed to create mission. Please try again.', 'error');
     } finally {
       isCreatingMission = false;
+    }
+  }
+
+  // Sector dialog functions
+  function openCreateSectorDialog() {
+    isCreateSectorDialogOpen = true;
+  }
+
+  function closeCreateSectorDialog() {
+    isCreateSectorDialogOpen = false;
+    // Reset form
+    sectorForm = {
+      name: '',
+      type: 'TREES',
+    };
+    // Clear errors
+    sectorFormErrors = {};
+  }
+
+  function validateSectorForm(): boolean {
+    sectorFormErrors = {};
+    let isValid = true;
+
+    if (!sectorForm.name || sectorForm.name.length < 2) {
+      sectorFormErrors.name = 'Sector name must be at least 2 characters';
+      isValid = false;
+    }
+    if (!sectorForm.type) {
+      sectorFormErrors.type = 'Please select a sector type';
+      isValid = false;
+    }
+
+    return isValid;
+  }
+
+  async function handleCreateSector(event: Event) {
+    event.preventDefault();
+    
+    // Validate form
+    if (!validateSectorForm()) {
+      showToast('Please fix the form errors', 'error');
+      return;
+    }
+
+    isCreatingSector = true;
+
+    try {
+      // Call API endpoint with authentication
+      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
+        body: JSON.stringify(sectorForm)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to create sector');
+      }
+
+      const newSector = await response.json();
+      
+      console.log('✅ Created sector:', newSector);
+      
+      // Show success toast
+      showToast('Sector created successfully! 🌱', 'success');
+      
+      closeCreateSectorDialog();
+      
+      // Refresh data to show new sector
+      await invalidateAll();
+    } catch (error) {
+      console.error('❌ Failed to create sector:', error);
+      showToast('Failed to create sector. Please try again.', 'error');
+    } finally {
+      isCreatingSector = false;
+    }
+  }
+
+  let deletingSectorId = $state<string | null>(null);
+
+  async function handleDeleteSector(sectorId: string, sectorName: string) {
+    if (deletingSectorId) return;
+
+    const confirmed = confirm(`Are you sure you want to delete "${sectorName}"? This will also delete all missions in this sector.`);
+    if (!confirmed) return;
+
+    deletingSectorId = sectorId;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors/${sectorId}`, {
+        method: 'DELETE',
+        headers: {
+          ...getAuthHeaders(TEST_TEACHER),
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete sector');
+      }
+
+      const result = await response.json();
+      console.log('Deleted sector:', result);
+
+      showToast(`Sector deleted successfully!`, 'success');
+      await invalidateAll();
+    } catch (error) {
+      console.error('❌ Failed to delete sector:', error);
+      showToast('Failed to delete sector. Please try again.', 'error');
+    } finally {
+      deletingSectorId = null;
     }
   }
 
@@ -1233,20 +1360,39 @@
                         <p class="text-xs text-slate-600">{sector.type}</p>
                       </div>
                     </div>
-                    <div
-                      class="px-3 py-1 rounded-full text-sm font-bold"
-                      class:bg-emerald-200={sector.color === 'emerald'}
-                      class:text-emerald-800={sector.color === 'emerald'}
-                      class:bg-pink-200={sector.color === 'pink'}
-                      class:text-pink-800={sector.color === 'pink'}
-                      class:bg-blue-200={sector.color === 'blue'}
-                      class:text-blue-800={sector.color === 'blue'}
-                      class:bg-amber-200={sector.color === 'amber'}
-                      class:text-amber-800={sector.color === 'amber'}
-                      class:bg-orange-200={sector.color === 'orange'}
-                      class:text-orange-800={sector.color === 'orange'}
-                    >
-                      {sector.missions.length}
+                    <div class="flex items-center gap-2">
+                      <div
+                        class="px-3 py-1 rounded-full text-sm font-bold"
+                        class:bg-emerald-200={sector.color === 'emerald'}
+                        class:text-emerald-800={sector.color === 'emerald'}
+                        class:bg-pink-200={sector.color === 'pink'}
+                        class:text-pink-800={sector.color === 'pink'}
+                        class:bg-blue-200={sector.color === 'blue'}
+                        class:text-blue-800={sector.color === 'blue'}
+                        class:bg-amber-200={sector.color === 'amber'}
+                        class:text-amber-800={sector.color === 'amber'}
+                        class:bg-orange-200={sector.color === 'orange'}
+                        class:text-orange-800={sector.color === 'orange'}
+                      >
+                        {sector.missions.length}
+                      </div>
+                      <button
+                        onclick={(e) => { e.stopPropagation(); handleDeleteSector(sector.id, sector.name); }}
+                        disabled={deletingSectorId === sector.id}
+                        class="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                        title="Delete sector"
+                      >
+                        {#if deletingSectorId === sector.id}
+                          <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        {:else}
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        {/if}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1294,8 +1440,11 @@
               </div>
             {/each}
 
-            <!-- Placeholder for future sectors -->
-            <div class="bg-slate-100/50 backdrop-blur-sm rounded-2xl border-2 border-dashed border-slate-300 p-6 flex flex-col items-center justify-center min-h-[280px] hover:border-slate-400 hover:bg-slate-100 transition-all cursor-pointer">
+            <!-- Add New Sector Button -->
+            <button
+              onclick={openCreateSectorDialog}
+              class="bg-slate-100/50 backdrop-blur-sm rounded-2xl border-2 border-dashed border-slate-300 p-6 flex flex-col items-center justify-center min-h-[280px] hover:border-slate-400 hover:bg-slate-100 transition-all cursor-pointer"
+            >
               <div class="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center mb-3">
                 <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -1303,14 +1452,23 @@
               </div>
               <h3 class="text-sm font-semibold text-slate-600 mb-1">Add New Sector</h3>
               <p class="text-xs text-slate-500 text-center">Expand your schoolyard</p>
-            </div>
+            </button>
           </div>
         {:else}
           <!-- Empty State -->
           <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-12 text-center">
             <div class="text-6xl mb-4">🗺️</div>
             <h3 class="text-xl font-bold text-slate-800 mb-2">No Sectors Yet</h3>
-            <p class="text-slate-600">Initialize your class to create default sectors</p>
+            <p class="text-slate-600 mb-6">Create your first sector to get started</p>
+            <button
+              onclick={openCreateSectorDialog}
+              class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/30"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Create First Sector
+            </button>
           </div>
         {/if}
       </div>
@@ -1632,6 +1790,123 @@
               Creating...
             {:else}
               Create Mission
+            {/if}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+{/if}
+
+<!-- Create Sector Dialog -->
+{#if isCreateSectorDialogOpen}
+  <div
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    onclick={closeCreateSectorDialog}
+    onkeydown={(e) => e.key === 'Escape' && closeCreateSectorDialog()}
+    role="presentation"
+    tabindex="-1"
+  >
+    <div
+      class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+      onclick={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="sector-dialog-title"
+      tabindex="0"
+    >
+      <div class="px-6 py-5 border-b border-slate-200">
+        <div class="flex items-center justify-between">
+          <h2 id="sector-dialog-title" class="text-xl font-bold text-slate-800">Create New Sector</h2>
+          <button
+            onclick={closeCreateSectorDialog}
+            class="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            aria-label="Close dialog"
+          >
+            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <p class="text-sm text-slate-600 mt-1">Add a new area to your schoolyard</p>
+      </div>
+
+      <form onsubmit={handleCreateSector} class="p-6 space-y-5">
+        <!-- Sector Name -->
+        <div>
+          <label for="sector-name" class="block text-sm font-semibold text-slate-700 mb-2">
+            Sector Name <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="sector-name"
+            bind:value={sectorForm.name}
+            placeholder="e.g., Rose Garden, Oak Trees"
+            required
+            minlength="2"
+            class="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+            class:border-red-300={sectorFormErrors.name}
+            class:border-slate-300={!sectorFormErrors.name}
+            class:focus:border-emerald-500={!sectorFormErrors.name}
+          />
+          {#if sectorFormErrors.name}
+            <p class="text-xs text-red-600 mt-1">{sectorFormErrors.name}</p>
+          {:else}
+            <p class="text-xs text-slate-500 mt-1">Minimum 2 characters</p>
+          {/if}
+        </div>
+
+        <!-- Sector Type -->
+        <div>
+          <label for="sector-type" class="block text-sm font-semibold text-slate-700 mb-2">
+            Sector Type <span class="text-red-500">*</span>
+          </label>
+          <select
+            id="sector-type"
+            bind:value={sectorForm.type}
+            required
+            class="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+            class:border-red-300={sectorFormErrors.type}
+            class:border-slate-300={!sectorFormErrors.type}
+            class:focus:border-emerald-500={!sectorFormErrors.type}
+          >
+            <option value="TREES">Trees / Forest</option>
+            <option value="FLOWERS">Flowers</option>
+            <option value="POND">Pond / Water</option>
+            <option value="ANIMALS">Animals</option>
+            <option value="GARDEN">Vegetable Garden</option>
+            <option value="PLAYGROUND">Playground</option>
+            <option value="COMPOST">Compost</option>
+            <option value="OTHER">Other</option>
+          </select>
+          {#if sectorFormErrors.type}
+            <p class="text-xs text-red-600 mt-1">{sectorFormErrors.type}</p>
+          {/if}
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-3 pt-4">
+          <button
+            type="button"
+            onclick={closeCreateSectorDialog}
+            disabled={isCreatingSector}
+            class="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isCreatingSector}
+            class="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/30 min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {#if isCreatingSector}
+              <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Creating...
+            {:else}
+              Create Sector
             {/if}
           </button>
         </div>
