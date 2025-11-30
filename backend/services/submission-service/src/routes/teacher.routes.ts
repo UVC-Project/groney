@@ -19,29 +19,44 @@ const requireTeacher = (req: Request, res: Response, next: Function) => {
 	next();
 };
 
+// Helper function to get teacher's active class ID
+async function getActiveClassId(userId: string): Promise<string | null> {
+	const teacher = await prisma.user.findUnique({
+		where: { id: userId },
+		select: { activeClassId: true },
+	});
+
+	let classId = teacher?.activeClassId;
+
+	// If no active class set, use the most recent class
+	if (!classId) {
+		const recentClass = await prisma.class.findFirst({
+			where: { teacherId: userId },
+			orderBy: { createdAt: 'desc' },
+			select: { id: true },
+		});
+		classId = recentClass?.id || null;
+	}
+
+	return classId;
+}
+
 // GET /api/teacher/submissions - Returns pending submissions for teacher's class
 router.get('/submissions', requireTeacher, async (req: Request, res: Response) => {
 	try {
 		const userId = (req as any).userId;
 
-		// Get teacher's current class
-		const teacherClass = await prisma.class.findFirst({
-			where: {
-				teacherId: userId,
-			},
-			orderBy: {
-				createdAt: 'desc',
-			},
-		});
+		// Get teacher's active class ID
+		const classId = await getActiveClassId(userId);
 
-		if (!teacherClass) {
+		if (!classId) {
 			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
 		}
 
 		// Get all pending submissions for this class
 		const submissions = await prisma.submission.findMany({
 			where: {
-				classId: teacherClass.id,
+				classId,
 				status: 'PENDING',
 			},
 			include: {

@@ -53,11 +53,31 @@ router.get('/class', requireTeacher, async (req: Request, res: Response) => {
 	try {
 		const userId = (req as any).userId;
 
-		// For now, get the most recent class (TODO: implement activeClassId in Issue 6)
-		const teacherClass = await prisma.class.findFirst({
-			where: {
-				teacherId: userId,
-			},
+		// Get teacher's user record to find activeClassId
+		const teacher = await prisma.user.findUnique({
+			where: { id: userId },
+			select: { activeClassId: true },
+		});
+
+		let classId = teacher?.activeClassId;
+
+		// If no active class set, use the most recent class
+		if (!classId) {
+			const recentClass = await prisma.class.findFirst({
+				where: { teacherId: userId },
+				orderBy: { createdAt: 'desc' },
+				select: { id: true },
+			});
+			classId = recentClass?.id;
+		}
+
+		if (!classId) {
+			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
+		}
+
+		// Get the class with full details
+		const teacherClass = await prisma.class.findUnique({
+			where: { id: classId },
 			include: {
 				mascot: true,
 				users: {
@@ -69,13 +89,10 @@ router.get('/class', requireTeacher, async (req: Request, res: Response) => {
 					},
 				},
 			},
-			orderBy: {
-				createdAt: 'desc',
-			},
 		});
 
 		if (!teacherClass) {
-			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
+			return res.status(404).json({ error: 'Not Found', message: 'Class not found' });
 		}
 
 		// Transform to match frontend expectations
@@ -168,6 +185,12 @@ router.post('/create-class', requireTeacher, async (req: Request, res: Response)
 				},
 			});
 
+			// Set this as the teacher's active class
+			await tx.user.update({
+				where: { id: userId },
+				data: { activeClassId: createdClass.id },
+			});
+
 			return createdClass;
 		});
 
@@ -206,9 +229,17 @@ router.post('/switch-class', requireTeacher, async (req: Request, res: Response)
 			return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to this class' });
 		}
 
-		// TODO: Implement activeClassId in User model (Issue 6)
-		// For now, just return success
-		res.json({ message: 'Class switched successfully', classId });
+		// Update teacher's activeClassId
+		await prisma.user.update({
+			where: { id: userId },
+			data: { activeClassId: classId },
+		});
+
+		res.json({ 
+			message: 'Class switched successfully', 
+			classId,
+			className: teacherClass.name,
+		});
 	} catch (error) {
 		console.error('Error switching class:', error);
 		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to switch class' });

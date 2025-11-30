@@ -11,13 +11,14 @@ datasource db {
 
 // User model for both students and teachers
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  password  String
-  role      UserRole
-  classId   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  username      String   @unique
+  password      String
+  role          UserRole
+  classId       String?
+  activeClassId String?  // For teachers managing multiple classes
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   class       Class?        @relation(fields: [classId], references: [id])
   submissions Submission[]
@@ -25,6 +26,7 @@ model User {
   activities  Activity[]
 
   @@index([classId])
+  @@index([activeClassId])
   @@map("users")
 }
 
