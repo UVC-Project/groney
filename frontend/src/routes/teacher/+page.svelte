@@ -40,6 +40,8 @@
   import type { Class, ClassListItem, Sector, Mission, Submission } from '$lib/types/teacher';
   import LoadingSkeleton from '$lib/components/LoadingSkeleton.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
+  import { API_BASE_URL } from '$lib/config';
+  import { TEST_TEACHER, getAuthHeaders } from '$lib/auth/context';
 
   let { data }: { data: PageData } = $props();
   
@@ -58,6 +60,7 @@
   let isClassSelectorOpen = $state(false);
   let isSwitchingClass = $state(false);
   let isCreatingMission = $state(false);
+  let isCreatingClass = $state(false);
   let submissionsView = $state<'grid' | 'list'>('grid');
   let reviewingSubmissionId = $state<string | null>(null);
   let missionFormErrors = $state<Record<string, string>>({});
@@ -70,6 +73,12 @@
   // Focus management for accessibility
   let createClassDialogRef = $state<HTMLDivElement | null>(null);
   let createMissionDialogRef = $state<HTMLDivElement | null>(null);
+
+  // Class form state
+  let classForm = $state({
+    className: '',
+    schoolName: '',
+  });
 
   // Mission form state
   let missionForm = $state({
@@ -164,11 +173,77 @@
     }
   }
 
-  function handleCreateClass(event: Event) {
+  async function handleCreateClass(event: Event) {
     event.preventDefault();
-    // TODO: Implement class creation
-    console.log('Create class');
-    closeCreateClassDialog();
+    
+    if (!classForm.className || !classForm.schoolName) {
+      showToast('Please fill in all required fields', 'error');
+      return;
+    }
+
+    isCreatingClass = true;
+
+    try {
+      // Call API endpoint with authentication
+      const response = await fetch(`${API_BASE_URL}/api/teacher/create-class`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
+        body: JSON.stringify({
+          className: classForm.className,
+          schoolName: classForm.schoolName,
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to create class');
+      }
+
+      const newClass = await response.json();
+      console.log('✅ Created class:', newClass);
+
+      // Initialize the class with sectors and missions
+      await initializeClass(newClass.id);
+      
+      // Show success toast
+      showToast(`Class "${newClass.name}" created successfully! 🎉`, 'success');
+      
+      closeCreateClassDialog();
+      
+      // Refresh the page to load new data
+      window.location.reload();
+    } catch (error) {
+      console.error('❌ Failed to create class:', error);
+      showToast('Failed to create class. Please try again.', 'error');
+    } finally {
+      isCreatingClass = false;
+    }
+  }
+
+  async function initializeClass(classId: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/initialize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
+        body: JSON.stringify({ classId })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to initialize class');
+      }
+
+      console.log('✅ Class initialized with sectors and missions');
+    } catch (error) {
+      console.error('❌ Failed to initialize class:', error);
+      showToast('Class created but failed to initialize. Please try refreshing.', 'error');
+    }
   }
 
   function toggleClassSelector() {
@@ -186,21 +261,27 @@
     closeClassSelector();
 
     try {
-      // Call API to switch active class
-      const response = await fetch('/api/teacher/switch-class', {
+      // Call API to switch active class with authentication
+      const response = await fetch(`${API_BASE_URL}/api/teacher/switch-class`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
         body: JSON.stringify({ classId })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to switch class');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to switch class');
       }
+
+      console.log('✅ Switched to class:', classId);
 
       // Reload the page to fetch new class data
       window.location.reload();
     } catch (error) {
-      console.error('Failed to switch class:', error);
+      console.error('❌ Failed to switch class:', error);
       showToast('Failed to switch class. Please try again.', 'error');
       isSwitchingClass = false;
     }
@@ -264,15 +345,19 @@
     isCreatingMission = true;
 
     try {
-      // Call API endpoint
-      const response = await fetch('/api/teacher/missions', {
+      // Call API endpoint with authentication
+      const response = await fetch(`${API_BASE_URL}/api/teacher/missions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
         body: JSON.stringify(missionForm)
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create mission');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to create mission');
       }
 
       const newMission = await response.json();
@@ -280,14 +365,14 @@
       // Add new mission to local state
       missionsData = [...missionsData, newMission];
       
-      console.log('Created mission:', newMission);
+      console.log('✅ Created mission:', newMission);
       
       // Show success toast
       showToast('Mission created successfully! 🎯', 'success');
       
       closeCreateMissionDialog();
     } catch (error) {
-      console.error('Failed to create mission:', error);
+      console.error('❌ Failed to create mission:', error);
       showToast('Failed to create mission. Please try again.', 'error');
     } finally {
       isCreatingMission = false;
@@ -310,25 +395,29 @@
       // Optimistic update: Remove submission from list immediately
       submissionsData = submissionsData.filter((s) => s.id !== submissionId);
 
-      // Call API endpoint
-      const response = await fetch(`/api/submissions/${submissionId}/review`, {
+      // Call API endpoint with authentication
+      const response = await fetch(`${API_BASE_URL}/api/submissions/${submissionId}/review`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
         body: JSON.stringify({ status: 'completed' })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to approve submission');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to approve submission');
       }
 
-      console.log('Approved submission:', submissionId);
+      console.log('✅ Approved submission:', submissionId);
 
       // Show success toast
       showToast('Submission approved successfully! 🎉', 'success');
       
       // TODO: Refresh mascot stats (pending backend implementation)
     } catch (error) {
-      console.error('Failed to approve submission:', error);
+      console.error('❌ Failed to approve submission:', error);
       // Rollback on error
       submissionsData = originalSubmissions;
       // Show error toast
@@ -350,23 +439,27 @@
       // Optimistic update: Remove submission from list immediately
       submissionsData = submissionsData.filter((s) => s.id !== submissionId);
 
-      // Call API endpoint
-      const response = await fetch(`/api/submissions/${submissionId}/review`, {
+      // Call API endpoint with authentication
+      const response = await fetch(`${API_BASE_URL}/api/submissions/${submissionId}/review`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
         body: JSON.stringify({ status: 'rejected' })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to reject submission');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to reject submission');
       }
 
-      console.log('Rejected submission:', submissionId);
+      console.log('✅ Rejected submission:', submissionId);
 
       // Show success toast
       showToast('Submission rejected.', 'success');
     } catch (error) {
-      console.error('Failed to reject submission:', error);
+      console.error('❌ Failed to reject submission:', error);
       // Rollback on error
       submissionsData = originalSubmissions;
       // Show error toast
