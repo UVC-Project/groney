@@ -5,9 +5,24 @@
 
   let activeTab = $state<'overview' | 'missions' | 'submissions' | 'map'>('overview');
   let isCreateClassDialogOpen = $state(false);
+  let isCreateMissionDialogOpen = $state(false);
   let copySuccess = $state(false);
   let isClassSelectorOpen = $state(false);
   let isSwitchingClass = $state(false);
+  let isCreatingMission = $state(false);
+
+  // Mission form state
+  let missionForm = $state({
+    sectorId: '',
+    title: '',
+    description: '',
+    xpReward: 10,
+    coinReward: 5,
+    thirstBoost: 0,
+    hungerBoost: 0,
+    happinessBoost: 0,
+    cleanlinessBoost: 0,
+  });
 
   const tabs = [
     { id: 'overview' as const, label: 'Overview', icon: '📊' },
@@ -200,6 +215,50 @@
 
     // TODO: Refresh dashboard data after switching
     console.log('Switched to class:', classId);
+  }
+
+  function openCreateMissionDialog() {
+    isCreateMissionDialogOpen = true;
+  }
+
+  function closeCreateMissionDialog() {
+    isCreateMissionDialogOpen = false;
+    // Reset form
+    missionForm = {
+      sectorId: '',
+      title: '',
+      description: '',
+      xpReward: 10,
+      coinReward: 5,
+      thirstBoost: 0,
+      hungerBoost: 0,
+      happinessBoost: 0,
+      cleanlinessBoost: 0,
+    };
+  }
+
+  async function handleCreateMission(event: Event) {
+    event.preventDefault();
+    
+    // Basic validation
+    if (!missionForm.sectorId || !missionForm.title || !missionForm.description) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    isCreatingMission = true;
+
+    // TODO: Implement actual mission creation with API call
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    console.log('Creating mission:', missionForm);
+    
+    isCreatingMission = false;
+    closeCreateMissionDialog();
+    
+    // TODO: Show success toast
+    // TODO: Refresh missions list
   }
 </script>
 
@@ -504,6 +563,7 @@
             <p class="text-sm text-slate-600 mt-1">Manage tasks for your students</p>
           </div>
           <button
+            onclick={openCreateMissionDialog}
             class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/30 min-h-touch-target"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -688,6 +748,216 @@
             class="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/30 min-h-touch-target"
           >
             Create Class
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+{/if}
+
+
+<!-- Create Mission Dialog -->
+{#if isCreateMissionDialogOpen}
+  <div
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    onclick={closeCreateMissionDialog}
+    onkeydown={(e) => e.key === 'Escape' && closeCreateMissionDialog()}
+    role="presentation"
+    tabindex="-1"
+  >
+    <div
+      class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mission-dialog-title"
+      tabindex="0"
+    >
+      <div class="px-6 py-5 border-b border-slate-200">
+        <div class="flex items-center justify-between">
+          <h2 id="mission-dialog-title" class="text-xl font-bold text-slate-800">Create New Mission</h2>
+          <button
+            onclick={closeCreateMissionDialog}
+            class="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            aria-label="Close dialog"
+          >
+            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <p class="text-sm text-slate-600 mt-1">Add a new task for students to complete in the schoolyard</p>
+      </div>
+
+      <form onsubmit={handleCreateMission} class="p-6 space-y-5">
+        <!-- Sector Selection -->
+        <div>
+          <label for="mission-sector" class="block text-sm font-semibold text-slate-700 mb-2">
+            Sector <span class="text-red-500">*</span>
+          </label>
+          <select
+            id="mission-sector"
+            bind:value={missionForm.sectorId}
+            required
+            class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+          >
+            <option value="">Select a sector</option>
+            {#each mockSectors as sector}
+              <option value={sector.id}>{sector.icon} {sector.name}</option>
+            {/each}
+          </select>
+        </div>
+
+        <!-- Title -->
+        <div>
+          <label for="mission-title" class="block text-sm font-semibold text-slate-700 mb-2">
+            Title <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="mission-title"
+            bind:value={missionForm.title}
+            placeholder="e.g., Water the Plants"
+            required
+            minlength="3"
+            class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+          />
+          <p class="text-xs text-slate-500 mt-1">Minimum 3 characters</p>
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label for="mission-description" class="block text-sm font-semibold text-slate-700 mb-2">
+            Description <span class="text-red-500">*</span>
+          </label>
+          <textarea
+            id="mission-description"
+            bind:value={missionForm.description}
+            placeholder="Describe what students need to do..."
+            required
+            minlength="10"
+            rows="3"
+            class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all resize-none"
+          ></textarea>
+          <p class="text-xs text-slate-500 mt-1">Minimum 10 characters</p>
+        </div>
+
+        <!-- Rewards -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="mission-xp" class="block text-sm font-semibold text-slate-700 mb-2">
+              XP Reward
+            </label>
+            <input
+              type="number"
+              id="mission-xp"
+              bind:value={missionForm.xpReward}
+              min="1"
+              max="100"
+              class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+            />
+          </div>
+          <div>
+            <label for="mission-coins" class="block text-sm font-semibold text-slate-700 mb-2">
+              Coin Reward
+            </label>
+            <input
+              type="number"
+              id="mission-coins"
+              bind:value={missionForm.coinReward}
+              min="1"
+              max="100"
+              class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+            />
+          </div>
+        </div>
+
+        <!-- Stat Boosts -->
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-3">
+            Stat Boosts (0-50)
+          </label>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="mission-thirst" class="block text-xs font-medium text-slate-600 mb-1">
+                💧 Thirst Boost
+              </label>
+              <input
+                type="number"
+                id="mission-thirst"
+                bind:value={missionForm.thirstBoost}
+                min="0"
+                max="50"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label for="mission-hunger" class="block text-xs font-medium text-slate-600 mb-1">
+                🍎 Hunger Boost
+              </label>
+              <input
+                type="number"
+                id="mission-hunger"
+                bind:value={missionForm.hungerBoost}
+                min="0"
+                max="50"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label for="mission-happiness" class="block text-xs font-medium text-slate-600 mb-1">
+                😊 Happiness Boost
+              </label>
+              <input
+                type="number"
+                id="mission-happiness"
+                bind:value={missionForm.happinessBoost}
+                min="0"
+                max="50"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label for="mission-cleanliness" class="block text-xs font-medium text-slate-600 mb-1">
+                ✨ Cleanliness Boost
+              </label>
+              <input
+                type="number"
+                id="mission-cleanliness"
+                bind:value={missionForm.cleanlinessBoost}
+                min="0"
+                max="50"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-3 pt-4">
+          <button
+            type="button"
+            onclick={closeCreateMissionDialog}
+            disabled={isCreatingMission}
+            class="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isCreatingMission}
+            class="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/30 min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {#if isCreatingMission}
+              <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Creating...
+            {:else}
+              Create Mission
+            {/if}
           </button>
         </div>
       </form>
