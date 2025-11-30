@@ -1,3 +1,20 @@
+<style>
+  @keyframes slide-up {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+</style>
+
 <script lang="ts">
   import type { PageData } from './$types';
 
@@ -11,6 +28,12 @@
   let isSwitchingClass = $state(false);
   let isCreatingMission = $state(false);
   let submissionsView = $state<'grid' | 'list'>('grid');
+  let reviewingSubmissionId = $state<string | null>(null);
+  
+  // Toast notification state
+  let toastMessage = $state<string>('');
+  let toastType = $state<'success' | 'error'>('success');
+  let toastVisible = $state(false);
 
   // Mission form state
   let missionForm = $state({
@@ -134,7 +157,7 @@
     },
   ];
 
-  const mockSubmissions = [
+  let mockSubmissions = $state([
     {
       id: '1',
       missionId: '1',
@@ -162,7 +185,7 @@
       submittedAt: '2024-01-16T09:15:00Z',
       status: 'pending_approval' as const,
     },
-  ];
+  ]);
 
   let currentClassId = $state('1');
 
@@ -185,6 +208,17 @@
   // Computed values for current class
   let currentClass = $derived(mockAllClasses.find((c) => c.id === currentClassId));
   let hasMultipleClasses = $derived(mockAllClasses.length > 1);
+
+  // Toast notification function
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    toastMessage = message;
+    toastType = type;
+    toastVisible = true;
+    
+    setTimeout(() => {
+      toastVisible = false;
+    }, 3000);
+  }
 
   // Group missions by sector
   let missionsBySector = $derived(
@@ -290,6 +324,80 @@
     
     // TODO: Show success toast
     // TODO: Refresh missions list
+  }
+
+  async function handleApproveSubmission(submissionId: string) {
+    if (reviewingSubmissionId) return; // Prevent multiple simultaneous reviews
+
+    reviewingSubmissionId = submissionId;
+
+    // Store original state for rollback
+    const originalSubmissions = [...mockSubmissions];
+
+    try {
+      // Optimistic update: Remove submission from list immediately
+      mockSubmissions = mockSubmissions.filter((s) => s.id !== submissionId);
+
+      // TODO: Implement actual API call
+      // await fetch(`/api/submissions/${submissionId}/review`, {
+      //   method: 'POST',
+      //   body: JSON.stringify({ status: 'completed' })
+      // });
+
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      console.log('Approved submission:', submissionId);
+
+      // Show success toast
+      showToast('Submission approved successfully! 🎉', 'success');
+      
+      // TODO: Refresh mascot stats (pending backend implementation)
+    } catch (error) {
+      console.error('Failed to approve submission:', error);
+      // Rollback on error
+      mockSubmissions = originalSubmissions;
+      // Show error toast
+      showToast('Failed to approve submission. Please try again.', 'error');
+    } finally {
+      reviewingSubmissionId = null;
+    }
+  }
+
+  async function handleRejectSubmission(submissionId: string) {
+    if (reviewingSubmissionId) return; // Prevent multiple simultaneous reviews
+
+    reviewingSubmissionId = submissionId;
+
+    // Store original state for rollback
+    const originalSubmissions = [...mockSubmissions];
+
+    try {
+      // Optimistic update: Remove submission from list immediately
+      mockSubmissions = mockSubmissions.filter((s) => s.id !== submissionId);
+
+      // TODO: Implement actual API call
+      // await fetch(`/api/submissions/${submissionId}/review`, {
+      //   method: 'POST',
+      //   body: JSON.stringify({ status: 'rejected' })
+      // });
+
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      console.log('Rejected submission:', submissionId);
+
+      // Show success toast
+      showToast('Submission rejected.', 'success');
+    } catch (error) {
+      console.error('Failed to reject submission:', error);
+      // Rollback on error
+      mockSubmissions = originalSubmissions;
+      // Show error toast
+      showToast('Failed to reject submission. Please try again.', 'error');
+    } finally {
+      reviewingSubmissionId = null;
+    }
   }
 </script>
 
@@ -773,19 +881,37 @@
                   <!-- Action Buttons -->
                   <div class="flex gap-3">
                     <button
-                      class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-all min-h-touch-target"
+                      onclick={() => handleApproveSubmission(submission.id)}
+                      disabled={reviewingSubmissionId === submission.id}
+                      class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-all min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                      </svg>
+                      {#if reviewingSubmissionId === submission.id}
+                        <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      {:else}
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                      {/if}
                       <span>Approve</span>
                     </button>
                     <button
-                      class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-all min-h-touch-target"
+                      onclick={() => handleRejectSubmission(submission.id)}
+                      disabled={reviewingSubmissionId === submission.id}
+                      class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-all min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      {#if reviewingSubmissionId === submission.id}
+                        <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      {:else}
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      {/if}
                       <span>Reject</span>
                     </button>
                   </div>
@@ -840,19 +966,37 @@
                       <!-- Action Buttons -->
                       <div class="flex gap-3">
                         <button
-                          class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-all min-h-touch-target"
+                          onclick={() => handleApproveSubmission(submission.id)}
+                          disabled={reviewingSubmissionId === submission.id}
+                          class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-all min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                          </svg>
+                          {#if reviewingSubmissionId === submission.id}
+                            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          {:else}
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                          {/if}
                           <span>Approve</span>
                         </button>
                         <button
-                          class="flex items-center justify-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-all min-h-touch-target"
+                          onclick={() => handleRejectSubmission(submission.id)}
+                          disabled={reviewingSubmissionId === submission.id}
+                          class="flex items-center justify-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-all min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
+                          {#if reviewingSubmissionId === submission.id}
+                            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          {:else}
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          {/if}
                           <span>Reject</span>
                         </button>
                       </div>
@@ -1088,9 +1232,9 @@
 
         <!-- Stat Boosts -->
         <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-3">
+          <div class="block text-sm font-semibold text-slate-700 mb-3">
             Stat Boosts (0-50)
-          </label>
+          </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label for="mission-thirst" class="block text-xs font-medium text-slate-600 mb-1">
@@ -1174,6 +1318,48 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+{/if}
+
+<!-- Toast Notification -->
+{#if toastVisible}
+  <div
+    class="fixed bottom-6 right-6 z-50 animate-slide-up"
+    role="alert"
+    aria-live="polite"
+  >
+    <div
+      class="flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-2xl border backdrop-blur-sm min-w-[300px] max-w-md"
+      class:bg-emerald-50={toastType === 'success'}
+      class:border-emerald-200={toastType === 'success'}
+      class:bg-red-50={toastType === 'error'}
+      class:border-red-200={toastType === 'error'}
+    >
+      {#if toastType === 'success'}
+        <div class="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <p class="text-sm font-medium text-emerald-900 flex-1">{toastMessage}</p>
+      {:else}
+        <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
+        <p class="text-sm font-medium text-red-900 flex-1">{toastMessage}</p>
+      {/if}
+      <button
+        onclick={() => (toastVisible = false)}
+        class="p-1 hover:bg-black/5 rounded transition-colors flex-shrink-0"
+        aria-label="Close notification"
+      >
+        <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     </div>
   </div>
 {/if}
