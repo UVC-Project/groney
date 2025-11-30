@@ -17,29 +17,30 @@ export const load: PageLoad = async ({ fetch }): Promise<TeacherDashboardData> =
 				fetch('/api/teacher/submissions')
 			]);
 
-		// Check if all requests were successful
-		if (!classResponse.ok) {
-			throw new Error('Failed to fetch class data');
-		}
-		if (!allClassesResponse.ok) {
+		// Handle 404 for class (teacher hasn't created a class yet) - this is not an error
+		const currentClass = classResponse.ok && classResponse.status !== 404 
+			? await classResponse.json() 
+			: null;
+
+		// Check other critical requests
+		if (!allClassesResponse.ok && allClassesResponse.status !== 404) {
 			throw new Error('Failed to fetch classes list');
 		}
-		if (!sectorsResponse.ok) {
+		if (!sectorsResponse.ok && sectorsResponse.status !== 404) {
 			throw new Error('Failed to fetch sectors');
 		}
-		if (!missionsResponse.ok) {
+		if (!missionsResponse.ok && missionsResponse.status !== 404) {
 			throw new Error('Failed to fetch missions');
 		}
-		if (!submissionsResponse.ok) {
+		if (!submissionsResponse.ok && submissionsResponse.status !== 404) {
 			throw new Error('Failed to fetch submissions');
 		}
 
-		// Parse all responses
-		const currentClass = await classResponse.json();
-		const allClasses = await allClassesResponse.json();
-		const sectors = await sectorsResponse.json();
-		const missions = await missionsResponse.json();
-		const submissions = await submissionsResponse.json();
+		// Parse all responses (handle 404s gracefully)
+		const allClasses = allClassesResponse.ok ? await allClassesResponse.json() : [];
+		const sectors = sectorsResponse.ok ? await sectorsResponse.json() : [];
+		const missions = missionsResponse.ok ? await missionsResponse.json() : [];
+		const submissions = submissionsResponse.ok ? await submissionsResponse.json() : [];
 
 		return {
 			currentClass,
@@ -51,8 +52,8 @@ export const load: PageLoad = async ({ fetch }): Promise<TeacherDashboardData> =
 	} catch (error) {
 		console.error('Error loading teacher dashboard data:', error);
 		
-		// Return empty data structure on error to prevent page crash
-		// The UI will show appropriate empty states
+		// Return empty data structure with error message
+		// This is for actual errors (network issues, server errors, etc.)
 		return {
 			currentClass: null,
 			allClasses: [],

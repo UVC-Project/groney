@@ -18,6 +18,8 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import type { Class, ClassListItem, Sector, Mission, Submission } from '$lib/types/teacher';
+  import LoadingSkeleton from '$lib/components/LoadingSkeleton.svelte';
+  import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
 
   let { data }: { data: PageData } = $props();
   
@@ -27,6 +29,7 @@
   let sectorsData = $state<Sector[]>(data.sectors || []);
   let missionsData = $state<Mission[]>(data.missions || []);
   let submissionsData = $state<Submission[]>(data.submissions || []);
+  let loadError = $state<string | undefined>(data.error);
 
   let activeTab = $state<'overview' | 'missions' | 'submissions' | 'map'>('overview');
   let isCreateClassDialogOpen = $state(false);
@@ -37,6 +40,7 @@
   let isCreatingMission = $state(false);
   let submissionsView = $state<'grid' | 'list'>('grid');
   let reviewingSubmissionId = $state<string | null>(null);
+  let missionFormErrors = $state<Record<string, string>>({});
   
   // Toast notification state
   let toastMessage = $state<string>('');
@@ -186,30 +190,74 @@
       happinessBoost: 0,
       cleanlinessBoost: 0,
     };
+    // Clear errors
+    missionFormErrors = {};
+  }
+
+  function validateMissionForm(): boolean {
+    missionFormErrors = {};
+    let isValid = true;
+
+    if (!missionForm.sectorId) {
+      missionFormErrors.sectorId = 'Please select a sector';
+      isValid = false;
+    }
+    if (!missionForm.title || missionForm.title.length < 3) {
+      missionFormErrors.title = 'Title must be at least 3 characters';
+      isValid = false;
+    }
+    if (!missionForm.description || missionForm.description.length < 10) {
+      missionFormErrors.description = 'Description must be at least 10 characters';
+      isValid = false;
+    }
+
+    return isValid;
   }
 
   async function handleCreateMission(event: Event) {
     event.preventDefault();
     
-    // Basic validation
-    if (!missionForm.sectorId || !missionForm.title || !missionForm.description) {
-      alert('Please fill in all required fields');
+    // Validate form
+    if (!validateMissionForm()) {
+      showToast('Please fix the form errors', 'error');
       return;
     }
 
     isCreatingMission = true;
 
-    // TODO: Implement actual mission creation with API call
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      // Call API endpoint
+      const response = await fetch('/api/teacher/missions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(missionForm)
+      });
 
-    console.log('Creating mission:', missionForm);
-    
-    isCreatingMission = false;
-    closeCreateMissionDialog();
-    
-    // TODO: Show success toast
-    // TODO: Refresh missions list
+      if (!response.ok) {
+        throw new Error('Failed to create mission');
+      }
+
+      const newMission = await response.json();
+      
+      // Add new mission to local state
+      missionsData = [...missionsData, newMission];
+      
+      console.log('Created mission:', newMission);
+      
+      // Show success toast
+      showToast('Mission created successfully! 🎯', 'success');
+      
+      closeCreateMissionDialog();
+    } catch (error) {
+      console.error('Failed to create mission:', error);
+      showToast('Failed to create mission. Please try again.', 'error');
+    } finally {
+      isCreatingMission = false;
+    }
+  }
+
+  function retryLoadData() {
+    window.location.reload();
   }
 
   async function handleApproveSubmission(submissionId: string) {
@@ -444,7 +492,68 @@
 
   <!-- Main Content -->
   <main class="container mx-auto px-4 lg:px-6 py-6 sm:py-8 max-w-7xl">
-    {#if activeTab === 'overview'}
+    <!-- Welcome State for New Teachers (No Class) -->
+    {#if !currentClassData && !loadError}
+      <div class="max-w-2xl mx-auto">
+        <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl shadow-xl border-2 border-emerald-200 p-8 sm:p-12 text-center">
+          <div class="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <span class="text-4xl">🌱</span>
+          </div>
+          <h2 class="text-3xl font-bold text-slate-800 mb-4">Welcome to Your Teacher Dashboard!</h2>
+          <p class="text-lg text-slate-600 mb-8">
+            Let's get started by creating your first class. You'll be able to manage missions, review student submissions, and track your class mascot's progress.
+          </p>
+          <button
+            onclick={openCreateClassDialog}
+            class="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-lg font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:scale-105"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Create Your First Class</span>
+          </button>
+          <div class="mt-8 pt-8 border-t border-emerald-200">
+            <p class="text-sm text-slate-500 mb-4">What you can do with your dashboard:</p>
+            <div class="grid sm:grid-cols-3 gap-4 text-left">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span class="text-lg">🎯</span>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-700">Create Missions</p>
+                  <p class="text-xs text-slate-500">Set tasks for students</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span class="text-lg">📝</span>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-700">Review Work</p>
+                  <p class="text-xs text-slate-500">Approve submissions</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span class="text-lg">🐾</span>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-700">Track Progress</p>
+                  <p class="text-xs text-slate-500">Watch mascot grow</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {:else if loadError}
+      <!-- Error Display (only for actual errors, not missing class) -->
+      <div class="mb-6">
+        <ErrorDisplay message={loadError} onRetry={retryLoadData} />
+      </div>
+    {/if}
+
+    {#if currentClassData && activeTab === 'overview'}
       <div class="space-y-6">
         <!-- Class Info Card -->
         <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
@@ -583,7 +692,7 @@
           </div>
         </div>
       </div>
-    {:else if activeTab === 'missions'}
+    {:else if currentClassData && activeTab === 'missions'}
       <div class="space-y-6">
         <!-- Header with Create Mission Button -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -683,7 +792,7 @@
           </div>
         {/each}
       </div>
-    {:else if activeTab === 'submissions'}
+    {:else if currentClassData && activeTab === 'submissions'}
       <div class="space-y-6">
         <!-- Header with View Toggle -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -906,7 +1015,7 @@
           </div>
         {/if}
       </div>
-    {:else if activeTab === 'map'}
+    {:else if currentClassData && activeTab === 'map'}
       <div class="space-y-6">
         <!-- Header -->
         <div>
@@ -1197,7 +1306,10 @@
             id="mission-sector"
             bind:value={missionForm.sectorId}
             required
-            class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+            class="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+            class:border-red-300={missionFormErrors.sectorId}
+            class:border-slate-300={!missionFormErrors.sectorId}
+            class:focus:border-emerald-500={!missionFormErrors.sectorId}
           >
             <option value="">Select a sector</option>
             {#each sectorsData as sector}
@@ -1205,6 +1317,9 @@
               <option value={sector.id}>{display.icon} {sector.name}</option>
             {/each}
           </select>
+          {#if missionFormErrors.sectorId}
+            <p class="text-xs text-red-600 mt-1">{missionFormErrors.sectorId}</p>
+          {/if}
         </div>
 
         <!-- Title -->
@@ -1219,9 +1334,16 @@
             placeholder="e.g., Water the Plants"
             required
             minlength="3"
-            class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+            class="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+            class:border-red-300={missionFormErrors.title}
+            class:border-slate-300={!missionFormErrors.title}
+            class:focus:border-emerald-500={!missionFormErrors.title}
           />
-          <p class="text-xs text-slate-500 mt-1">Minimum 3 characters</p>
+          {#if missionFormErrors.title}
+            <p class="text-xs text-red-600 mt-1">{missionFormErrors.title}</p>
+          {:else}
+            <p class="text-xs text-slate-500 mt-1">Minimum 3 characters</p>
+          {/if}
         </div>
 
         <!-- Description -->
@@ -1236,9 +1358,16 @@
             required
             minlength="10"
             rows="3"
-            class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all resize-none"
+            class="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none"
+            class:border-red-300={missionFormErrors.description}
+            class:border-slate-300={!missionFormErrors.description}
+            class:focus:border-emerald-500={!missionFormErrors.description}
           ></textarea>
-          <p class="text-xs text-slate-500 mt-1">Minimum 10 characters</p>
+          {#if missionFormErrors.description}
+            <p class="text-xs text-red-600 mt-1">{missionFormErrors.description}</p>
+          {:else}
+            <p class="text-xs text-slate-500 mt-1">Minimum 10 characters</p>
+          {/if}
         </div>
 
         <!-- Rewards -->
