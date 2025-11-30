@@ -6,6 +6,8 @@
   let activeTab = $state<'overview' | 'missions' | 'submissions' | 'map'>('overview');
   let isCreateClassDialogOpen = $state(false);
   let copySuccess = $state(false);
+  let isClassSelectorOpen = $state(false);
+  let isSwitchingClass = $state(false);
 
   const tabs = [
     { id: 'overview' as const, label: 'Overview', icon: '📊' },
@@ -15,6 +17,14 @@
   ];
 
   // Mock data - will be replaced with actual data from load function
+  const mockAllClasses = [
+    { id: '1', name: '6A', school: 'Middelburg School' },
+    { id: '2', name: '5B', school: 'Middelburg School' },
+    { id: '3', name: '7C', school: 'Amsterdam Primary' },
+  ];
+
+  let currentClassId = $state('1');
+
   const mockClassData = {
     name: '6A',
     school: 'Middelburg School',
@@ -30,6 +40,10 @@
       { id: '3', firstName: 'asmith', lastName: 'kia', username: 'spongebob', role: 'student' as const },
     ],
   };
+
+  // Computed values for current class
+  let currentClass = $derived(mockAllClasses.find((c) => c.id === currentClassId));
+  let hasMultipleClasses = $derived(mockAllClasses.length > 1);
 
   function handleLogout() {
     // TODO: Implement logout functionality
@@ -59,6 +73,31 @@
     console.log('Create class');
     closeCreateClassDialog();
   }
+
+  function toggleClassSelector() {
+    isClassSelectorOpen = !isClassSelectorOpen;
+  }
+
+  function closeClassSelector() {
+    isClassSelectorOpen = false;
+  }
+
+  async function switchClass(classId: string) {
+    if (classId === currentClassId || isSwitchingClass) return;
+
+    isSwitchingClass = true;
+    closeClassSelector();
+
+    // TODO: Implement actual class switching with API call
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    currentClassId = classId;
+    isSwitchingClass = false;
+
+    // TODO: Refresh dashboard data after switching
+    console.log('Switched to class:', classId);
+  }
 </script>
 
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/40 font-teacher">
@@ -79,6 +118,101 @@
             </p>
           </div>
         </div>
+
+        <!-- Class Selector (only visible with multiple classes) -->
+        {#if hasMultipleClasses}
+          <div class="relative">
+            <button
+              onclick={toggleClassSelector}
+              class="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-white border border-slate-300 hover:border-slate-400 text-slate-700 font-medium transition-all min-h-touch-target"
+              aria-label="Select class"
+              aria-expanded={isClassSelectorOpen}
+              aria-haspopup="listbox"
+              disabled={isSwitchingClass}
+            >
+              <svg class="w-4 h-4 text-slate-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+              </svg>
+              <div class="flex flex-col items-start min-w-0">
+                <span class="text-xs text-slate-500 hidden sm:block">Current Class</span>
+                <span class="text-sm font-semibold truncate max-w-[120px] sm:max-w-[200px]">
+                  {#if isSwitchingClass}
+                    <span class="inline-flex items-center gap-1">
+                      <svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Loading...
+                    </span>
+                  {:else}
+                    {currentClass?.name} - {currentClass?.school}
+                  {/if}
+                </span>
+              </div>
+              <svg
+                class="w-4 h-4 text-slate-600 transition-transform"
+                class:rotate-180={isClassSelectorOpen}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <!-- Dropdown Menu -->
+            {#if isClassSelectorOpen}
+              <div
+                class="absolute top-full right-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-slate-200 py-2 z-50"
+                role="listbox"
+                aria-label="Select a class"
+              >
+                <div class="px-3 py-2 border-b border-slate-200">
+                  <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Your Classes</p>
+                </div>
+                <div class="max-h-64 overflow-y-auto">
+                  {#each mockAllClasses as classItem}
+                    <button
+                      onclick={() => switchClass(classItem.id)}
+                      class="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors flex items-center justify-between group"
+                      class:bg-emerald-50={classItem.id === currentClassId}
+                      role="option"
+                      aria-selected={classItem.id === currentClassId}
+                      onkeydown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          switchClass(classItem.id);
+                        } else if (e.key === 'Escape') {
+                          closeClassSelector();
+                        }
+                      }}
+                    >
+                      <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-slate-800 truncate">{classItem.name}</p>
+                        <p class="text-sm text-slate-500 truncate">{classItem.school}</p>
+                      </div>
+                      {#if classItem.id === currentClassId}
+                        <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                      {/if}
+                    </button>
+                  {/each}
+                </div>
+              </div>
+
+              <!-- Backdrop to close dropdown -->
+              <div
+                class="fixed inset-0 z-40"
+                onclick={closeClassSelector}
+                onkeydown={(e) => e.key === 'Escape' && closeClassSelector()}
+                role="presentation"
+                tabindex="-1"
+              ></div>
+            {/if}
+          </div>
+        {/if}
+
         <button
           onclick={handleLogout}
           class="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition-all min-h-touch-target flex-shrink-0 hover:shadow-md"
