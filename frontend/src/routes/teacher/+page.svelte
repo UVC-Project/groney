@@ -536,7 +536,7 @@
       submissionsData = submissionsData.filter((s) => s.id !== submissionId);
 
       // Call API endpoint with authentication
-      const response = await fetch(`${API_BASE_URL}/api/submissions/${submissionId}/review`, {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/submissions/${submissionId}/review`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -550,7 +550,7 @@
         throw new Error(errorData.message || 'Failed to approve submission');
       }
 
-      console.log('✅ Approved submission:', submissionId);
+      console.log('Approved submission:', submissionId);
 
       // Show success toast
       showToast('Submission approved successfully! 🎉', 'success');
@@ -580,7 +580,7 @@
       submissionsData = submissionsData.filter((s) => s.id !== submissionId);
 
       // Call API endpoint with authentication
-      const response = await fetch(`${API_BASE_URL}/api/submissions/${submissionId}/review`, {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/submissions/${submissionId}/review`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -594,7 +594,7 @@
         throw new Error(errorData.message || 'Failed to reject submission');
       }
 
-      console.log('✅ Rejected submission:', submissionId);
+      console.log('Rejected submission:', submissionId);
 
       // Show success toast
       showToast('Submission rejected.', 'success');
