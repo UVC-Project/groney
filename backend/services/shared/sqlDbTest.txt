@@ -1,3 +1,10 @@
+-- Start a transaction to ensure all data is inserted in the correct order
+BEGIN;
+
+-- ------------------------------------------------------------
+-- 1. INSERT CLASS
+-- (The root dependency)
+-- ------------------------------------------------------------
 INSERT INTO classes (
   "id",
   "name",
@@ -7,16 +14,21 @@ INSERT INTO classes (
   "updatedAt"
 )
 VALUES (
-  'class-garden-101',
+  'class-garden-101',           -- This ID is referenced by the Sectors below
   'Groep 6A',
   'Basisschool De Regenboog',
   'GARDEN-101',
   NOW(),
   NOW()
 )
-ON CONFLICT ("classCode") DO NOTHING;
+ON CONFLICT ("classCode") DO UPDATE 
+SET "updatedAt" = NOW(); -- Keeps the class valid if it already exists
 
 
+-- ------------------------------------------------------------
+-- 2. INSERT SECTORS
+-- (Must exist before Missions can be created)
+-- ------------------------------------------------------------
 INSERT INTO sectors (
   "id",
   "classId",
@@ -27,15 +39,15 @@ INSERT INTO sectors (
 )
 VALUES
   (
-    'sector-trees',
-    'class-garden-101',
+    'sector-trees',             -- ID referenced by Missions
+    'class-garden-101',         -- References Class ID above
     'Boomgaard',
     'TREES',
     NOW(),
     NOW()
   ),
   (
-    'sector-pond',
+    'sector-pond',              -- ID referenced by Missions
     'class-garden-101',
     'Vijver',
     'POND',
@@ -43,7 +55,7 @@ VALUES
     NOW()
   ),
   (
-    'sector-garden',
+    'sector-garden',            -- ID referenced by Missions
     'class-garden-101',
     'Moestuin',
     'GARDEN',
@@ -53,6 +65,10 @@ VALUES
 ON CONFLICT ("id") DO NOTHING;
 
 
+-- ------------------------------------------------------------
+-- 3. INSERT MISSIONS
+-- (These link to the Sector IDs created above)
+-- ------------------------------------------------------------
 INSERT INTO missions (
   "id",
   "sectorId",
@@ -76,7 +92,7 @@ INSERT INTO missions (
 VALUES
   (
     'mission-water-trees',
-    'sector-trees',
+    'sector-trees',             -- Matches 'sector-trees' ID in Sectors table
     'Geef de bomen water',
     'Gebruik de gieters en geef minstens drie bomen water.',
     50,
@@ -96,7 +112,7 @@ VALUES
   ),
   (
     'mission-collect-leaves',
-    'sector-trees',
+    'sector-trees',             -- Matches 'sector-trees' ID in Sectors table
     'Bladeren opruimen',
     'Vul één grote emmer bladeren en maak de plek netjes.',
     60,
@@ -116,7 +132,7 @@ VALUES
   ),
   (
     'mission-feed-ducks',
-    'sector-pond',
+    'sector-pond',              -- Matches 'sector-pond' ID in Sectors table
     'Voer de eenden (verantwoord!)',
     'Lees wat eenden mogen eten en geef ze daarna verantwoord voer.',
     70,
@@ -136,7 +152,7 @@ VALUES
   ),
   (
     'mission-plant-seeds',
-    'sector-garden',
+    'sector-garden',            -- Matches 'sector-garden' ID in Sectors table
     'Plant nieuwe zaden',
     'Plant vijf zaden in de moestuin en geef ze water.',
     80,
@@ -156,7 +172,7 @@ VALUES
   ),
   (
     'mission-weed-garden',
-    'sector-garden',
+    'sector-garden',            -- Matches 'sector-garden' ID in Sectors table
     'Onkruid wieden',
     'Verwijder onkruid uit een hoek van de moestuin.',
     90,
@@ -175,3 +191,6 @@ VALUES
     NOW()
   )
 ON CONFLICT ("id") DO NOTHING;
+
+-- Commit the transaction to save changes
+COMMIT;
