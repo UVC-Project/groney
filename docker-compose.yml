@@ -80,6 +80,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend/services/auth-service:/app
+      - ./prisma:/app/prisma:ro
       - /app/node_modules
 
   # Mascot Engine Service
@@ -99,6 +100,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend/services/mascot-engine:/app
+      - ./prisma:/app/prisma:ro
       - /app/node_modules
 
   # Mission Service
@@ -118,6 +120,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend/services/mission-service:/app
+      - ./prisma:/app/prisma:ro
       - /app/node_modules
 
   # Submission Service
@@ -143,6 +146,7 @@ services:
         condition: service_started
     volumes:
       - ./backend/services/submission-service:/app
+      - ./prisma:/app/prisma:ro
       - /app/node_modules
 
   # Shop Service
@@ -162,6 +166,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend/services/shop-service:/app
+      - ./prisma:/app/prisma:ro
       - /app/node_modules
 
   # Calculation Service
@@ -181,6 +186,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend/services/calculation-service:/app
+      - ./prisma:/app/prisma:ro
       - /app/node_modules
 
   # MinIO for object storage (S3-compatible)

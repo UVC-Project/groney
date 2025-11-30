@@ -92,14 +92,20 @@ npm run prisma:studio
 
 #### Option 1: Full Stack with Docker (⚠️ Uses ~5GB RAM)
 
-**Note**: Backend services are scaffolded but not fully implemented yet. Only basic health checks work.
-
 ```bash
 # Start all services (first build takes 5-10 minutes)
-docker-compose up
-
-# Or run in background
 docker-compose up -d
+
+# IMPORTANT: After first start, generate Prisma Client in containers
+./scripts/fix-docker-prisma.sh
+
+# Or manually for each service that uses Prisma:
+docker exec groney-auth-service npx prisma generate --schema=/app/prisma/schema.prisma
+docker exec groney-mission-service npx prisma generate --schema=/app/prisma/schema.prisma
+docker exec groney-submission-service npx prisma generate --schema=/app/prisma/schema.prisma
+
+# Restart services after generating
+docker-compose restart auth-service mission-service submission-service
 
 # Stop all services
 docker-compose down
@@ -206,4 +212,42 @@ docker-compose build
 # Build frontend only
 cd frontend
 npm run build
+```
+
+## 🐳 Docker Troubleshooting
+
+### Prisma Client Issues in Docker
+
+If backend services fail with Prisma errors after `docker-compose up`:
+
+```bash
+# Run the fix script (generates Prisma Client in all containers)
+./scripts/fix-docker-prisma.sh
+
+# Or manually regenerate for a specific service
+docker exec groney-auth-service npx prisma generate --schema=/app/prisma/schema.prisma
+docker restart groney-auth-service
+```
+
+### Check Service Health
+
+```bash
+# Verify all services are running
+curl http://localhost:3000/health  # API Gateway
+curl http://localhost:3001/health  # Auth Service
+curl http://localhost:3002/health  # Mascot Engine
+curl http://localhost:3003/health  # Mission Service
+curl http://localhost:3004/health  # Submission Service
+curl http://localhost:3005/health  # Shop Service
+curl http://localhost:3006/health  # Calculation Service
+```
+
+### View Service Logs
+
+```bash
+# View logs for a specific service
+docker logs groney-auth-service --tail 50
+
+# Follow logs in real-time
+docker logs -f groney-auth-service
 ```
