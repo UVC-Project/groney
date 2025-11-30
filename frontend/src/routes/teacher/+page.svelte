@@ -42,16 +42,27 @@
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import { API_BASE_URL } from '$lib/config';
   import { TEST_TEACHER, getAuthHeaders } from '$lib/auth/context';
+  import { invalidateAll } from '$app/navigation';
 
   let { data }: { data: PageData } = $props();
   
-  // Initialize data from load function with fallbacks
-  let currentClassData = $state<Class | null>(data.currentClass || null);
-  let allClassesData = $state<ClassListItem[]>(data.allClasses || []);
-  let sectorsData = $state<Sector[]>(data.sectors || []);
+  // Reactive data from load function - updates when invalidateAll() is called
+  let currentClassData = $derived(data.currentClass || null);
+  let allClassesData = $derived(data.allClasses || []);
+  let sectorsData = $derived(data.sectors || []);
+  let loadError = $derived(data.error);
+  
+  // Local state for data that can be modified optimistically
   let missionsData = $state<Mission[]>(data.missions || []);
   let submissionsData = $state<Submission[]>(data.submissions || []);
-  let loadError = $state<string | undefined>(data.error);
+  
+  // Sync local state when data changes from server
+  $effect(() => {
+    missionsData = data.missions || [];
+  });
+  $effect(() => {
+    submissionsData = data.submissions || [];
+  });
 
   let activeTab = $state<'overview' | 'missions' | 'submissions' | 'map'>('overview');
   let isCreateClassDialogOpen = $state(false);
@@ -213,8 +224,8 @@
       
       closeCreateClassDialog();
       
-      // Refresh the page to load new data
-      window.location.reload();
+      // Refresh data without full page reload
+      await invalidateAll();
     } catch (error) {
       console.error('❌ Failed to create class:', error);
       showToast('Failed to create class. Please try again.', 'error');
@@ -278,8 +289,8 @@
 
       console.log('✅ Switched to class:', classId);
 
-      // Reload the page to fetch new class data
-      window.location.reload();
+      // Refresh data without full page reload
+      await invalidateAll();
     } catch (error) {
       console.error('❌ Failed to switch class:', error);
       showToast('Failed to switch class. Please try again.', 'error');
@@ -379,8 +390,9 @@
     }
   }
 
-  function retryLoadData() {
-    window.location.reload();
+  async function retryLoadData() {
+    loadError = undefined;
+    await invalidateAll();
   }
 
   async function handleApproveSubmission(submissionId: string) {
