@@ -294,6 +294,7 @@
     } catch (error) {
       console.error('❌ Failed to switch class:', error);
       showToast('Failed to switch class. Please try again.', 'error');
+    } finally {
       isSwitchingClass = false;
     }
   }
@@ -1352,7 +1353,7 @@
         <p class="text-sm text-slate-600 mt-1">Add another class to manage</p>
       </div>
 
-      <form onsubmit={handleCreateClass} class="p-6 space-y-5">
+      <form onsubmit={(e) => { e.preventDefault(); handleCreateClass(e); }} class="p-6 space-y-5">
         <div>
           <label for="class-name" class="block text-sm font-semibold text-slate-700 mb-2">
             Class Name
@@ -1361,6 +1362,7 @@
             type="text"
             id="class-name"
             name="className"
+            bind:value={classForm.className}
             placeholder="e.g., Grade 5B"
             required
             minlength="2"
@@ -1377,6 +1379,7 @@
             type="text"
             id="school-name"
             name="schoolName"
+            bind:value={classForm.schoolName}
             placeholder="e.g., Amsterdam Primary"
             required
             minlength="2"

@@ -140,6 +140,17 @@ router.post('/create-class', requireTeacher, async (req: Request, res: Response)
 			return res.status(400).json({ error: 'Bad Request', message: 'School name must be at least 2 characters' });
 		}
 
+		// Check if class name already exists for this teacher
+		const existingClassName = await prisma.class.findFirst({
+			where: {
+				teacherId: userId,
+				name: className,
+			},
+		});
+		if (existingClassName) {
+			return res.status(400).json({ error: 'Bad Request', message: 'You already have a class with this name' });
+		}
+
 		// Generate unique class code (6 characters)
 		const generateClassCode = () => {
 			const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
