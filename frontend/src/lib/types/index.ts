@@ -121,3 +121,22 @@ export interface AuthResponse {
   user: User;
   token: string;
 }
+
+// Teacher Dashboard types
+export interface TeacherDashboardData {
+  currentClass: Class | null;
+  allClasses: Class[];
+  sectors: Sector[];
+  missions: MissionWithSector[];
+  pendingSubmissions: SubmissionWithDetails[];
+  error?: string;
+}
+
+export interface MissionWithSector extends Mission {
+  sector?: Sector;
+}
+
+export interface SubmissionWithDetails extends Submission {
+  mission?: Mission;
+  student?: User;
+}
