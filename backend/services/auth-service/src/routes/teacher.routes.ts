@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 
 const router = Router();
+// Prisma 7.0 reads DATABASE_URL from prisma.config.ts
 const prisma = new PrismaClient();
 
 // Middleware to verify teacher role
