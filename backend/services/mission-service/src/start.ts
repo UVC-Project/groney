@@ -1,5 +1,6 @@
 import express from 'express';
 import { config } from 'dotenv';
+import {prisma} from './prisma';
 
 config();
 
@@ -28,6 +29,16 @@ app.use((_req, res) => {
     error: 'Not Found',
     message: 'The requested endpoint does not exist',
   });
+});
+
+app.get('/map/missions', async (_req, res) => {
+  try {
+    const missions = await prisma.mission.findMany();
+    res.json(missions);
+  } catch (err) {
+    console.error('Error fetching missions', err);
+    res.status(500).json({ message: 'Failed to fetch missions' });
+  }
 });
 
 app.listen(PORT, () => {
