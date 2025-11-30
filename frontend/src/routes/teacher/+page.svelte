@@ -10,6 +10,7 @@
   let isClassSelectorOpen = $state(false);
   let isSwitchingClass = $state(false);
   let isCreatingMission = $state(false);
+  let submissionsView = $state<'grid' | 'list'>('grid');
 
   // Mission form state
   let missionForm = $state({
@@ -130,6 +131,36 @@
       hungerBoost: 25,
       happinessBoost: 20,
       cleanlinessBoost: 0,
+    },
+  ];
+
+  const mockSubmissions = [
+    {
+      id: '1',
+      missionId: '1',
+      mission: { id: '1', title: 'Water the Trees', description: 'Water all trees in the schoolyard' },
+      student: { id: '2', firstName: 'Ashley', lastName: 'Smith', username: 'asmith' },
+      photoUrl: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400',
+      submittedAt: '2024-01-15T10:30:00Z',
+      status: 'pending_approval' as const,
+    },
+    {
+      id: '2',
+      missionId: '3',
+      mission: { id: '3', title: 'Plant New Flowers', description: 'Plant seasonal flowers in the beds' },
+      student: { id: '3', firstName: 'asmith', lastName: 'kia', username: 'spongebob' },
+      photoUrl: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400',
+      submittedAt: '2024-01-15T14:20:00Z',
+      status: 'pending_approval' as const,
+    },
+    {
+      id: '3',
+      missionId: '6',
+      mission: { id: '6', title: 'Feed the Chickens', description: 'Give food and fresh water to chickens' },
+      student: { id: '2', firstName: 'Ashley', lastName: 'Smith', username: 'asmith' },
+      photoUrl: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=400',
+      submittedAt: '2024-01-16T09:15:00Z',
+      status: 'pending_approval' as const,
     },
   ];
 
@@ -655,9 +686,191 @@
         {/each}
       </div>
     {:else if activeTab === 'submissions'}
-      <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-6">
-        <h2 class="text-xl font-bold text-slate-800 mb-4">Pending Submissions</h2>
-        <p class="text-slate-600">Submissions content coming soon...</p>
+      <div class="space-y-6">
+        <!-- Header with View Toggle -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-800">Pending Submissions</h2>
+            <p class="text-sm text-slate-600 mt-1">Review and approve student mission submissions</p>
+          </div>
+          
+          <!-- View Toggle -->
+          <div class="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
+            <button
+              onclick={() => (submissionsView = 'grid')}
+              class="flex items-center gap-2 px-3 py-2 rounded-md transition-all min-h-touch-target"
+              class:bg-white={submissionsView === 'grid'}
+              class:shadow-sm={submissionsView === 'grid'}
+              class:text-slate-900={submissionsView === 'grid'}
+              class:text-slate-600={submissionsView !== 'grid'}
+              aria-label="Grid view"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+              <span class="hidden sm:inline text-sm font-medium">Grid</span>
+            </button>
+            <button
+              onclick={() => (submissionsView = 'list')}
+              class="flex items-center gap-2 px-3 py-2 rounded-md transition-all min-h-touch-target"
+              class:bg-white={submissionsView === 'list'}
+              class:shadow-sm={submissionsView === 'list'}
+              class:text-slate-900={submissionsView === 'list'}
+              class:text-slate-600={submissionsView !== 'list'}
+              aria-label="List view"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              <span class="hidden sm:inline text-sm font-medium">List</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Submissions List -->
+        {#if mockSubmissions.length > 0}
+          {#if submissionsView === 'grid'}
+            <!-- Grid View -->
+            <div class="grid gap-6 lg:grid-cols-2">
+            {#each mockSubmissions as submission}
+              <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
+                <!-- Submission Photo -->
+                <div class="relative aspect-video bg-slate-100">
+                  <img
+                    src={submission.photoUrl}
+                    alt="{submission.mission.title} by {submission.student.firstName}"
+                    class="w-full h-full object-cover"
+                  />
+                  <div class="absolute top-3 right-3 px-3 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
+                    Pending Review
+                  </div>
+                </div>
+
+                <!-- Submission Details -->
+                <div class="p-4 sm:p-5">
+                  <!-- Student Info -->
+                  <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                      {submission.student.firstName[0]}{submission.student.lastName[0]}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="font-semibold text-slate-800 truncate">
+                        {submission.student.firstName} {submission.student.lastName}
+                      </p>
+                      <p class="text-sm text-slate-500 truncate">@{submission.student.username}</p>
+                    </div>
+                    <span class="text-xs text-slate-500">
+                      {new Date(submission.submittedAt).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  <!-- Mission Info -->
+                  <div class="mb-4">
+                    <h3 class="font-semibold text-slate-800 mb-1">{submission.mission.title}</h3>
+                    <p class="text-sm text-slate-600">{submission.mission.description}</p>
+                  </div>
+
+                  <!-- Action Buttons -->
+                  <div class="flex gap-3">
+                    <button
+                      class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-all min-h-touch-target"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>Approve</span>
+                    </button>
+                    <button
+                      class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-all min-h-touch-target"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span>Reject</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {/each}
+            </div>
+          {:else}
+            <!-- List View -->
+            <div class="space-y-4">
+              {#each mockSubmissions as submission}
+                <div class="bg-white/80 backdrop-blur-sm rounded-xl shadow-md shadow-slate-200/50 border border-slate-200/60 overflow-hidden hover:shadow-lg transition-shadow">
+                  <div class="flex flex-col sm:flex-row">
+                    <!-- Photo Thumbnail -->
+                    <div class="relative w-full sm:w-48 h-48 sm:h-auto bg-slate-100 flex-shrink-0">
+                      <img
+                        src={submission.photoUrl}
+                        alt="{submission.mission.title} by {submission.student.firstName}"
+                        class="w-full h-full object-cover"
+                      />
+                      <div class="absolute top-2 right-2 px-2 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
+                        Pending
+                      </div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-1 p-4 sm:p-5 flex flex-col">
+                      <div class="flex-1">
+                        <!-- Student Info -->
+                        <div class="flex items-center gap-3 mb-3">
+                          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                            {submission.student.firstName[0]}{submission.student.lastName[0]}
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <p class="font-semibold text-slate-800 truncate">
+                              {submission.student.firstName} {submission.student.lastName}
+                            </p>
+                            <p class="text-sm text-slate-500 truncate">@{submission.student.username}</p>
+                          </div>
+                          <span class="text-xs text-slate-500 whitespace-nowrap">
+                            {new Date(submission.submittedAt).toLocaleDateString()}
+                          </span>
+                        </div>
+
+                        <!-- Mission Info -->
+                        <div class="mb-4">
+                          <h3 class="font-semibold text-slate-800 mb-1">{submission.mission.title}</h3>
+                          <p class="text-sm text-slate-600 line-clamp-2">{submission.mission.description}</p>
+                        </div>
+                      </div>
+
+                      <!-- Action Buttons -->
+                      <div class="flex gap-3">
+                        <button
+                          class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-all min-h-touch-target"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span>Approve</span>
+                        </button>
+                        <button
+                          class="flex items-center justify-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-all min-h-touch-target"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        {:else}
+          <!-- Empty State -->
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-12 text-center">
+            <div class="text-6xl mb-4">📝</div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">No Pending Submissions</h3>
+            <p class="text-slate-600">All submissions have been reviewed!</p>
+            <p class="text-sm text-slate-500 mt-2">New submissions will appear here when students complete missions.</p>
+          </div>
+        {/if}
       </div>
     {:else if activeTab === 'map'}
       <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-6">
