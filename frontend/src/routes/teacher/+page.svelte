@@ -17,8 +17,16 @@
 
 <script lang="ts">
   import type { PageData } from './$types';
+  import type { Class, ClassListItem, Sector, Mission, Submission } from '$lib/types/teacher';
 
   let { data }: { data: PageData } = $props();
+  
+  // Initialize data from load function with fallbacks
+  let currentClassData = $state<Class | null>(data.currentClass || null);
+  let allClassesData = $state<ClassListItem[]>(data.allClasses || []);
+  let sectorsData = $state<Sector[]>(data.sectors || []);
+  let missionsData = $state<Mission[]>(data.missions || []);
+  let submissionsData = $state<Submission[]>(data.submissions || []);
 
   let activeTab = $state<'overview' | 'missions' | 'submissions' | 'map'>('overview');
   let isCreateClassDialogOpen = $state(false);
@@ -55,159 +63,21 @@
     { id: 'map' as const, label: 'Map', icon: '🗺️' },
   ];
 
-  // Mock data - will be replaced with actual data from load function
-  const mockAllClasses = [
-    { id: '1', name: '6A', school: 'Middelburg School' },
-    { id: '2', name: '5B', school: 'Middelburg School' },
-    { id: '3', name: '7C', school: 'Amsterdam Primary' },
-  ];
-
-  const mockSectors = [
-    { id: '1', name: 'Trees', type: 'trees' as const, description: 'Care for our school trees', icon: '🌳', color: 'emerald' },
-    { id: '2', name: 'Flowers', type: 'flowers' as const, description: 'Maintain the flower beds', icon: '🌸', color: 'pink' },
-    { id: '3', name: 'Pond', type: 'pond' as const, description: 'Keep the pond clean', icon: '🦆', color: 'blue' },
-    { id: '4', name: 'Chickens', type: 'chickens' as const, description: 'Feed and care for chickens', icon: '🐔', color: 'amber' },
-    { id: '5', name: 'Garden', type: 'garden' as const, description: 'Tend to the vegetable garden', icon: '🥕', color: 'orange' },
-  ];
-
-  const mockMissions = [
-    {
-      id: '1',
-      sectorId: '1',
-      title: 'Water the Trees',
-      description: 'Water all trees in the schoolyard',
-      xpReward: 15,
-      coinReward: 10,
-      thirstBoost: 20,
-      hungerBoost: 0,
-      happinessBoost: 5,
-      cleanlinessBoost: 0,
-    },
-    {
-      id: '2',
-      sectorId: '1',
-      title: 'Remove Dead Branches',
-      description: 'Clean up fallen branches and leaves',
-      xpReward: 20,
-      coinReward: 15,
-      thirstBoost: 0,
-      hungerBoost: 0,
-      happinessBoost: 10,
-      cleanlinessBoost: 15,
-    },
-    {
-      id: '3',
-      sectorId: '2',
-      title: 'Plant New Flowers',
-      description: 'Plant seasonal flowers in the beds',
-      xpReward: 25,
-      coinReward: 20,
-      thirstBoost: 10,
-      hungerBoost: 5,
-      happinessBoost: 15,
-      cleanlinessBoost: 5,
-    },
-    {
-      id: '4',
-      sectorId: '2',
-      title: 'Weed the Flower Beds',
-      description: 'Remove weeds from flower areas',
-      xpReward: 10,
-      coinReward: 8,
-      thirstBoost: 5,
-      hungerBoost: 0,
-      happinessBoost: 5,
-      cleanlinessBoost: 10,
-    },
-    {
-      id: '5',
-      sectorId: '3',
-      title: 'Clean the Pond',
-      description: 'Remove debris from the pond',
-      xpReward: 30,
-      coinReward: 25,
-      thirstBoost: 15,
-      hungerBoost: 0,
-      happinessBoost: 10,
-      cleanlinessBoost: 20,
-    },
-    {
-      id: '6',
-      sectorId: '4',
-      title: 'Feed the Chickens',
-      description: 'Give food and fresh water to chickens',
-      xpReward: 15,
-      coinReward: 12,
-      thirstBoost: 10,
-      hungerBoost: 20,
-      happinessBoost: 15,
-      cleanlinessBoost: 0,
-    },
-    {
-      id: '7',
-      sectorId: '5',
-      title: 'Harvest Vegetables',
-      description: 'Collect ripe vegetables from the garden',
-      xpReward: 20,
-      coinReward: 18,
-      thirstBoost: 5,
-      hungerBoost: 25,
-      happinessBoost: 20,
-      cleanlinessBoost: 0,
-    },
-  ];
-
-  let mockSubmissions = $state([
-    {
-      id: '1',
-      missionId: '1',
-      mission: { id: '1', title: 'Water the Trees', description: 'Water all trees in the schoolyard' },
-      student: { id: '2', firstName: 'Ashley', lastName: 'Smith', username: 'asmith' },
-      photoUrl: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400',
-      submittedAt: '2024-01-15T10:30:00Z',
-      status: 'pending_approval' as const,
-    },
-    {
-      id: '2',
-      missionId: '3',
-      mission: { id: '3', title: 'Plant New Flowers', description: 'Plant seasonal flowers in the beds' },
-      student: { id: '3', firstName: 'asmith', lastName: 'kia', username: 'spongebob' },
-      photoUrl: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400',
-      submittedAt: '2024-01-15T14:20:00Z',
-      status: 'pending_approval' as const,
-    },
-    {
-      id: '3',
-      missionId: '6',
-      mission: { id: '6', title: 'Feed the Chickens', description: 'Give food and fresh water to chickens' },
-      student: { id: '2', firstName: 'Ashley', lastName: 'Smith', username: 'asmith' },
-      photoUrl: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=400',
-      submittedAt: '2024-01-16T09:15:00Z',
-      status: 'pending_approval' as const,
-    },
-  ]);
-
-  let currentClassId = $state('1');
-
-  const mockClassData = {
-    name: '6A',
-    school: 'Middelburg School',
-    classCode: 'VC3TYW',
-    mascot: {
-      level: 1,
-      xp: 85,
-      coins: 25,
-    },
-    students: [
-      { id: '1', firstName: 'John', lastName: 'Doe', username: 'johndoe', role: 'teacher' as const },
-      { id: '2', firstName: 'Ashley', lastName: 'Smith', username: 'asmith', role: 'student' as const },
-      { id: '3', firstName: 'asmith', lastName: 'kia', username: 'spongebob', role: 'student' as const },
-    ],
-  };
-
-  // Computed values for current class
-  let currentClass = $derived(mockAllClasses.find((c) => c.id === currentClassId));
-  let hasMultipleClasses = $derived(mockAllClasses.length > 1);
+  // Computed values
+  let hasMultipleClasses = $derived(allClassesData.length > 1);
+  let currentClassId = $derived(currentClassData?.id || '');
+  
+  // Helper function to get sector display properties
+  function getSectorDisplay(type: string) {
+    const displays: Record<string, { icon: string; color: string }> = {
+      trees: { icon: '🌳', color: 'emerald' },
+      flowers: { icon: '🌸', color: 'pink' },
+      pond: { icon: '🦆', color: 'blue' },
+      chickens: { icon: '🐔', color: 'amber' },
+      garden: { icon: '🥕', color: 'orange' },
+    };
+    return displays[type] || { icon: '🌱', color: 'green' };
+  }
 
   // Toast notification function
   function showToast(message: string, type: 'success' | 'error' = 'success') {
@@ -222,10 +92,15 @@
 
   // Group missions by sector
   let missionsBySector = $derived(
-    mockSectors.map((sector) => ({
-      ...sector,
-      missions: mockMissions.filter((m) => m.sectorId === sector.id),
-    }))
+    sectorsData.map((sector) => {
+      const display = getSectorDisplay(sector.type);
+      return {
+        ...sector,
+        icon: display.icon,
+        color: display.color,
+        missions: missionsData.filter((m) => m.sectorId === sector.id),
+      };
+    })
   );
 
   function handleLogout() {
@@ -234,7 +109,8 @@
   }
 
   function copyClassCode() {
-    navigator.clipboard.writeText(mockClassData.classCode).then(() => {
+    if (!currentClassData?.classCode) return;
+    navigator.clipboard.writeText(currentClassData.classCode).then(() => {
       copySuccess = true;
       setTimeout(() => {
         copySuccess = false;
@@ -271,15 +147,25 @@
     isSwitchingClass = true;
     closeClassSelector();
 
-    // TODO: Implement actual class switching with API call
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      // Call API to switch active class
+      const response = await fetch('/api/teacher/switch-class', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classId })
+      });
 
-    currentClassId = classId;
-    isSwitchingClass = false;
+      if (!response.ok) {
+        throw new Error('Failed to switch class');
+      }
 
-    // TODO: Refresh dashboard data after switching
-    console.log('Switched to class:', classId);
+      // Reload the page to fetch new class data
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to switch class:', error);
+      showToast('Failed to switch class. Please try again.', 'error');
+      isSwitchingClass = false;
+    }
   }
 
   function openCreateMissionDialog() {
@@ -332,20 +218,22 @@
     reviewingSubmissionId = submissionId;
 
     // Store original state for rollback
-    const originalSubmissions = [...mockSubmissions];
+    const originalSubmissions = [...submissionsData];
 
     try {
       // Optimistic update: Remove submission from list immediately
-      mockSubmissions = mockSubmissions.filter((s) => s.id !== submissionId);
+      submissionsData = submissionsData.filter((s) => s.id !== submissionId);
 
-      // TODO: Implement actual API call
-      // await fetch(`/api/submissions/${submissionId}/review`, {
-      //   method: 'POST',
-      //   body: JSON.stringify({ status: 'completed' })
-      // });
+      // Call API endpoint
+      const response = await fetch(`/api/submissions/${submissionId}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' })
+      });
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (!response.ok) {
+        throw new Error('Failed to approve submission');
+      }
 
       console.log('Approved submission:', submissionId);
 
@@ -356,7 +244,7 @@
     } catch (error) {
       console.error('Failed to approve submission:', error);
       // Rollback on error
-      mockSubmissions = originalSubmissions;
+      submissionsData = originalSubmissions;
       // Show error toast
       showToast('Failed to approve submission. Please try again.', 'error');
     } finally {
@@ -370,20 +258,22 @@
     reviewingSubmissionId = submissionId;
 
     // Store original state for rollback
-    const originalSubmissions = [...mockSubmissions];
+    const originalSubmissions = [...submissionsData];
 
     try {
       // Optimistic update: Remove submission from list immediately
-      mockSubmissions = mockSubmissions.filter((s) => s.id !== submissionId);
+      submissionsData = submissionsData.filter((s) => s.id !== submissionId);
 
-      // TODO: Implement actual API call
-      // await fetch(`/api/submissions/${submissionId}/review`, {
-      //   method: 'POST',
-      //   body: JSON.stringify({ status: 'rejected' })
-      // });
+      // Call API endpoint
+      const response = await fetch(`/api/submissions/${submissionId}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'rejected' })
+      });
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (!response.ok) {
+        throw new Error('Failed to reject submission');
+      }
 
       console.log('Rejected submission:', submissionId);
 
@@ -392,7 +282,7 @@
     } catch (error) {
       console.error('Failed to reject submission:', error);
       // Rollback on error
-      mockSubmissions = originalSubmissions;
+      submissionsData = originalSubmissions;
       // Show error toast
       showToast('Failed to reject submission. Please try again.', 'error');
     } finally {
@@ -446,7 +336,7 @@
                       Loading...
                     </span>
                   {:else}
-                    {currentClass?.name} - {currentClass?.school}
+                    {currentClassData?.name} - {currentClassData?.school}
                   {/if}
                 </span>
               </div>
@@ -472,7 +362,7 @@
                   <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Your Classes</p>
                 </div>
                 <div class="max-h-64 overflow-y-auto">
-                  {#each mockAllClasses as classItem}
+                  {#each allClassesData as classItem}
                     <button
                       onclick={() => switchClass(classItem.id)}
                       class="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors flex items-center justify-between group"
@@ -565,9 +455,9 @@
                   <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
                   </svg>
-                  <span>{mockClassData.name}</span>
+                  <span>{currentClassData?.name || 'No Class'}</span>
                 </div>
-                <h2 class="text-xl sm:text-2xl font-bold text-white truncate">{mockClassData.school}</h2>
+                <h2 class="text-xl sm:text-2xl font-bold text-white truncate">{currentClassData?.school || 'No School'}</h2>
               </div>
               <button
                 onclick={openCreateClassDialog}
@@ -584,7 +474,7 @@
           <div class="p-4 sm:p-6">
             <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
               <div class="flex items-center gap-2 px-4 py-2.5 bg-blue-50 rounded-xl border border-blue-200 flex-1 sm:flex-initial">
-                <code class="text-blue-900 font-mono text-base sm:text-lg font-bold tracking-wider">{mockClassData.classCode}</code>
+                <code class="text-blue-900 font-mono text-base sm:text-lg font-bold tracking-wider">{currentClassData?.classCode || 'N/A'}</code>
               </div>
               <button
                 onclick={copyClassCode}
@@ -620,7 +510,7 @@
               </div>
               <p class="text-xs sm:text-sm font-medium text-slate-600">Students</p>
             </div>
-            <p class="text-2xl sm:text-3xl font-bold text-blue-600">{mockClassData.students.length}</p>
+            <p class="text-2xl sm:text-3xl font-bold text-blue-600">{currentClassData?.students.length || 0}</p>
           </div>
 
           <!-- Mascot Level Card -->
@@ -633,7 +523,7 @@
               </div>
               <p class="text-xs sm:text-sm font-medium text-slate-600">Level</p>
             </div>
-            <p class="text-2xl sm:text-3xl font-bold text-emerald-600">{mockClassData.mascot.level}</p>
+            <p class="text-2xl sm:text-3xl font-bold text-emerald-600">{currentClassData?.mascot.level || 0}</p>
           </div>
 
           <!-- Total XP Card -->
@@ -646,7 +536,7 @@
               </div>
               <p class="text-xs sm:text-sm font-medium text-slate-600">Total XP</p>
             </div>
-            <p class="text-2xl sm:text-3xl font-bold text-purple-600">{mockClassData.mascot.xp}</p>
+            <p class="text-2xl sm:text-3xl font-bold text-purple-600">{currentClassData?.mascot.xp || 0}</p>
           </div>
 
           <!-- Coins Card -->
@@ -660,7 +550,7 @@
               </div>
               <p class="text-xs sm:text-sm font-medium text-slate-600">Coins</p>
             </div>
-            <p class="text-2xl sm:text-3xl font-bold text-amber-600">{mockClassData.mascot.coins}</p>
+            <p class="text-2xl sm:text-3xl font-bold text-amber-600">{currentClassData?.mascot.coins || 0}</p>
           </div>
         </div>
 
@@ -669,11 +559,11 @@
           <div class="px-4 sm:px-6 py-5 border-b border-slate-200/60">
             <h3 class="text-lg font-bold text-slate-800">Students</h3>
             <p class="text-sm text-slate-600 mt-1">
-              {mockClassData.students.length} student{mockClassData.students.length !== 1 ? 's' : ''} in your class
+              {currentClassData?.students.length || 0} student{(currentClassData?.students.length || 0) !== 1 ? 's' : ''} in your class
             </p>
           </div>
           <div class="p-4 sm:p-6 space-y-3">
-            {#each mockClassData.students as student}
+            {#each currentClassData?.students || [] as student}
               <div class="flex items-center justify-between p-3 sm:p-4 bg-slate-50/80 rounded-xl hover:bg-slate-100/80 transition-colors">
                 <div class="flex-1 min-w-0">
                   <p class="font-semibold text-slate-800 truncate">{student.firstName} {student.lastName}</p>
@@ -836,11 +726,11 @@
         </div>
 
         <!-- Submissions List -->
-        {#if mockSubmissions.length > 0}
+        {#if submissionsData.length > 0}
           {#if submissionsView === 'grid'}
             <!-- Grid View -->
             <div class="grid gap-6 lg:grid-cols-2">
-            {#each mockSubmissions as submission}
+            {#each submissionsData as submission}
               <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
                 <!-- Submission Photo -->
                 <div class="relative aspect-video bg-slate-100">
@@ -922,7 +812,7 @@
           {:else}
             <!-- List View -->
             <div class="space-y-4">
-              {#each mockSubmissions as submission}
+              {#each submissionsData as submission}
                 <div class="bg-white/80 backdrop-blur-sm rounded-xl shadow-md shadow-slate-200/50 border border-slate-200/60 overflow-hidden hover:shadow-lg transition-shadow">
                   <div class="flex flex-col sm:flex-row">
                     <!-- Photo Thumbnail -->
@@ -1160,8 +1050,9 @@
             class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
           >
             <option value="">Select a sector</option>
-            {#each mockSectors as sector}
-              <option value={sector.id}>{sector.icon} {sector.name}</option>
+            {#each sectorsData as sector}
+              {@const display = getSectorDisplay(sector.type)}
+              <option value={sector.id}>{display.icon} {sector.name}</option>
             {/each}
           </select>
         </div>
