@@ -1,5 +1,6 @@
 import express from 'express';
 import { prisma } from './prisma';
+import teacherRoutes from './routes/teacher.routes';
 import { MissionStatus } from '@prisma/client';
 
 const app = express();
@@ -20,6 +21,9 @@ app.get('/', (_req, res) => {
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'mission-service' });
 });
+
+// Teacher routes
+app.use('/api/teacher', teacherRoutes);
 
 app.get('/map/missions', async (_req, res) => {
   try {

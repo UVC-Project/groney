@@ -30,7 +30,7 @@
   function getItemImage(item: Item): string | null {
     if (imageMap[item.id]) return imageMap[item.id];
     // fallback if backend provides one
-    // @ts-ignore
+    // @ts-expect-error
     if (item.imageUrl) return item.imageUrl;
     return null;
   }
