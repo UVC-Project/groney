@@ -1,9 +1,24 @@
 <script lang="ts">
-  import PageWrapper from '$lib/components/PageWrapper.svelte';
+  import type { PageData } from './$types';
+  import MissionMap from '$lib/components/MissionMap.svelte';
+
+  export let data: PageData;
+
+  const { missions } = data;
+
+  // TODO: wire these to your real auth / class state
+  const currentUserId = 'demo-user-id';
+  const currentClassId = 'class-garden-101';
+
+  function handleAccepted(event: CustomEvent<{ missionId: string }>) {
+    console.log('Mission accepted:', event.detail.missionId);
+    // optional: mark mission locally as IN_PROGRESS or refetch
+  }
 </script>
 
-<PageWrapper title="Schoolyard Map">
-  <div class="text-6xl mb-4">🗺️</div>
-  <h2 class="text-2xl font-bold text-grass-green mb-2">Explore Your Schoolyard</h2>
-  <p class="text-gray-600">The interactive map will be available soon!</p>
-</PageWrapper>
+<MissionMap
+  {missions}
+  {currentUserId}
+  {currentClassId}
+  on:accepted={handleAccepted}
+/>

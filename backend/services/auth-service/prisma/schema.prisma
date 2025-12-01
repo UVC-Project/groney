@@ -106,6 +106,20 @@ enum SectorType {
   GARDEN
 }
 
+enum MissionCategory {
+  THIRST
+  HUNGER
+  HAPPINESS
+  CLEANLINESS
+}
+
+enum MissionStatus {
+  AVAILABLE
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
 // Mission model
 model Mission {
   id              String   @id @default(cuid())
@@ -122,6 +136,10 @@ model Mission {
   requiresQR      Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  coordinates_x   Float    @default(50.0)
+  coordinates_y   Float    @default(50.0)
+  category        MissionCategory @default(THIRST)
+  status          MissionStatus @default(AVAILABLE)
 
   sector      Sector       @relation(fields: [sectorId], references: [id], onDelete: Cascade)
   submissions Submission[]
