@@ -1,0 +1,196 @@
+-- Start a transaction to ensure all data is inserted in the correct order
+BEGIN;
+
+-- ------------------------------------------------------------
+-- 1. INSERT CLASS
+-- (The root dependency)
+-- ------------------------------------------------------------
+INSERT INTO classes (
+  "id",
+  "name",
+  "school",
+  "classCode",
+  "createdAt",
+  "updatedAt"
+)
+VALUES (
+  'class-garden-101',           -- This ID is referenced by the Sectors below
+  'Groep 6A',
+  'Basisschool De Regenboog',
+  'GARDEN-101',
+  NOW(),
+  NOW()
+)
+ON CONFLICT ("classCode") DO UPDATE 
+SET "updatedAt" = NOW(); -- Keeps the class valid if it already exists
+
+
+-- ------------------------------------------------------------
+-- 2. INSERT SECTORS
+-- (Must exist before Missions can be created)
+-- ------------------------------------------------------------
+INSERT INTO sectors (
+  "id",
+  "classId",
+  "name",
+  "type",
+  "createdAt",
+  "updatedAt"
+)
+VALUES
+  (
+    'sector-trees',             -- ID referenced by Missions
+    'class-garden-101',         -- References Class ID above
+    'Boomgaard',
+    'TREES',
+    NOW(),
+    NOW()
+  ),
+  (
+    'sector-pond',              -- ID referenced by Missions
+    'class-garden-101',
+    'Vijver',
+    'POND',
+    NOW(),
+    NOW()
+  ),
+  (
+    'sector-garden',            -- ID referenced by Missions
+    'class-garden-101',
+    'Moestuin',
+    'GARDEN',
+    NOW(),
+    NOW()
+  )
+ON CONFLICT ("id") DO NOTHING;
+
+
+-- ------------------------------------------------------------
+-- 3. INSERT MISSIONS
+-- (These link to the Sector IDs created above)
+-- ------------------------------------------------------------
+INSERT INTO missions (
+  "id",
+  "sectorId",
+  "title",
+  "description",
+  "xpReward",
+  "coinReward",
+  "thirstBoost",
+  "hungerBoost",
+  "happinessBoost",
+  "cleanlinessBoost",
+  "requiresPhoto",
+  "requiresQR",
+  "coordinates_x",
+  "coordinates_y",
+  "category",
+  "status",
+  "createdAt",
+  "updatedAt"
+)
+VALUES
+  (
+    'mission-water-trees',
+    'sector-trees',             -- Matches 'sector-trees' ID in Sectors table
+    'Geef de bomen water',
+    'Gebruik de gieters en geef minstens drie bomen water.',
+    50,
+    10,
+    25,
+    0,
+    5,
+    0,
+    TRUE,
+    FALSE,
+    30.0,
+    40.0,
+    'THIRST',
+    'AVAILABLE',
+    NOW(),
+    NOW()
+  ),
+  (
+    'mission-collect-leaves',
+    'sector-trees',             -- Matches 'sector-trees' ID in Sectors table
+    'Bladeren opruimen',
+    'Vul één grote emmer bladeren en maak de plek netjes.',
+    60,
+    15,
+    0,
+    0,
+    5,
+    30,
+    TRUE,
+    FALSE,
+    45.0,
+    55.0,
+    'CLEANLINESS',
+    'AVAILABLE',
+    NOW(),
+    NOW()
+  ),
+  (
+    'mission-feed-ducks',
+    'sector-pond',              -- Matches 'sector-pond' ID in Sectors table
+    'Voer de eenden (verantwoord!)',
+    'Lees wat eenden mogen eten en geef ze daarna verantwoord voer.',
+    70,
+    20,
+    0,
+    25,
+    15,
+    0,
+    TRUE,
+    FALSE,
+    65.0,
+    35.0,
+    'HUNGER',
+    'AVAILABLE',
+    NOW(),
+    NOW()
+  ),
+  (
+    'mission-plant-seeds',
+    'sector-garden',            -- Matches 'sector-garden' ID in Sectors table
+    'Plant nieuwe zaden',
+    'Plant vijf zaden in de moestuin en geef ze water.',
+    80,
+    25,
+    10,
+    0,
+    20,
+    0,
+    TRUE,
+    FALSE,
+    55.0,
+    70.0,
+    'HAPPINESS',
+    'AVAILABLE',
+    NOW(),
+    NOW()
+  ),
+  (
+    'mission-weed-garden',
+    'sector-garden',            -- Matches 'sector-garden' ID in Sectors table
+    'Onkruid wieden',
+    'Verwijder onkruid uit een hoek van de moestuin.',
+    90,
+    30,
+    0,
+    0,
+    0,
+    35,
+    TRUE,
+    FALSE,
+    60.0,
+    60.0,
+    'CLEANLINESS',
+    'AVAILABLE',
+    NOW(),
+    NOW()
+  )
+ON CONFLICT ("id") DO NOTHING;
+
+-- Commit the transaction to save changes
+COMMIT;

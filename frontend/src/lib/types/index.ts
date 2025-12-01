@@ -1,3 +1,9 @@
+export type MissionCategory = 'thirst' | 'hunger' | 'happiness' | 'cleanliness';
+
+export type MissionStatus = 'available' | 'in_progress' | 'completed' | 'expired';
+
+// ----- Core Models -----
+
 // Core entity types based on the design document
 
 export interface User {
@@ -63,9 +69,13 @@ export interface Mission {
   happinessBoost: number;
   cleanlinessBoost: number;
   requiresPhoto: boolean;
-  requiresQrCode: boolean;
-  qrCodeData?: string;
+  requiresQR: boolean;
+  coordinates_x: number;
+  coordinates_y: number;
+  category: MissionCategory;
+  status: MissionStatus;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Submission {
