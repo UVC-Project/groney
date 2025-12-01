@@ -65,7 +65,6 @@ export default class RegisterController {
                 return res.status(400).json({ message: "Missing required fields" });
             }
 
-            // Check that class exists
             const cls = await prisma.class.findUnique({
                 where: { classCode },
             });
@@ -76,7 +75,6 @@ export default class RegisterController {
 
             const hashed = await bcrypt.hash(password, 10);
 
-            // Create student
             const student = await prisma.user.create({
                 data: {
                     firstName,
