@@ -219,6 +219,7 @@ services:
     environment:
       NODE_ENV: development
       VITE_API_URL: http://localhost:3000
+      MISSION_SERVICE_URL: http://mission-service:3003
     depends_on:
       - api-gateway
     volumes:
