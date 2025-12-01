@@ -7,24 +7,26 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // User model for both students and teachers
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  password  String
-  role      UserRole
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  username      String   @unique
+  password      String
+  role          UserRole
+  classId       String?
+  activeClassId String?  // For teachers managing multiple classes
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  classMember ClassUser[]
-
+  class       Class?        @relation(fields: [classId], references: [id])
   submissions Submission[]
   purchases   Purchase[]
   activities  Activity[]
 
+  @@index([classId])
+  @@index([activeClassId])
   @@map("users")
 }
 
@@ -39,10 +41,11 @@ model Class {
   name       String
   school     String
   classCode  String   @unique
+  teacherId  String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  members ClassUser[]
+  users       User[]
   mascot      Mascot?
   sectors     Sector[]
   activities  Activity[]
@@ -51,17 +54,6 @@ model Class {
 
   @@index([classCode])
   @@map("classes")
-}
-
-model ClassUser {
-  classId String
-  userId  String
-
-  class Class @relation(fields: [classId], references: [id])
-  user  User  @relation(fields: [userId], references: [id])
-
-  @@id([classId, userId])
-  @@map("class_users")
 }
 
 // Mascot model
