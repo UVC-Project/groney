@@ -12,12 +12,14 @@ datasource db {
 
 // User model for both students and teachers
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  password  String
-  role      UserRole
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  username      String   @unique
+  password      String
+  role          UserRole
+  classId       String?
+  activeClassId String?  // For teachers managing multiple classes
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   classMember ClassUser[]
 
@@ -25,6 +27,8 @@ model User {
   purchases   Purchase[]
   activities  Activity[]
 
+  @@index([classId])
+  @@index([activeClassId])
   @@map("users")
 }
 
@@ -107,8 +111,12 @@ enum SectorType {
   TREES
   FLOWERS
   POND
-  CHICKENS
+  ANIMALS
   GARDEN
+  PLAYGROUND
+  COMPOST
+  OTHER
+  CHICKENS // @deprecated - use ANIMALS instead
 }
 
 enum MissionCategory {
