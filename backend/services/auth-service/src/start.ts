@@ -1,6 +1,7 @@
 import express from 'express';
 import { config } from 'dotenv';
 import teacherRoutes from './routes/teacher.routes';
+import RegisterController from './app/Controllers/RegisterController';
 
 config();
 
@@ -25,6 +26,10 @@ app.get('/health', (_req, res) => {
 
 // Teacher routes
 app.use('/api/teacher', teacherRoutes);
+
+// Register routes
+app.post("/register/teacher", RegisterController.registerTeacher);
+app.post("/register/student", RegisterController.registerStudent);
 
 // 404 handler for undefined routes
 app.use((_req, res) => {
