@@ -4,10 +4,16 @@ import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client";
 const prisma: PrismaClient = new PrismaClient();
 
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtkey"; // create in .env later
-const JWT_EXPIRES_IN = "7d"; // adjust if needed
+const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtkey";
+const JWT_EXPIRES_IN = "7d";
 
 export default class LoginController {
+    /**
+     * Login a user, student or teacher
+     * @param req 
+     * @param res 
+     * @returns json
+     */
   static async login(req: Request, res: Response) {
     try {
       const { username, password } = req.body;
@@ -16,7 +22,6 @@ export default class LoginController {
         return res.status(400).json({ message: "Missing username or password" });
       }
 
-      // Find user
       const user = await prisma.user.findUnique({
         where: { username },
       });
@@ -25,13 +30,11 @@ export default class LoginController {
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
-      // Check password
       const match = await bcrypt.compare(password, user.password);
       if (!match) {
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
-      // Create JWT payload
       const payload = {
         id: user.id,
         username: user.username,
@@ -39,7 +42,6 @@ export default class LoginController {
         classId: user.classId,
       };
 
-      // Sign JWT token
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
       return res.json({

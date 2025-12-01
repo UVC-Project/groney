@@ -2,6 +2,7 @@ import express from 'express';
 import { config } from 'dotenv';
 import teacherRoutes from './routes/teacher.routes';
 import RegisterController from './app/Controllers/RegisterController';
+import LoginController from './app/Controllers/LoginController';
 
 config();
 
@@ -27,7 +28,9 @@ app.get('/health', (_req, res) => {
 // Teacher routes
 app.use('/api/teacher', teacherRoutes);
 
-// Register routes
+// Auth routes
+app.post("/login", LoginController.login);
+
 app.post("/register/teacher", RegisterController.registerTeacher);
 app.post("/register/student", RegisterController.registerStudent);
 
