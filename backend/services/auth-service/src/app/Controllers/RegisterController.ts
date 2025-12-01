@@ -19,6 +19,18 @@ export default class RegisterController {
                 return res.status(400).json({ message: "Missing required fields" });
             }
 
+            if (password.length < 8) {
+                return res.status(400).json({ message: "Password must be at least 8 characters long" });
+            }
+
+            const taken = await prisma.user.findUnique({
+                where: { username },
+            });
+
+            if (taken) {
+                return res.status(409).json({ message: "Username is already taken" });
+            }
+
             const hashed = await bcrypt.hash(password, 10);
 
             const teacher = await prisma.user.create({
@@ -71,6 +83,18 @@ export default class RegisterController {
 
             if (!cls) {
                 return res.status(404).json({ message: "Class code does not exist" });
+            }
+
+            if (password.length < 8) {
+                return res.status(400).json({ message: "Password must be at least 8 characters long" });
+            }
+
+            const taken = await prisma.user.findUnique({
+                where: { username },
+            });
+
+            if (taken) {
+                return res.status(409).json({ message: "Username is already taken" });
             }
 
             const hashed = await bcrypt.hash(password, 10);
