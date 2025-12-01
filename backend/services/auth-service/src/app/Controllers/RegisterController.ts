@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { PrismaClient, UserRole } from "@prisma/client";
+import { PrismaClient, UserRole  } from "@prisma/client";
 import bcrypt from "bcrypt";
 const prisma: PrismaClient = new PrismaClient();
 
