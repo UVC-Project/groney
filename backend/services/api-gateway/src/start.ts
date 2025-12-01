@@ -3,7 +3,6 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { config } from 'dotenv';
 import shopRoutes from './routes/shopRoutes';
-import teacherRoutes from './routes/teacherRoutes';
 
 config();
 
@@ -14,17 +13,14 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 
-// Shop endpoints
+// 👇 all shop endpoints under /api
 app.use('/api', shopRoutes);
-
-// Teacher endpoints (protected with auth middleware)
-app.use('/api/teacher', teacherRoutes);
 
 app.get('/', (_req, res) => {
   res.json({
     service: 'api-gateway',
     version: '1.0.0',
-    status: 'running',
+    status: 'running'
   });
 });
 
@@ -36,7 +32,7 @@ app.get('/health', (_req, res) => {
 app.use((_req, res) => {
   res.status(404).json({
     error: 'Not Found',
-    message: 'The requested endpoint does not exist',
+    message: 'The requested endpoint does not exist'
   });
 });
 
