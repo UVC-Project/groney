@@ -15,6 +15,7 @@ model User {
   id            String   @id @default(cuid())
   firstName     String
   lastName      String
+  email         String?  @unique
   username      String   @unique
   password      String
   role          UserRole
@@ -28,10 +29,27 @@ model User {
   purchases   Purchase[]
   activities  Activity[]
 
+  passwordResetTokens PasswordResetToken[]
+
   @@index([classId])
   @@index([activeClassId])
   @@map("users")
 }
+
+// Password reset model
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
 
 enum UserRole {
   STUDENT
