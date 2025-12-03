@@ -3,6 +3,8 @@ import { config } from 'dotenv';
 import teacherRoutes from './routes/teacher.routes';
 import RegisterController from './app/Controllers/RegisterController';
 import LoginController from './app/Controllers/LoginController';
+import { authMiddleware } from './app/Middleware/AuthMiddleware';
+import LogoutController from './app/Controllers/LogoutController';
 
 config();
 
@@ -33,6 +35,8 @@ app.post("/login", LoginController.login);
 
 app.post("/register/teacher", RegisterController.registerTeacher);
 app.post("/register/student", RegisterController.registerStudent);
+
+app.post("/logout", authMiddleware, LogoutController.logout);
 
 // 404 handler for undefined routes
 app.use((_req, res) => {
