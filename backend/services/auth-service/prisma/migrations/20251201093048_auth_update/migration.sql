@@ -1,0 +1,11 @@
+-- CreateEnum
+CREATE TYPE "MissionCategory" AS ENUM ('THIRST', 'HUNGER', 'HAPPINESS', 'CLEANLINESS');
+
+-- CreateEnum
+CREATE TYPE "MissionStatus" AS ENUM ('AVAILABLE', 'IN_PROGRESS', 'COMPLETED', 'EXPIRED');
+
+-- AlterTable
+ALTER TABLE "missions" ADD COLUMN     "category" "MissionCategory" NOT NULL DEFAULT 'THIRST',
+ADD COLUMN     "coordinates_x" DOUBLE PRECISION NOT NULL DEFAULT 50.0,
+ADD COLUMN     "coordinates_y" DOUBLE PRECISION NOT NULL DEFAULT 50.0,
+ADD COLUMN     "status" "MissionStatus" NOT NULL DEFAULT 'AVAILABLE';
