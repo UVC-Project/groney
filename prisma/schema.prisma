@@ -18,8 +18,6 @@ model User {
   username      String   @unique
   password      String
   role          UserRole
-  classId       String?
-  activeClassId String?  // For teachers managing multiple classes
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
