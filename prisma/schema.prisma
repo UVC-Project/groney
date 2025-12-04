@@ -27,8 +27,6 @@ model User {
   purchases   Purchase[]
   activities  Activity[]
 
-  @@index([classId])
-  @@index([activeClassId])
   @@map("users")
 }
 
