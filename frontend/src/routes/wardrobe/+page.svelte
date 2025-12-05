@@ -55,15 +55,18 @@
     <!-- Collection grid -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
       {#each ownedItems as item}
-        <button type="button" on:click={() => selectItem(item)} class={`bg-white rounded-[28px] shadow-md border-2 hover:shadow-lg transition p-4 flex flex-col items-center ${selectedItem && selectedItem.id === item.id ? 'border-yellow-400' : 'border-gray-200'}`}>
-          <div class="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-2">
-            
-            <!-- Image -->
-            <img src={item.imageUrl} alt={item.name} class="w-10" />
-          </div>
-          <p class="text-sm font-semibold text-gray-800">{item.name}</p>
-          <p class="text-xs text-gray-500 mt-1 text-center">{item.description}</p>
-        </button>
+    <button type="button" on:click={() => selectItem(item)} class={`relative bg-white rounded-[28px] shadow-md border-2 hover:shadow-lg transition p-4 flex flex-col items-center ${selectedItem && selectedItem.id === item.id ? 'border-yellow-400' : 'border-gray-200'}`}>
+    {#if selectedItem && selectedItem.id === item.id}
+    <div class="absolute top-3 left-3 bg-sky-100 text-sky-700 text-[10px] font-semibold px-2 py-1 rounded-full flex items-center gap-1">✅<span>Equipped</span></div>
+    {/if}
+
+    <div class="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-2">
+    <img src={item.imageUrl} alt={item.name} class="w-10"/>
+    </div>
+
+    <p class="text-sm font-semibold text-gray-800">{item.name}</p>
+    <p class="text-xs text-gray-500 mt-1 text-center">{item.description}</p>
+    </button>
       {/each}
     </div>
   </div>
