@@ -1,17 +1,22 @@
 <script lang="ts">
   import PageWrapper from '$lib/components/PageWrapper.svelte';
-  import { shopItems } from '../../../../backend/services/shop-service/src/shopData';
+  import { mockShopData } from '$lib/shop/mockData';
+  import type { ShopItem } from '$lib/shop/mockData';
 
+  // All Items from MOC
+  const allItems: ShopItem[] = mockShopData.items;
 
+  // Just show owned items
+  $: ownedItems = allItems.filter((item) => item.owned);
 
-// Selected item in Wardrobe
-  let selectedItem = null;
+  // Selceted items in wardrobe
+  let selectedItem: ShopItem | null = null;
 
-  function selectItem(item) {
+  function selectItem(item: ShopItem) {
     selectedItem = item;
   }
 
-  // Make upper case
+  // For show better type with uppedcase
   function formatType(type: string | undefined) {
     if (!type) return 'None';
     return type.charAt(0).toUpperCase() + type.slice(1);
@@ -21,8 +26,8 @@
 <PageWrapper title="Wardrobe">
   
   <!-- Container -->
-  <div class="w-full max-w-5xl mx-auto bg-white rounded-[40px]px-6 md:px-16 py-10 md:py-14">
-  
+  <div class="w-full max-w-5xl mx-auto bg-white rounded-[40px] border border-gray-100 px-6 md:px-16 py-10 md:py-14">
+    
     <!-- Groeny image -->
     <div class="flex justify-center mb-10">
       <img src="/src/lib/assets/images/groeny.png" alt="Groeny Wardrobe" class="w-40 md:w-56 drop-shadow-lg"/>
@@ -49,12 +54,12 @@
 
     <!-- Collection grid -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-      {#each shopItems as item}
+      {#each ownedItems as item}
         <button type="button" on:click={() => selectItem(item)} class={`bg-white rounded-[28px] shadow-md border-2 hover:shadow-lg transition p-4 flex flex-col items-center ${selectedItem && selectedItem.id === item.id ? 'border-yellow-400' : 'border-gray-200'}`}>
           <div class="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-2">
             
             <!-- Image -->
-          <img src={item.imageUrl} alt={item.name} class="w-10" />
+            <img src={item.imageUrl} alt={item.name} class="w-10" />
           </div>
           <p class="text-sm font-semibold text-gray-800">{item.name}</p>
           <p class="text-xs text-gray-500 mt-1 text-center">{item.description}</p>
