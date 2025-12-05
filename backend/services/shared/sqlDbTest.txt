@@ -3,7 +3,7 @@ BEGIN;
 
 -- ------------------------------------------------------------
 -- 1. INSERT CLASS
--- (The root dependency)
+-- (The root dependency for this set)
 -- ------------------------------------------------------------
 INSERT INTO classes (
   "id",
@@ -14,10 +14,10 @@ INSERT INTO classes (
   "updatedAt"
 )
 VALUES (
-  'class-garden-101',           -- This ID is referenced by the Sectors below
-  'Groep 6A',
+  'class-garden-202',           -- New class ID
+  'Groep 7B',
   'Basisschool De Regenboog',
-  'GARDEN-101',
+  'GARDEN-202',
   NOW(),
   NOW()
 )
@@ -39,26 +39,26 @@ INSERT INTO sectors (
 )
 VALUES
   (
-    'sector-trees',             -- ID referenced by Missions
-    'class-garden-101',         -- References Class ID above
-    'Boomgaard',
-    'TREES',
+    'sector-flowers-202',       -- FLOWERS sector
+    'class-garden-202',
+    'Bloementuin',
+    'FLOWERS',
     NOW(),
     NOW()
   ),
   (
-    'sector-pond',              -- ID referenced by Missions
-    'class-garden-101',
-    'Vijver',
+    'sector-chickens-202',      -- CHICKENS sector
+    'class-garden-202',
+    'Kippenren',
+    'CHICKENS',
+    NOW(),
+    NOW()
+  ),
+  (
+    'sector-pond-202',          -- POND sector
+    'class-garden-202',
+    'Kleine vijver',
     'POND',
-    NOW(),
-    NOW()
-  ),
-  (
-    'sector-garden',            -- ID referenced by Missions
-    'class-garden-101',
-    'Moestuin',
-    'GARDEN',
     NOW(),
     NOW()
   )
@@ -90,102 +90,127 @@ INSERT INTO missions (
   "updatedAt"
 )
 VALUES
+  -- FLOWERS: verzorg de bloemen
   (
-    'mission-water-trees',
-    'sector-trees',             -- Matches 'sector-trees' ID in Sectors table
-    'Geef de bomen water',
-    'Gebruik de gieters en geef minstens drie bomen water.',
-    50,
-    10,
-    25,
+    'mission-water-flowers-202',
+    'sector-flowers-202',
+    'Geef de bloemen water',
+    'Controleer welke bloemperken droog zijn en geef ze voorzichtig water.',
+    55,
+    12,
+    15,
     0,
-    5,
+    10,
     0,
     TRUE,
     FALSE,
+    25.0,
     30.0,
-    40.0,
     'THIRST',
     'AVAILABLE',
     NOW(),
     NOW()
   ),
   (
-    'mission-collect-leaves',
-    'sector-trees',             -- Matches 'sector-trees' ID in Sectors table
-    'Bladeren opruimen',
-    'Vul één grote emmer bladeren en maak de plek netjes.',
-    60,
+    'mission-check-flowers-202',
+    'sector-flowers-202',
+    'Controleer zieke bloemen',
+    'Zoek naar zieke of slappe bloemen en meld het aan de leerkracht.',
+    65,
     15,
     0,
     0,
+    20,
     5,
-    30,
     TRUE,
     FALSE,
-    45.0,
-    55.0,
-    'CLEANLINESS',
-    'AVAILABLE',
-    NOW(),
-    NOW()
-  ),
-  (
-    'mission-feed-ducks',
-    'sector-pond',              -- Matches 'sector-pond' ID in Sectors table
-    'Voer de eenden (verantwoord!)',
-    'Lees wat eenden mogen eten en geef ze daarna verantwoord voer.',
-    70,
-    20,
-    0,
-    25,
-    15,
-    0,
-    TRUE,
-    FALSE,
-    65.0,
     35.0,
-    'HUNGER',
-    'AVAILABLE',
-    NOW(),
-    NOW()
-  ),
-  (
-    'mission-plant-seeds',
-    'sector-garden',            -- Matches 'sector-garden' ID in Sectors table
-    'Plant nieuwe zaden',
-    'Plant vijf zaden in de moestuin en geef ze water.',
-    80,
-    25,
-    10,
-    0,
-    20,
-    0,
-    TRUE,
-    FALSE,
-    55.0,
-    70.0,
+    45.0,
     'HAPPINESS',
     'AVAILABLE',
     NOW(),
     NOW()
   ),
+
+  -- CHICKENS: verzorging en hygiëne
   (
-    'mission-weed-garden',
-    'sector-garden',            -- Matches 'sector-garden' ID in Sectors table
-    'Onkruid wieden',
-    'Verwijder onkruid uit een hoek van de moestuin.',
-    90,
-    30,
+    'mission-clean-chicken-area-202',
+    'sector-chickens-202',
+    'Maak het kippenhok schoon',
+    'Veeg het kippenhok, verwijder oud stro en zorg dat de vloer schoon is.',
+    85,
+    20,
     0,
     0,
-    0,
+    10,
     35,
     TRUE,
     FALSE,
-    60.0,
+    55.0,
     60.0,
     'CLEANLINESS',
+    'AVAILABLE',
+    NOW(),
+    NOW()
+  ),
+  (
+    'mission-feed-chickens-202',
+    'sector-chickens-202',
+    'Voer de kippen',
+    'Geef de kippen de juiste hoeveelheid voer en controleer of er genoeg water is.',
+    75,
+    18,
+    0,
+    30,
+    15,
+    0,
+    TRUE,
+    FALSE,
+    50.0,
+    70.0,
+    'HUNGER',
+    'AVAILABLE',
+    NOW(),
+    NOW()
+  ),
+
+  -- POND: opruimen en observeren
+  (
+    'mission-clean-pond-edges-202',
+    'sector-pond-202',
+    'Maak de vijverrand schoon',
+    'Ruim afval rond de vijver op en zorg dat de rand netjes is.',
+    80,
+    22,
+    0,
+    0,
+    15,
+    30,
+    TRUE,
+    FALSE,
+    65.0,
+    40.0,
+    'CLEANLINESS',
+    'AVAILABLE',
+    NOW(),
+    NOW()
+  ),
+  (
+    'mission-pond-observation-202',
+    'sector-pond-202',
+    'Dieren bij de vijver observeren',
+    'Observeer minimaal drie dieren bij de vijver en beschrijf wat ze doen.',
+    70,
+    16,
+    0,
+    0,
+    25,
+    5,
+    TRUE,
+    FALSE,
+    70.0,
+    50.0,
+    'HAPPINESS',
     'AVAILABLE',
     NOW(),
     NOW()
