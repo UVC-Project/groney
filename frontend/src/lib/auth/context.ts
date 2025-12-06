@@ -15,7 +15,7 @@ export interface AuthContext {
 
 // Test teacher for development
 export const TEST_TEACHER: User = {
-	id: 'cmima3fb70000khydkc0izgxj', // Real teacher ID from database
+	id: 'cmiuh3yr20000exu2jf0bhl9w', // Real teacher ID from database
 	username: 'teacher1',
 	role: 'TEACHER',
 };
