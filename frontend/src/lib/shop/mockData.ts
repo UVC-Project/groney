@@ -1,6 +1,6 @@
 // src/lib/shop/mockData.ts
 
-export type ShopItemType = 'hat' | 'accessory' | 'color';
+export type ShopItemType = 'hat' | 'accessory';
 
 export interface ShopItem {
     id: string;
@@ -61,7 +61,7 @@ export const mockShopData: ShopPageData = {
             id: 'rainbow-colors',
             name: 'Rainbow Colors',
             description: 'Change Groeny to rainbow colors!',
-            type: 'color',
+            type: 'accessory',
             price: 100,
             imageUrl: '/assets/shop/rainbow-colors.png.png',
             owned: false

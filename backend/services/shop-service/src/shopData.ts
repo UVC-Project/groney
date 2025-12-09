@@ -37,7 +37,7 @@ export const shopItems: ShopItem[] = [
         id: 'rainbow-colors',
         name: 'Rainbow Colors',
         description: 'Change Groeny to rainbow colors!',
-        type: 'color',
+        type: 'accessory',
         price: 100,
         imageUrl: '/assets/shop/rainbow-colors.png'
     }
@@ -48,7 +48,7 @@ export const mascots: Mascot[] = [
         id: 'mascot-class-1',
         classId: 'class-1',
         name: 'Groeny',
-        coins: 10,
+        coins: 1000000,
         equippedHat: undefined,
         equippedAccessory: undefined,
         equippedColor: undefined,

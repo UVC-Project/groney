@@ -125,8 +125,6 @@ app.post('/api/mascot/equip', (req, res) => {
     mascot.equippedHat = item.id;
   } else if (item.type === 'accessory') {
     mascot.equippedAccessory = item.id;
-  } else if (item.type === 'color') {
-    mascot.equippedColor = item.id;
   } else {
     return res.status(400).json({ message: 'This item type cannot be equipped' });
   }
