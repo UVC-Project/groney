@@ -48,7 +48,7 @@ export const mascots: Mascot[] = [
         id: 'mascot-class-1',
         classId: 'class-1',
         name: 'Groeny',
-        coins: 1000000,
+        coins: 10,
         equippedHat: undefined,
         equippedAccessory: undefined,
         equippedColor: undefined,
