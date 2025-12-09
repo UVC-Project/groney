@@ -19,7 +19,7 @@ export interface ShopPageData {
 
 // Sprint 1: in-memory catalog (frontend only)
 export const mockShopData: ShopPageData = {
-    coins: 5,
+    coins: 200,
     items: [
         {
             id: 'red-cap',

@@ -15,6 +15,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Shell Script.setup.sh.executor": "Run",
     "node.js.selected.package.tslint": "(autodetect)",
     "ts.external.directory.path": "C:\\Users\\Iva\\PhpstormProjects\\groney\\node_modules\\typescript\\lib"
   }
@@ -24,6 +25,28 @@
       <recent name="C:\Users\Iva\PhpstormProjects\groney\frontend\src\lib\assets\images\shop" />
       <recent name="C:\Users\Iva\PhpstormProjects\groney\frontend\static\assets\shop" />
     </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="setup.sh" type="ShConfigurationType" temporary="true">
+      <option name="SCRIPT_TEXT" value="" />
+      <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
+      <option name="SCRIPT_PATH" value="$PROJECT_DIR$/scripts/setup.sh" />
+      <option name="SCRIPT_OPTIONS" value="" />
+      <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+      <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$/scripts" />
+      <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+      <option name="INTERPRETER_PATH" value="/bin/bash" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="EXECUTE_IN_TERMINAL" value="true" />
+      <option name="EXECUTE_SCRIPT_FILE" value="true" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Shell Script.setup.sh" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="TaskManager">
     <servers />
