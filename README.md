@@ -157,6 +157,8 @@ npm run dev
 
 ### Database Management with Prisma
 
+The project uses a **single shared schema** at `prisma/schema.prisma`. All services share this schema.
+
 ```bash
 # Generate Prisma Client (after schema changes)
 npm run prisma:generate
@@ -175,6 +177,8 @@ npm run prisma:studio
 - `prisma:push` - Quick prototyping, development (no migration history)
 - `prisma:migrate` - Production, team collaboration (creates migration files)
 - `prisma:generate` - After pulling schema changes from git
+
+**Schema location:** `prisma/schema.prisma` (root level only — no per-service schemas)
 
 ### Testing
 
