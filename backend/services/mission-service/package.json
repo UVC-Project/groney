@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/start.ts",
-    "build": "tsc",
-    "start": "node dist/start.js",
+    "dev": "npx prisma generate && tsx watch src/start.ts",
+    "build": "npx prisma generate && tsc",
+    "start": "tsx src/start.ts",
     "test": "vitest",
     "seed": "ts-node src/seed.ts"
   },

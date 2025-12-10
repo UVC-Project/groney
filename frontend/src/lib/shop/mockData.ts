@@ -1,6 +1,6 @@
 // src/lib/shop/mockData.ts
 
-export type ShopItemType = 'hat' | 'accessory' | 'color';
+export type ShopItemType = 'hat' | 'accessory';
 
 export interface ShopItem {
     id: string;
@@ -19,7 +19,7 @@ export interface ShopPageData {
 
 // Sprint 1: in-memory catalog (frontend only)
 export const mockShopData: ShopPageData = {
-    coins: 5,
+    coins: 200,
     items: [
         {
             id: 'red-cap',
@@ -61,7 +61,7 @@ export const mockShopData: ShopPageData = {
             id: 'rainbow-colors',
             name: 'Rainbow Colors',
             description: 'Change Groeny to rainbow colors!',
-            type: 'color',
+            type: 'accessory',
             price: 100,
             imageUrl: '/assets/shop/rainbow-colors.png.png',
             owned: false

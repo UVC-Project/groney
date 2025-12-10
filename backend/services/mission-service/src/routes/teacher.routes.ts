@@ -19,37 +19,29 @@ const requireTeacher = (req: Request, res: Response, next: Function) => {
 	next();
 };
 
-// Helper function to get teacher's active class ID
+// Helper function to get teacher's active class ID (using ClassUser join table)
 async function getActiveClassId(userId: string): Promise<string | null> {
-	const teacher = await prisma.user.findUnique({
-		where: { id: userId },
-		select: { activeClassId: true },
+	// Get the most recent class the user is a member of
+	const membership = await prisma.classUser.findFirst({
+		where: { userId },
+		include: { class: true },
+		orderBy: { class: { createdAt: 'desc' } },
 	});
 
-	let classId = teacher?.activeClassId;
-
-	// If no active class set, use the most recent class
-	if (!classId) {
-		const recentClass = await prisma.class.findFirst({
-			where: { teacherId: userId },
-			orderBy: { createdAt: 'desc' },
-			select: { id: true },
-		});
-		classId = recentClass?.id || null;
-	}
-
-	return classId;
+	return membership?.classId || null;
 }
 
-// Helper function to verify teacher owns the class
+// Helper function to verify teacher is a member of the class
 async function verifyTeacherOwnsClass(userId: string, classId: string): Promise<boolean> {
-	const teacherClass = await prisma.class.findFirst({
+	const membership = await prisma.classUser.findUnique({
 		where: {
-			id: classId,
-			teacherId: userId,
+			classId_userId: {
+				classId,
+				userId,
+			},
 		},
 	});
-	return !!teacherClass;
+	return !!membership;
 }
 
 // GET /api/teacher/sectors - Returns all sectors for teacher's class
@@ -242,8 +234,9 @@ router.post('/missions', requireTeacher, async (req: Request, res: Response) => 
 			return res.status(404).json({ error: 'Not Found', message: 'Sector not found' });
 		}
 
-		// Verify teacher owns this class
-		if (sector.class.teacherId !== userId) {
+		// Verify teacher is a member of this class
+		const isMember = await verifyTeacherOwnsClass(userId, sector.classId);
+		if (!isMember) {
 			return res.status(403).json({
 				error: 'Forbidden',
 				message: 'You do not have permission to create missions for this sector',
@@ -304,8 +297,9 @@ router.put('/missions/:id', requireTeacher, async (req: Request, res: Response) 
 			return res.status(404).json({ error: 'Not Found', message: 'Mission not found' });
 		}
 
-		// Verify teacher owns this class
-		if (mission.sector.class.teacherId !== userId) {
+		// Verify teacher is a member of this class
+		const isMember = await verifyTeacherOwnsClass(userId, mission.sector.classId);
+		if (!isMember) {
 			return res.status(403).json({
 				error: 'Forbidden',
 				message: 'You do not have permission to update this mission',
@@ -356,8 +350,9 @@ router.delete('/missions/:id', requireTeacher, async (req: Request, res: Respons
 			return res.status(404).json({ error: 'Not Found', message: 'Mission not found' });
 		}
 
-		// Verify teacher owns this class
-		if (mission.sector.class.teacherId !== userId) {
+		// Verify teacher is a member of this class
+		const isMember = await verifyTeacherOwnsClass(userId, mission.sector.classId);
+		if (!isMember) {
 			return res.status(403).json({
 				error: 'Forbidden',
 				message: 'You do not have permission to delete this mission',

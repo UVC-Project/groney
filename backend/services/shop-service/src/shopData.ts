@@ -1,6 +1,5 @@
-import type { ShopItem, Mascot } from './types';
+import type { ShopItem, Mascot, Purchase } from './types';
 
-// In-memory items for Sprint 1
 export const shopItems: ShopItem[] = [
     {
         id: 'red-cap',
@@ -8,7 +7,6 @@ export const shopItems: ShopItem[] = [
         description: 'A stylish red cap for Groeny',
         type: 'hat',
         price: 50,
-        // backend still uses URL-ish paths; frontend can override with imports
         imageUrl: '/assets/shop/red-cap.png'
     },
     {
@@ -39,21 +37,26 @@ export const shopItems: ShopItem[] = [
         id: 'rainbow-colors',
         name: 'Rainbow Colors',
         description: 'Change Groeny to rainbow colors!',
-        type: 'color',
+        type: 'accessory',
         price: 100,
         imageUrl: '/assets/shop/rainbow-colors.png'
     }
 ];
 
-// Very simple in-memory mascot state for Sprint 1
 export const mascots: Mascot[] = [
     {
         id: 'mascot-class-1',
         classId: 'class-1',
         name: 'Groeny',
-        coins: 120
+        coins: 1000000,
+        equippedHat: undefined,
+        equippedAccessory: undefined,
+        equippedColor: undefined,
+        updatedAt: new Date().toISOString()
     }
 ];
+
+export const purchases: Purchase[] = [];
 
 export function getMascotByClassId(classId: string): Mascot | undefined {
     return mascots.find((m) => m.classId === classId);

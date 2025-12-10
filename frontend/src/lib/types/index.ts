@@ -1,20 +1,23 @@
+export type UserRole = 'student' | 'teacher';
+
+export type SectorType = 'trees' | 'flowers' | 'pond' | 'chickens' | 'garden';
+
 export type MissionCategory = 'thirst' | 'hunger' | 'happiness' | 'cleanliness';
 
 export type MissionStatus = 'available' | 'in_progress' | 'completed' | 'expired';
 
-// ----- Core Models -----
+export type SubmissionStatus = 'pending' | 'completed' | 'rejected';
 
-// Core entity types based on the design document
+export type ItemType = 'hat' | 'accessory' | 'color';
+
+export type ActivityType = 'mission_completed' | 'purchase' | 'level_up';
+
+// ----- Core Models -----
 
 export interface User {
   id: string;
   username: string;
-  firstName: string;
-  lastName: string;
-  email?: string;
-  profileImageUrl?: string;
-  role: 'student' | 'teacher';
-  classId?: string;
+  role: UserRole;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,26 +27,29 @@ export interface Class {
   name: string;
   school: string;
   classCode: string;
-  createdById?: string;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClassUser {
+  classId: string;
+  userId: string;
 }
 
 export interface Mascot {
   id: string;
   classId: string;
-  name: string;
-  level: number;
-  xp: number;
   thirst: number;
   hunger: number;
   happiness: number;
   cleanliness: number;
+  level: number;
+  xp: number;
   coins: number;
   equippedHat?: string;
   equippedAccessory?: string;
   equippedColor?: string;
-  lastFed?: string;
-  lastWatered?: string;
+  lastDecayAt: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,9 +58,9 @@ export interface Sector {
   id: string;
   classId: string;
   name: string;
-  type: 'trees' | 'flowers' | 'pond' | 'chickens' | 'garden';
-  description?: string;
+  type: SectorType;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Mission {
@@ -82,24 +88,22 @@ export interface Submission {
   id: string;
   missionId: string;
   userId: string;
-  status: 'available' | 'in_progress' | 'pending_approval' | 'completed' | 'rejected';
+  classId: string;
   photoUrl?: string;
-  qrCodeScanned: boolean;
-  submittedAt: string;
-  reviewedAt?: string;
-  reviewedBy?: string;
-  reviewNotes?: string;
+  qrScanned: boolean;
+  status: SubmissionStatus;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ShopItem {
   id: string;
   name: string;
-  description?: string;
-  type: 'hat' | 'accessory' | 'color' | 'supply';
+  type: ItemType;
   price: number;
-  imageUrl?: string;
-  customizationData?: Record<string, unknown>;
+  imageUrl: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Purchase {
@@ -107,20 +111,21 @@ export interface Purchase {
   userId: string;
   itemId: string;
   classId: string;
-  purchasedAt: string;
+  createdAt: string;
 }
 
 export interface Activity {
   id: string;
   classId: string;
   userId: string;
-  type: 'mission_completed' | 'purchase' | 'level_up';
+  type: ActivityType;
   content: string;
   imageUrl?: string;
   createdAt: string;
 }
 
-// API response types
+// ----- API Types -----
+
 export interface ApiError {
   message: string;
   error?: string;

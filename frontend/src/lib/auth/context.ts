@@ -22,11 +22,12 @@ if (browser) {
 	if (savedUser) user.set(JSON.parse(savedUser));
 }
 
-token.subscribe((t) => {
-	if (!browser) return;
-	if (t) localStorage.setItem("token", t);
-	else localStorage.removeItem("token");
-});
+// Test teacher for development
+export const TEST_TEACHER: User = {
+	id: 'cmiuh3yr20000exu2jf0bhl9w', // Real teacher ID from database
+	username: 'teacher1',
+	role: 'TEACHER',
+};
 
 user.subscribe((u) => {
 	if (!browser) return;
