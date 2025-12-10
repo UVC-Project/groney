@@ -19,26 +19,29 @@ const requireTeacher = (req: Request, res: Response, next: Function) => {
 	next();
 };
 
-// Helper function to get teacher's active class ID
+// Helper function to get teacher's active class ID (using ClassUser join table)
 async function getActiveClassId(userId: string): Promise<string | null> {
-	const teacher = await prisma.user.findUnique({
-		where: { id: userId },
-		select: { activeClassId: true },
+	// Get the most recent class the user is a member of
+	const membership = await prisma.classUser.findFirst({
+		where: { userId },
+		include: { class: true },
+		orderBy: { class: { createdAt: 'desc' } },
 	});
 
-	let classId = teacher?.activeClassId;
+	return membership?.classId || null;
+}
 
-	// If no active class set, use the most recent class
-	if (!classId) {
-		const recentClass = await prisma.class.findFirst({
-			where: { teacherId: userId },
-			orderBy: { createdAt: 'desc' },
-			select: { id: true },
-		});
-		classId = recentClass?.id || null;
-	}
-
-	return classId;
+// Helper function to verify teacher is a member of the class
+async function verifyTeacherOwnsClass(userId: string, classId: string): Promise<boolean> {
+	const membership = await prisma.classUser.findUnique({
+		where: {
+			classId_userId: {
+				classId,
+				userId,
+			},
+		},
+	});
+	return !!membership;
 }
 
 // GET /api/teacher/submissions - Returns pending submissions for teacher's class
@@ -141,8 +144,9 @@ router.post('/submissions/:id/review', requireTeacher, async (req: Request, res:
 			return res.status(404).json({ error: 'Not Found', message: 'Submission not found' });
 		}
 
-		// Verify teacher owns this class
-		if (submission.class.teacherId !== userId) {
+		// Verify teacher is a member of this class
+		const isMember = await verifyTeacherOwnsClass(userId, submission.classId);
+		if (!isMember) {
 			return res.status(403).json({
 				error: 'Forbidden',
 				message: 'You do not have permission to review this submission',

@@ -2,9 +2,6 @@
   import PageWrapper from '$lib/components/PageWrapper.svelte';
   import type { PageData } from './$types';
 
-  // ============================
-  //   IMPORT SHOP IMAGES
-  // ============================
   import RedCapImg from '$lib/assets/images/shop/red-cap.png';
   import BlueCapImg from '$lib/assets/images/shop/blue-cap.png';
   import BowTieImg from '$lib/assets/images/shop/bow-tie.png';
@@ -18,7 +15,6 @@
 
   type Item = PageData['items'][number];
 
-  // Image lookup by item.id
   const imageMap: Record<string, string> = {
     'red-cap': RedCapImg,
     'blue-cap': BlueCapImg,
@@ -29,29 +25,45 @@
 
   function getItemImage(item: Item): string | null {
     if (imageMap[item.id]) return imageMap[item.id];
-    // fallback if backend provides one
-    // @ts-expect-error
+    // @ts-expect-error backend imageUrl fallback
     if (item.imageUrl) return item.imageUrl;
     return null;
   }
 
-  // ============================
-  //   SPRINT 1 LOCAL STATE
-  // ============================
-  let coins = data.coins;
-  let items = data.items.slice(); // avoid mutating original data
+  const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3005';
 
-  function onBuyClick(id: string) {
+  let coins = data.coins;
+  let items = data.items.slice();
+
+  async function onBuyClick(id: string) {
     const item = items.find((i) => i.id === id);
     if (!item || item.owned) return;
 
-    if (coins < item.price) {
-      alert('Not enough coins yet – server validation comes in Sprint 2.');
-      return;
-    }
+    try {
+      const res = await fetch(`${API_BASE}/api/shop/purchase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: 'user-1',
+          classId: 'class-1',
+          itemId: id
+        })
+      });
 
-    coins -= item.price;
-    item.owned = true;
+      const json = await res.json();
+
+      if (!res.ok) {
+        alert(json.message ?? 'Failed to purchase item');
+        return;
+      }
+
+      coins = json.mascot.coins;
+      items = items.map((i) =>
+              i.id === id ? { ...i, owned: true } : i
+      );
+    } catch (err) {
+      alert('Shop service offline');
+    }
   }
 
   function onApplyClick(id: string) {
@@ -63,9 +75,6 @@
 </script>
 
 <PageWrapper title="Shop">
-  <!-- ===================== -->
-  <!--   COINS BADGE         -->
-  <!-- ===================== -->
   <div class="flex justify-center mb-6">
     <div class="bg-yellow-300 rounded-full px-8 py-3 shadow-lg flex items-center gap-3 border-2 border-yellow-400">
       <span class="text-2xl">🪙</span>
@@ -73,9 +82,6 @@
     </div>
   </div>
 
-  <!-- ===================== -->
-  <!--        TABS           -->
-  <!-- ===================== -->
   <div class="flex justify-center mb-8">
     <div class="bg-white rounded-full shadow-inner flex overflow-hidden border border-green-300">
       <button
@@ -103,13 +109,9 @@
   </div>
 
   {#if activeTab === 'groeny'}
-    <!-- ===================== -->
-    <!--       ITEMS GRID       -->
-    <!-- ===================== -->
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-10">
       {#each items as item}
         <article class="bg-white rounded-3xl shadow-md border-4 border-amber-300 flex flex-col overflow-hidden">
-          <!-- IMAGE + TEXT -->
           <div class="flex-1 flex flex-col items-center justify-center p-6">
             {#if getItemImage(item)}
               <div class="h-24 mb-4 flex items-center justify-center">
@@ -121,7 +123,6 @@
             <p class="text-xs text-gray-500 text-center mt-1">{item.description}</p>
           </div>
 
-          <!-- FOOTER BAR -->
           <div class="px-6 py-3 bg-sky-100 flex items-center justify-between">
             {#if item.owned}
               <span class="text-xs font-semibold text-emerald-600">Owned</span>
@@ -153,16 +154,10 @@
         </article>
       {/each}
     </div>
-
   {:else}
-
-    <!-- ===================== -->
-    <!--  SCHOOLYARD PLACEHOLDER -->
-    <!-- ===================== -->
     <div class="text-center text-gray-500 pb-10">
       <p class="font-medium mb-1">Schoolyard Supplies</p>
       <p class="text-sm">This section will be implemented in a later sprint.</p>
     </div>
-
   {/if}
 </PageWrapper>
