@@ -6,41 +6,49 @@ const prisma = new PrismaClient();
 
 // Middleware to verify teacher role
 const requireTeacher = (req: Request, res: Response, next: Function) => {
-	// TODO: Implement actual authentication middleware
-	// For now, we'll assume the user is authenticated and userId is in req.user
 	const userId = req.headers['x-user-id'] as string;
-	
+
 	if (!userId) {
 		return res.status(401).json({ error: 'Unauthorized', message: 'User not authenticated' });
 	}
 
-	// Store userId for use in route handlers
 	(req as any).userId = userId;
 	next();
 };
+
+// Helper to get teacher's first class (since activeClassId is removed)
+async function getTeacherFirstClassId(userId: string): Promise<string | null> {
+	const membership = await prisma.classUser.findFirst({
+		where: { userId },
+		include: { class: true },
+		orderBy: { class: { createdAt: 'desc' } },
+	});
+	return membership?.classId || null;
+}
 
 // GET /api/teacher/classes - Returns all classes for a teacher
 router.get('/classes', requireTeacher, async (req: Request, res: Response) => {
 	try {
 		const userId = (req as any).userId;
 
-		// Find all classes where this user is the teacher
-		const classes = await prisma.class.findMany({
-			where: {
-				teacherId: userId,
+		// Find all classes where this user is a member (teacher)
+		const memberships = await prisma.classUser.findMany({
+			where: { userId },
+			include: {
+				class: {
+					select: {
+						id: true,
+						name: true,
+						school: true,
+						classCode: true,
+						createdAt: true,
+					},
+				},
 			},
-			select: {
-				id: true,
-				name: true,
-				school: true,
-				classCode: true,
-				createdAt: true,
-			},
-			orderBy: {
-				createdAt: 'desc',
-			},
+			orderBy: { class: { createdAt: 'desc' } },
 		});
 
+		const classes = memberships.map((m) => m.class);
 		res.json(classes);
 	} catch (error) {
 		console.error('Error fetching teacher classes:', error);
@@ -53,23 +61,8 @@ router.get('/class', requireTeacher, async (req: Request, res: Response) => {
 	try {
 		const userId = (req as any).userId;
 
-		// Get teacher's user record to find activeClassId
-		const teacher = await prisma.user.findUnique({
-			where: { id: userId },
-			select: { activeClassId: true },
-		});
-
-		let classId = teacher?.activeClassId;
-
-		// If no active class set, use the most recent class
-		if (!classId) {
-			const recentClass = await prisma.class.findFirst({
-				where: { teacherId: userId },
-				orderBy: { createdAt: 'desc' },
-				select: { id: true },
-			});
-			classId = recentClass?.id;
-		}
+		// Get teacher's first class (most recent)
+		const classId = await getTeacherFirstClassId(userId);
 
 		if (!classId) {
 			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
@@ -80,12 +73,18 @@ router.get('/class', requireTeacher, async (req: Request, res: Response) => {
 			where: { id: classId },
 			include: {
 				mascot: true,
-				users: {
-					select: {
-						id: true,
-						username: true,
-						role: true,
-						createdAt: true,
+				members: {
+					include: {
+						user: {
+							select: {
+								id: true,
+								firstName: true,
+								lastName: true,
+								username: true,
+								role: true,
+								createdAt: true,
+							},
+						},
 					},
 				},
 			},
@@ -101,22 +100,26 @@ router.get('/class', requireTeacher, async (req: Request, res: Response) => {
 			name: teacherClass.name,
 			school: teacherClass.school,
 			classCode: teacherClass.classCode,
-			mascot: teacherClass.mascot ? {
-				level: teacherClass.mascot.level,
-				xp: teacherClass.mascot.xp,
-				coins: teacherClass.mascot.coins,
-				thirst: teacherClass.mascot.thirst,
-				hunger: teacherClass.mascot.hunger,
-				happiness: teacherClass.mascot.happiness,
-				cleanliness: teacherClass.mascot.cleanliness,
-			} : null,
-			students: teacherClass.users.map(user => ({
-				id: user.id,
-				firstName: user.username, // TODO: Add firstName/lastName to schema
-				lastName: '',
-				username: user.username,
-				role: user.role.toLowerCase(),
-			})),
+			mascot: teacherClass.mascot
+				? {
+						level: teacherClass.mascot.level,
+						xp: teacherClass.mascot.xp,
+						coins: teacherClass.mascot.coins,
+						thirst: teacherClass.mascot.thirst,
+						hunger: teacherClass.mascot.hunger,
+						happiness: teacherClass.mascot.happiness,
+						cleanliness: teacherClass.mascot.cleanliness,
+					}
+				: null,
+			students: teacherClass.members
+				.filter((m) => m.user.role === 'STUDENT')
+				.map((m) => ({
+					id: m.user.id,
+					firstName: m.user.firstName,
+					lastName: m.user.lastName,
+					username: m.user.username,
+					role: m.user.role.toLowerCase(),
+				})),
 		};
 
 		res.json(response);
@@ -140,17 +143,6 @@ router.post('/create-class', requireTeacher, async (req: Request, res: Response)
 			return res.status(400).json({ error: 'Bad Request', message: 'School name must be at least 2 characters' });
 		}
 
-		// Check if class name already exists for this teacher
-		const existingClassName = await prisma.class.findFirst({
-			where: {
-				teacherId: userId,
-				name: className,
-			},
-		});
-		if (existingClassName) {
-			return res.status(400).json({ error: 'Bad Request', message: 'You already have a class with this name' });
-		}
-
 		// Generate unique class code (6 characters)
 		const generateClassCode = () => {
 			const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -162,7 +154,7 @@ router.post('/create-class', requireTeacher, async (req: Request, res: Response)
 		};
 
 		let classCode = generateClassCode();
-		
+
 		// Ensure code is unique
 		let existingClass = await prisma.class.findUnique({ where: { classCode } });
 		while (existingClass) {
@@ -170,7 +162,7 @@ router.post('/create-class', requireTeacher, async (req: Request, res: Response)
 			existingClass = await prisma.class.findUnique({ where: { classCode } });
 		}
 
-		// Create class with mascot in a transaction
+		// Create class with mascot and teacher membership in a transaction
 		const newClass = await prisma.$transaction(async (tx) => {
 			// Create the class
 			const createdClass = await tx.class.create({
@@ -178,7 +170,14 @@ router.post('/create-class', requireTeacher, async (req: Request, res: Response)
 					name: className,
 					school: schoolName,
 					classCode,
-					teacherId: userId,
+				},
+			});
+
+			// Add teacher as a member of the class
+			await tx.classUser.create({
+				data: {
+					classId: createdClass.id,
+					userId,
 				},
 			});
 
@@ -194,12 +193,6 @@ router.post('/create-class', requireTeacher, async (req: Request, res: Response)
 					xp: 0,
 					coins: 0,
 				},
-			});
-
-			// Set this as the teacher's active class
-			await tx.user.update({
-				where: { id: userId },
-				data: { activeClassId: createdClass.id },
 			});
 
 			return createdClass;
@@ -228,28 +221,28 @@ router.post('/switch-class', requireTeacher, async (req: Request, res: Response)
 			return res.status(400).json({ error: 'Bad Request', message: 'Class ID is required' });
 		}
 
-		// Verify the class belongs to this teacher
-		const teacherClass = await prisma.class.findFirst({
+		// Verify the teacher is a member of this class
+		const membership = await prisma.classUser.findUnique({
 			where: {
-				id: classId,
-				teacherId: userId,
+				classId_userId: {
+					classId,
+					userId,
+				},
 			},
+			include: { class: true },
 		});
 
-		if (!teacherClass) {
+		if (!membership) {
 			return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to this class' });
 		}
 
-		// Update teacher's activeClassId
-		await prisma.user.update({
-			where: { id: userId },
-			data: { activeClassId: classId },
-		});
+		// Note: Since activeClassId is removed, we just verify access
+		// The frontend should handle which class is "active" via state
 
-		res.json({ 
-			message: 'Class switched successfully', 
+		res.json({
+			message: 'Class switched successfully',
 			classId,
-			className: teacherClass.name,
+			className: membership.class.name,
 		});
 	} catch (error) {
 		console.error('Error switching class:', error);

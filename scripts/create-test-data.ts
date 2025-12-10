@@ -15,6 +15,8 @@ async function createTestData() {
       where: { username: 'teacher1' },
       update: {},
       create: {
+        firstName: 'Test',
+        lastName: 'Teacher',
         username: 'teacher1',
         password: hashedPassword,
         role: 'TEACHER',
@@ -31,15 +33,23 @@ async function createTestData() {
         name: 'Test Class 4A',
         school: 'Green Valley School',
         classCode: 'TEST01',
-        teacherId: teacher.id,
       },
     });
     console.log(`   ✅ Class created: ${testClass.name} (Code: ${testClass.classCode})`);
 
-    // Update teacher's active class
-    await prisma.user.update({
-      where: { id: teacher.id },
-      data: { activeClassId: testClass.id },
+    // Add teacher as a member of the class
+    await prisma.classUser.upsert({
+      where: {
+        classId_userId: {
+          classId: testClass.id,
+          userId: teacher.id,
+        },
+      },
+      update: {},
+      create: {
+        classId: testClass.id,
+        userId: teacher.id,
+      },
     });
 
     // 3. Create mascot for the class
@@ -122,20 +132,41 @@ async function createTestData() {
 
     // 6. Create test students
     console.log('\n👨‍🎓 Creating test students...');
-    const studentNames = ['student1', 'student2', 'student3'];
+    const studentNames = [
+      { username: 'student1', firstName: 'Alice', lastName: 'Smith' },
+      { username: 'student2', firstName: 'Bob', lastName: 'Johnson' },
+      { username: 'student3', firstName: 'Charlie', lastName: 'Brown' },
+    ];
     const students = [];
     
-    for (const name of studentNames) {
+    for (const data of studentNames) {
       const student = await prisma.user.upsert({
-        where: { username: name },
+        where: { username: data.username },
         update: {},
         create: {
-          username: name,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          username: data.username,
           password: hashedPassword,
           role: 'STUDENT',
-          classId: testClass.id,
         },
       });
+      
+      // Add student as a member of the class
+      await prisma.classUser.upsert({
+        where: {
+          classId_userId: {
+            classId: testClass.id,
+            userId: student.id,
+          },
+        },
+        update: {},
+        create: {
+          classId: testClass.id,
+          userId: student.id,
+        },
+      });
+      
       students.push(student);
       console.log(`   ✅ Student: ${student.username}`);
     }
