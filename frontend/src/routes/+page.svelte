@@ -2,14 +2,6 @@
   import ScrollToTopButton from '$lib/components/ScrollToTop.svelte';
   import LogoutModal from '$lib/components/LogoutModal.svelte';
   import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
-  import { goto } from '$app/navigation';
-  import { isAuthenticated } from '$lib/auth/context';
-
-  let authed = false;
-  // Only redirect on the client
-  if (!authed) {
-    goto('/login');
-  }
 
   let showLogoutModal = false;
 

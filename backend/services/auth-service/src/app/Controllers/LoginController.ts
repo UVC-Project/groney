@@ -4,16 +4,16 @@ import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client";
 const prisma: PrismaClient = new PrismaClient();
 
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtkey";
+const JWT_SECRET = process.env.JWT_SECRET || '';
 const JWT_EXPIRES_IN = "7d";
 
 export default class LoginController {
-    /**
-     * Login a user, student or teacher
-     * @param req 
-     * @param res 
-     * @returns json
-     */
+  /**
+   * Login a user, student or teacher
+   * @param req 
+   * @param res 
+   * @returns json
+   */
   static async login(req: Request, res: Response) {
     try {
       const { username, password } = req.body;
