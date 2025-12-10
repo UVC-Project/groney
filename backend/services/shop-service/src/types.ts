@@ -7,7 +7,7 @@ export interface ShopItem {
     type: ShopItemType;
     price: number;
     imageUrl: string;
-    owned?: boolean; // frontend may use this later
+    owned?: boolean;
 }
 
 export interface Mascot {
@@ -15,4 +15,16 @@ export interface Mascot {
     classId: string;
     name: string;
     coins: number;
+    equippedHat?: string;
+    equippedAccessory?: string;
+    equippedColor?: string;
+    updatedAt?: string;
+}
+
+export interface Purchase {
+    id: string;
+    userId: string;
+    classId: string;
+    itemId: string;
+    purchasedAt: string;
 }
