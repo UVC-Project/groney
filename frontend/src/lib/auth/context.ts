@@ -1,67 +1,44 @@
-// Temporary auth context for testing teacher dashboard
-// This will be replaced by your colleague's full authentication implementation
+import { writable } from "svelte/store";
+import { browser } from "$app/environment";
 
 export interface User {
 	id: string;
 	username: string;
-	role: 'TEACHER' | 'STUDENT';
+	role: "TEACHER" | "STUDENT";
+	classId?: string | null;
 }
 
-export interface AuthContext {
-	user: User | null;
-	isAuthenticated: boolean;
-	isTeacher: boolean;
+export const user = writable<User | null>(null);
+export const token = writable<string | null>(null);
+
+export const isAuthenticated = writable(false);
+export const isTeacher = writable(false);
+
+if (browser) {
+	const savedToken = localStorage.getItem("token");
+	const savedUser = localStorage.getItem("user");
+
+	if (savedToken) token.set(savedToken);
+	if (savedUser) user.set(JSON.parse(savedUser));
 }
 
-// Test teacher for development
-export const TEST_TEACHER: User = {
-	id: 'cmima3fb70000khydkc0izgxj', // Real teacher ID from database
-	username: 'teacher1',
-	role: 'TEACHER',
-};
+token.subscribe((t) => {
+	if (!browser) return;
+	if (t) localStorage.setItem("token", t);
+	else localStorage.removeItem("token");
+});
 
-// Mock auth context for testing
-export function createTestAuthContext(): AuthContext {
-	return {
-		user: TEST_TEACHER,
-		isAuthenticated: true,
-		isTeacher: true,
-	};
-}
+user.subscribe((u) => {
+	if (!browser) return;
 
-// Auth headers for API requests
-export function getAuthHeaders(user: User | null): Record<string, string> {
-	if (!user) {
-		return {};
+	if (!u) {
+		localStorage.removeItem("user");
+		isAuthenticated.set(false);
+		isTeacher.set(false);
+		return;
 	}
 
-	return {
-		'x-user-id': user.id,
-		'x-user-role': user.role,
-	};
-}
-
-// API client with auth headers
-export async function authenticatedFetch(
-	url: string,
-	options: RequestInit = {},
-	user: User | null = TEST_TEACHER
-): Promise<Response> {
-	const headers = {
-		'Content-Type': 'application/json',
-		...getAuthHeaders(user),
-		...(options.headers || {}),
-	};
-
-	return fetch(url, {
-		...options,
-		headers,
-	});
-}
-
-// For your colleague's reference - where real auth will plug in:
-// 1. Replace TEST_TEACHER with real user from session/JWT
-// 2. Replace createTestAuthContext() with real auth state
-// 3. Replace authenticatedFetch() with real auth headers from session
-// 4. Add login/logout functions
-// 5. Add session management
+	localStorage.setItem("user", JSON.stringify(u));
+	isAuthenticated.set(true);
+	isTeacher.set(u.role === "TEACHER");
+});

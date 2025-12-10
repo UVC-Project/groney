@@ -5,6 +5,12 @@ CREATE TYPE "UserRole" AS ENUM ('STUDENT', 'TEACHER');
 CREATE TYPE "SectorType" AS ENUM ('TREES', 'FLOWERS', 'POND', 'CHICKENS', 'GARDEN');
 
 -- CreateEnum
+CREATE TYPE "MissionCategory" AS ENUM ('THIRST', 'HUNGER', 'HAPPINESS', 'CLEANLINESS');
+
+-- CreateEnum
+CREATE TYPE "MissionStatus" AS ENUM ('AVAILABLE', 'IN_PROGRESS', 'COMPLETED', 'EXPIRED');
+
+-- CreateEnum
 CREATE TYPE "SubmissionStatus" AS ENUM ('PENDING', 'COMPLETED', 'REJECTED');
 
 -- CreateEnum
@@ -18,6 +24,7 @@ CREATE TABLE "users" (
     "id" TEXT NOT NULL,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
+    "email" TEXT,
     "username" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "role" "UserRole" NOT NULL,
@@ -27,6 +34,17 @@ CREATE TABLE "users" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PasswordResetToken" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PasswordResetToken_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -91,6 +109,10 @@ CREATE TABLE "missions" (
     "requiresQR" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "coordinates_x" DOUBLE PRECISION NOT NULL DEFAULT 50.0,
+    "coordinates_y" DOUBLE PRECISION NOT NULL DEFAULT 50.0,
+    "category" "MissionCategory" NOT NULL DEFAULT 'THIRST',
+    "status" "MissionStatus" NOT NULL DEFAULT 'AVAILABLE',
 
     CONSTRAINT "missions_pkey" PRIMARY KEY ("id")
 );
@@ -148,6 +170,9 @@ CREATE TABLE "activities" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "users_username_key" ON "users"("username");
 
 -- CreateIndex
@@ -155,6 +180,15 @@ CREATE INDEX "users_classId_idx" ON "users"("classId");
 
 -- CreateIndex
 CREATE INDEX "users_activeClassId_idx" ON "users"("activeClassId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PasswordResetToken_token_key" ON "PasswordResetToken"("token");
+
+-- CreateIndex
+CREATE INDEX "PasswordResetToken_token_idx" ON "PasswordResetToken"("token");
+
+-- CreateIndex
+CREATE INDEX "PasswordResetToken_userId_idx" ON "PasswordResetToken"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "classes_classCode_key" ON "classes"("classCode");
@@ -200,6 +234,9 @@ CREATE INDEX "activities_createdAt_idx" ON "activities"("createdAt");
 
 -- AddForeignKey
 ALTER TABLE "users" ADD CONSTRAINT "users_classId_fkey" FOREIGN KEY ("classId") REFERENCES "classes"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PasswordResetToken" ADD CONSTRAINT "PasswordResetToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "mascots" ADD CONSTRAINT "mascots_classId_fkey" FOREIGN KEY ("classId") REFERENCES "classes"("id") ON DELETE CASCADE ON UPDATE CASCADE;

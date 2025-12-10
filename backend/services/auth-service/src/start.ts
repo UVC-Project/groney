@@ -1,11 +1,11 @@
 import express from 'express';
 import { config } from 'dotenv';
-import teacherRoutes from './routes/teacher.routes';
 import RegisterController from './app/Controllers/RegisterController';
 import LoginController from './app/Controllers/LoginController';
 import { authMiddleware } from './app/Middleware/AuthMiddleware';
 import LogoutController from './app/Controllers/LogoutController';
 import PasswordResetController from './app/Controllers/PasswordResetController';
+import teacherRoutes from './routes/teacher.routes';
 
 config();
 
@@ -31,6 +31,13 @@ app.get('/health', (_req, res) => {
 // Teacher routes
 app.use('/api/teacher', teacherRoutes);
 
+app.use(cors({
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 // Auth routes
 app.post("/login", LoginController.login);
 
@@ -41,6 +48,16 @@ app.post("/logout", authMiddleware, LogoutController.logout);
 
 app.post("/password/forgot", PasswordResetController.requestReset);
 app.post("/password/reset", PasswordResetController.resetPassword);
+
+import cors from 'cors';
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+
 
 // 404 handler for undefined routes
 app.use((_req, res) => {
