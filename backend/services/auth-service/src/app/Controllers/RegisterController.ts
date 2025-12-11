@@ -43,6 +43,7 @@ export default class RegisterController {
                     firstName,
                     lastName,
                     username,
+                    email,
                     password: hashed,
                     role: UserRole.TEACHER,
                 },

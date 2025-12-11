@@ -6,7 +6,6 @@
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
   import { logout as authLogout } from '$lib/auth/auth';
-  import { handle } from '../hooks/client';
 
   let showLogoutModal = false;
 
@@ -15,12 +14,12 @@
     clearUser();
     showLogoutModal = false;
 
-    if (browser) goto('/login');
+    if (browser) goto('/auth');
   }
 
   $: if ($user === null) {
     if (browser) {
-      goto('/login');
+      goto('/auth');
     }
   }
 </script>

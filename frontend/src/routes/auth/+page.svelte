@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { login } from '$lib/auth/auth';
+  import { login, registerTeacher, registerStudent } from '$lib/auth/auth';
 
   let activeTab: 'login' | 'teacher' | 'student' = 'login';
 
@@ -11,6 +11,7 @@
   let tFirst = '';
   let tLast = '';
   let tUsername = '';
+  let tEmail = '';
   let tPassword = '';
   let tClassCode = '';
   let tSchool = '';
@@ -34,6 +35,54 @@
       goto('/');
     } catch (e: any) {
       loginError = e.message || 'Login failed';
+    }
+  }
+
+  let loading = false;
+
+  async function submitTeacher() {
+    loading = true;
+    teacherError = '';
+
+    try {
+      await registerTeacher({
+        firstName: tFirst,
+        lastName: tLast,
+        username: tUsername,
+        email: tEmail,
+        password: tPassword,
+        className: tClassCode,
+        schoolName: tSchool,
+      });
+
+      goto('/');
+    } catch (err: any) {
+      teacherError = err.message;
+    } finally {
+      loading = false;
+    }
+  }
+
+  let studentLoading = false;
+
+  async function submitStudent() {
+    studentLoading = true;
+    studentError = '';
+
+    try {
+      await registerStudent({
+        firstName: sFirst,
+        lastName: sLast,
+        username: sUsername,
+        password: sPassword,
+        classCode: sClassCode,
+      });
+
+      goto('/auth');
+    } catch (err: any) {
+      studentError = err.message;
+    } finally {
+      studentLoading = false;
     }
   }
 </script>
@@ -67,7 +116,7 @@
         class="flex-1 py-2 rounded-full text-center
 				{activeTab === 'teacher' ? 'bg-white font-semibold shadow-sm' : 'text-gray-600'}"
       >
-        👩‍🏫 Teacher
+        Teacher
       </button>
 
       <button
@@ -141,6 +190,15 @@
         </div>
 
         <div>
+          <label class="text-gray-700 font-semibold">Email</label>
+          <input
+            bind:value={tEmail}
+            placeholder="Enter your e-mail address"
+            class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring focus:ring-blue-200"
+          />
+        </div>
+
+        <div>
           <label class="text-gray-700 font-semibold">Password</label>
           <input
             type="password"
@@ -169,13 +227,14 @@
         </div>
 
         <button
+          on:click={submitTeacher}
           class="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition"
         >
-          Create Teacher Account
+          {loading ? 'Creating...' : 'Create Teacher Account'}
         </button>
 
         {#if teacherError}
-          <p class="text-red-600 text-center">{teacherError}</p>
+          <p class="text-red-600 text-center mt-2">{teacherError}</p>
         {/if}
       </div>
     {/if}
@@ -231,13 +290,14 @@
         </div>
 
         <button
-          class="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition"
+          on:click={submitStudent}
+          class="w-full py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold transition"
         >
-          Join Class
+          {studentLoading ? 'Registering...' : 'Join Class'}
         </button>
 
         {#if studentError}
-          <p class="text-red-600 text-center">{studentError}</p>
+          <p class="text-red-600 text-center mt-2">{studentError}</p>
         {/if}
       </div>
     {/if}

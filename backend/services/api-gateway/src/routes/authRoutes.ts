@@ -24,4 +24,12 @@ router.post('/login', (req, res) => {
     return forwardPost('/login', req.body, res);
 });
 
+router.post('/register/teacher', (req, res) => {
+    return forwardPost('/register/teacher', req.body, res);
+});
+
+router.post('/register/student', (req, res) => {
+    return forwardPost('/register/student', req.body, res);
+});
+
 export default router;
