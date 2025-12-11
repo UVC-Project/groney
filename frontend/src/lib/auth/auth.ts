@@ -3,7 +3,7 @@ import { goto } from '$app/navigation';
 import { CONFIG } from '$lib/config';
 import { setUser, clearUser } from './user';
 
-export async function login(username: string, password: string) {
+export async function login(username: string, password: string, remember = false) {
 	const res = await fetch(`${CONFIG.api.baseUrl}/api/auth/login`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
@@ -16,7 +16,7 @@ export async function login(username: string, password: string) {
 
 	const data = await res.json();
 
-	setUser(data.user, data.token);
+	setUser(data.user, data.token, remember);
 
 	return data.user;
 }

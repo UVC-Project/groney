@@ -8,6 +8,8 @@
   let loginPassword = '';
   let loginError = '';
 
+  let remember = false;
+
   let tFirst = '';
   let tLast = '';
   let tUsername = '';
@@ -31,7 +33,7 @@
 
   async function submitLogin() {
     try {
-      await login(loginUsername, loginPassword);
+      await login(loginUsername, loginPassword, remember);
       goto('/');
     } catch (e: any) {
       loginError = e.message || 'Login failed';
@@ -144,6 +146,11 @@
           placeholder="Enter your password"
           class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring focus:ring-blue-200"
         />
+
+        <label class="flex items-center gap-2 mt-2">
+          <input type="checkbox" bind:checked={remember} />
+          <span>Remember me</span>
+        </label>
 
         <button
           type="submit"
