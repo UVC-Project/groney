@@ -34,7 +34,7 @@
   async function submitLogin() {
     try {
       await login(loginUsername, loginPassword);
-      goto('/dashboard');
+      goto('/');
     } catch (e: any) {
       loginError = e.message || 'Login failed';
     }

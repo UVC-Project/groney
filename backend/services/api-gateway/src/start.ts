@@ -5,6 +5,7 @@ import { config } from 'dotenv';
 import shopRoutes from './routes/shopRoutes';
 import teacherRoutes from './routes/teacherRoutes';
 import authRoutes from './routes/authRoutes';
+import { noAuthMiddleware } from './middleware/noAuthMiddleware';
 
 config();
 
@@ -18,7 +19,7 @@ app.use(express.json());
 // Shop endpoints
 app.use('/api', shopRoutes);
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', noAuthMiddleware, authRoutes);
 
 // Teacher endpoints (protected with auth middleware)
 app.use('/api/teacher', teacherRoutes);

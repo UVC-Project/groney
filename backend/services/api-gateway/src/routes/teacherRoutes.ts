@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import { requireAuth, requireTeacher, passAuthContext } from '../middleware/auth.middleware';
+import { requireAuth } from '../middleware/authMiddleware';
+import { requireTeacher } from '../middleware/requireTeacher';
+import { passAuthContext } from '../middleware/passAuthContext';
 
 const router = Router();
 

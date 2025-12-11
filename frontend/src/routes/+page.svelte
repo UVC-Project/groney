@@ -2,11 +2,21 @@
   import ScrollToTopButton from '$lib/components/ScrollToTop.svelte';
   import LogoutModal from '$lib/components/LogoutModal.svelte';
   import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
+  import { redirect } from '@sveltejs/kit';
+  import { user } from '$lib/auth/user';
+  import { browser } from '$app/environment';
+  import { goto } from '$app/navigation';
 
   let showLogoutModal = false;
 
   function logout() {
     showLogoutModal = false;
+  }
+
+  $: if ($user === null) {
+    if (browser) {
+      goto('/login');
+    }
   }
 </script>
 
@@ -17,7 +27,7 @@
     <p
       class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white text-sm font-medium text-gray-800 shadow-lg"
     >
-      Welcome, Boy!
+      Welcome, {$user?.username}!
     </p>
     <div class="flex items-center gap-4">
       <BackgroundPicker />
