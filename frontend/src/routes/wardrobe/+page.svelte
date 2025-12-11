@@ -1,22 +1,23 @@
 <script lang="ts">
   import PageWrapper from '$lib/components/PageWrapper.svelte';
-  import { mockShopData } from '$lib/shop/mockData';
+  import type { PageData } from './$types';
   import type { ShopItem } from '$lib/shop/mockData';
 
-  // All Items from MOC
-  const allItems: ShopItem[] = mockShopData.items;
+  export let data: PageData;
+
+  // All Items from backend
+  const allItems: ShopItem[] = data.items;
 
   // Just show owned items
   $: ownedItems = allItems.filter((item) => item.owned);
 
-  // Selceted items in wardrobe
+  // Selected items in wardrobe
   let selectedItem: ShopItem | null = null;
 
   function selectItem(item: ShopItem) {
     selectedItem = item;
   }
 
-  // For show better type with uppedcase
   function formatType(type: string | undefined) {
     if (!type) return 'None';
     return type.charAt(0).toUpperCase() + type.slice(1);
