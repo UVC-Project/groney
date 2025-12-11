@@ -2,15 +2,20 @@
   import ScrollToTopButton from '$lib/components/ScrollToTop.svelte';
   import LogoutModal from '$lib/components/LogoutModal.svelte';
   import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
-  import { redirect } from '@sveltejs/kit';
-  import { user } from '$lib/auth/user';
+  import { user, clearUser } from '$lib/auth/user';
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
+  import { logout as authLogout } from '$lib/auth/auth';
+  import { handle } from '../hooks/client';
 
   let showLogoutModal = false;
 
-  function logout() {
+  function handleLogout() {
+    authLogout();
+    clearUser();
     showLogoutModal = false;
+
+    if (browser) goto('/login');
   }
 
   $: if ($user === null) {
@@ -146,7 +151,7 @@
   <LogoutModal
     open={showLogoutModal}
     onCancel={() => (showLogoutModal = false)}
-    onConfirm={logout}
+    onConfirm={handleLogout}
   />
   <ScrollToTopButton />
 </div>

@@ -4,12 +4,10 @@
 
   let activeTab: 'login' | 'teacher' | 'student' = 'login';
 
-  // Login
   let loginUsername = '';
   let loginPassword = '';
   let loginError = '';
 
-  // Teacher Registration
   let tFirst = '';
   let tLast = '';
   let tUsername = '';
@@ -18,7 +16,6 @@
   let tSchool = '';
   let teacherError = '';
 
-  // Student Registration
   let sFirst = '';
   let sLast = '';
   let sUsername = '';
@@ -41,26 +38,21 @@
   }
 </script>
 
-<!-- Background -->
 <div
   class="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-100 to-green-100 p-6"
 >
-  <!-- Card -->
   <div class="w-full max-w-md bg-white rounded-[28px] shadow-xl p-10">
-    <!-- Logo -->
     <div class="flex justify-center mb-4">
       <div class="w-20 h-20 rounded-full bg-blue-200 flex items-center justify-center">
         <span class="text-4xl text-blue-700">🍃</span>
       </div>
     </div>
 
-    <!-- Heading -->
     <h1 class="text-3xl font-extrabold text-center text-gray-800">Green Schoolyards</h1>
     <p class="text-center text-gray-600 mb-8">
       Help your class mascot grow by caring for your schoolyard!
     </p>
 
-    <!-- Tabs -->
     <div class="flex bg-gray-200 rounded-full p-1 mb-8">
       <button
         on:click={() => switchTab('login')}
@@ -87,9 +79,6 @@
       </button>
     </div>
 
-    <!-- ========================================================================================= -->
-    <!-- LOGIN TAB -->
-    <!-- ========================================================================================= -->
     {#if activeTab === 'login'}
       <form on:submit|preventDefault={submitLogin} class="space-y-4">
         <label class="text-gray-700 font-semibold">Username</label>
@@ -120,9 +109,6 @@
       </form>
     {/if}
 
-    <!-- ========================================================================================= -->
-    <!-- TEACHER REGISTRATION TAB -->
-    <!-- ========================================================================================= -->
     {#if activeTab === 'teacher'}
       <div class="space-y-4">
         <div class="flex gap-4">
@@ -194,9 +180,6 @@
       </div>
     {/if}
 
-    <!-- ========================================================================================= -->
-    <!-- STUDENT REGISTRATION TAB -->
-    <!-- ========================================================================================= -->
     {#if activeTab === 'student'}
       <div class="space-y-4">
         <div class="flex gap-4">
