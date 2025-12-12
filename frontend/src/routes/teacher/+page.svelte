@@ -40,6 +40,7 @@
   import type { Class, ClassListItem, Sector, Mission, Submission } from '$lib/types/teacher';
   import LoadingSkeleton from '$lib/components/LoadingSkeleton.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
+  import MapBuilder from '$lib/components/MapBuilder.svelte';
   import { API_BASE_URL } from '$lib/config';
   import { TEST_TEACHER, getAuthHeaders } from '$lib/auth/context';
   import { invalidateAll } from '$app/navigation';
@@ -78,6 +79,10 @@
   let reviewingSubmissionId = $state<string | null>(null);
   let missionFormErrors = $state<Record<string, string>>({});
   let sectorFormErrors = $state<Record<string, string>>({});
+  
+  // Map builder state
+  let isMapEditMode = $state(false);
+  let isSavingMap = $state(false);
   
   // Toast notification state
   let toastMessage = $state<string>('');
@@ -163,6 +168,113 @@
       };
     })
   );
+
+  // Map sectors data with grid positions
+  let mapSectorsData = $derived(
+    sectorsData.map((sector, index) => {
+      const display = getSectorDisplay(sector.type);
+      return {
+        ...sector,
+        icon: display.icon,
+        color: display.color,
+        // Use stored grid position or calculate default position
+        gridX: sector.gridX ?? (index % 4) * 4,
+        gridY: sector.gridY ?? Math.floor(index / 4) * 4,
+        gridWidth: sector.gridWidth ?? 3,
+        gridHeight: sector.gridHeight ?? 3,
+        missions: missionsData.filter((m) => m.sectorId === sector.id),
+      };
+    })
+  );
+
+  // Sector color hex values for styling
+  function getSectorColorHex(type: string): string {
+    const colors: Record<string, string> = {
+      TREES: '#22c55e',
+      FLOWERS: '#ec4899',
+      POND: '#3b82f6',
+      ANIMALS: '#f59e0b',
+      GARDEN: '#f97316',
+      PLAYGROUND: '#a855f7',
+      COMPOST: '#84cc16',
+      OTHER: '#64748b',
+      CHICKENS: '#f59e0b',
+    };
+    return colors[type?.toUpperCase()] || '#64748b';
+  }
+
+  // Map builder handlers
+  async function handleSectorMove(sectorId: string, x: number, y: number) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors/${sectorId}/position`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
+        body: JSON.stringify({ gridX: x, gridY: y }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update sector position');
+      }
+
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to move sector:', error);
+      showToast('Failed to update sector position', 'error');
+    }
+  }
+
+  async function handleSectorResize(sectorId: string, width: number, height: number) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors/${sectorId}/position`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
+        body: JSON.stringify({ gridWidth: width, gridHeight: height }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update sector size');
+      }
+
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to resize sector:', error);
+      showToast('Failed to update sector size', 'error');
+    }
+  }
+
+  async function handleMapResize(width: number, height: number) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/map-size`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
+        body: JSON.stringify({ mapWidth: width, mapHeight: height }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update map size');
+      }
+
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to resize map:', error);
+      showToast('Failed to update map size', 'error');
+    }
+  }
+
+  function handleMapSectorClick(sector: any) {
+    // Could open a sector detail modal or switch to missions tab filtered by sector
+    console.log('Clicked sector:', sector.name);
+    showToast(`Selected: ${sector.name}`, 'success');
+  }
 
   function handleLogout() {
     // TODO: Implement logout functionality
@@ -1292,186 +1404,111 @@
     {:else if currentClassData && activeTab === 'map'}
       <div class="space-y-6">
         <!-- Header -->
-        <div>
-          <h2 class="text-2xl font-bold text-slate-800">Schoolyard Map</h2>
-          <p class="text-sm text-slate-600 mt-1">Visual overview of all sectors and their missions</p>
-        </div>
-
-        <!-- Legend -->
-        <div class="bg-white/80 backdrop-blur-sm rounded-xl shadow-md shadow-slate-200/50 border border-slate-200/60 p-4">
-          <h3 class="text-sm font-semibold text-slate-700 mb-3">Sector Types</h3>
-          <div class="flex flex-wrap gap-3">
-            <div class="flex items-center gap-2">
-              <div class="w-4 h-4 rounded bg-emerald-500"></div>
-              <span class="text-sm text-slate-600">🌳 Trees</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="w-4 h-4 rounded bg-pink-500"></div>
-              <span class="text-sm text-slate-600">🌸 Flowers</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="w-4 h-4 rounded bg-blue-500"></div>
-              <span class="text-sm text-slate-600">🦆 Pond</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="w-4 h-4 rounded bg-amber-500"></div>
-              <span class="text-sm text-slate-600">🐔 Chickens</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="w-4 h-4 rounded bg-orange-500"></div>
-              <span class="text-sm text-slate-600">🥕 Garden</span>
-            </div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-800">Schoolyard Map Builder</h2>
+            <p class="text-sm text-slate-600 mt-1">
+              {isMapEditMode ? 'Drag sectors to position them, resize from corners' : 'Visual overview of your schoolyard layout'}
+            </p>
           </div>
-        </div>
-
-        <!-- Map Grid -->
-        {#if sectorsData.length > 0}
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {#each missionsBySector as sector}
-              <div
-                class="group relative bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border-2 overflow-hidden transition-all hover:shadow-xl hover:scale-105 cursor-pointer"
-                class:border-emerald-300={sector.color === 'emerald'}
-                class:hover:border-emerald-500={sector.color === 'emerald'}
-                class:border-pink-300={sector.color === 'pink'}
-                class:hover:border-pink-500={sector.color === 'pink'}
-                class:border-blue-300={sector.color === 'blue'}
-                class:hover:border-blue-500={sector.color === 'blue'}
-                class:border-amber-300={sector.color === 'amber'}
-                class:hover:border-amber-500={sector.color === 'amber'}
-                class:border-orange-300={sector.color === 'orange'}
-                class:hover:border-orange-500={sector.color === 'orange'}
-              >
-                <!-- Sector Header -->
-                <div
-                  class="px-5 py-4 transition-colors"
-                  class:bg-emerald-50={sector.color === 'emerald'}
-                  class:group-hover:bg-emerald-100={sector.color === 'emerald'}
-                  class:bg-pink-50={sector.color === 'pink'}
-                  class:group-hover:bg-pink-100={sector.color === 'pink'}
-                  class:bg-blue-50={sector.color === 'blue'}
-                  class:group-hover:bg-blue-100={sector.color === 'blue'}
-                  class:bg-amber-50={sector.color === 'amber'}
-                  class:group-hover:bg-amber-100={sector.color === 'amber'}
-                  class:bg-orange-50={sector.color === 'orange'}
-                  class:group-hover:bg-orange-100={sector.color === 'orange'}
-                >
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                      <span class="text-4xl transition-transform group-hover:scale-110">{sector.icon}</span>
-                      <div>
-                        <h3 class="text-lg font-bold text-slate-800">{sector.name}</h3>
-                        <p class="text-xs text-slate-600">{sector.type}</p>
-                      </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <div
-                        class="px-3 py-1 rounded-full text-sm font-bold"
-                        class:bg-emerald-200={sector.color === 'emerald'}
-                        class:text-emerald-800={sector.color === 'emerald'}
-                        class:bg-pink-200={sector.color === 'pink'}
-                        class:text-pink-800={sector.color === 'pink'}
-                        class:bg-blue-200={sector.color === 'blue'}
-                        class:text-blue-800={sector.color === 'blue'}
-                        class:bg-amber-200={sector.color === 'amber'}
-                        class:text-amber-800={sector.color === 'amber'}
-                        class:bg-orange-200={sector.color === 'orange'}
-                        class:text-orange-800={sector.color === 'orange'}
-                      >
-                        {sector.missions.length}
-                      </div>
-                      <button
-                        onclick={(e) => { e.stopPropagation(); handleDeleteSector(sector.id, sector.name); }}
-                        disabled={deletingSectorId === sector.id}
-                        class="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                        title="Delete sector"
-                      >
-                        {#if deletingSectorId === sector.id}
-                          <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                        {:else}
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        {/if}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Sector Body -->
-                <div class="p-5">
-                  <p class="text-sm text-slate-600 mb-4">{sector.description}</p>
-
-                  <!-- Mission Count Info -->
-                  <div class="flex items-center gap-2 text-sm">
-                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                    </svg>
-                    <span class="text-slate-700 font-medium">
-                      {sector.missions.length} {sector.missions.length === 1 ? 'mission' : 'missions'} available
-                    </span>
-                  </div>
-
-                  <!-- Mission Preview (show first 2) -->
-                  {#if sector.missions.length > 0}
-                    <div class="mt-4 space-y-2">
-                      {#each sector.missions.slice(0, 2) as mission}
-                        <div class="flex items-start gap-2 p-2 bg-slate-50 rounded-lg">
-                          <svg class="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                          </svg>
-                          <span class="text-xs text-slate-700 line-clamp-1">{mission.title}</span>
-                        </div>
-                      {/each}
-                      {#if sector.missions.length > 2}
-                        <p class="text-xs text-slate-500 italic pl-6">
-                          +{sector.missions.length - 2} more...
-                        </p>
-                      {/if}
-                    </div>
-                  {:else}
-                    <div class="mt-4 p-3 bg-slate-50 rounded-lg text-center">
-                      <p class="text-xs text-slate-500">No missions yet</p>
-                    </div>
-                  {/if}
-                </div>
-
-                <!-- Hover Overlay -->
-                <div class="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-              </div>
-            {/each}
-
-            <!-- Add New Sector Button -->
+          <div class="flex items-center gap-3">
             <button
-              onclick={openCreateSectorDialog}
-              class="bg-slate-100/50 backdrop-blur-sm rounded-2xl border-2 border-dashed border-slate-300 p-6 flex flex-col items-center justify-center min-h-[280px] hover:border-slate-400 hover:bg-slate-100 transition-all cursor-pointer"
+              onclick={() => isMapEditMode = !isMapEditMode}
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all"
+              class:bg-blue-500={isMapEditMode}
+              class:text-white={isMapEditMode}
+              class:bg-slate-100={!isMapEditMode}
+              class:text-slate-700={!isMapEditMode}
+              class:hover:bg-slate-200={!isMapEditMode}
             >
-              <div class="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center mb-3">
-                <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              {#if isMapEditMode}
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-              </div>
-              <h3 class="text-sm font-semibold text-slate-600 mb-1">Add New Sector</h3>
-              <p class="text-xs text-slate-500 text-center">Expand your schoolyard</p>
+                Done Editing
+              {:else}
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Map
+              {/if}
             </button>
-          </div>
-        {:else}
-          <!-- Empty State -->
-          <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-12 text-center">
-            <div class="text-6xl mb-4">🗺️</div>
-            <h3 class="text-xl font-bold text-slate-800 mb-2">No Sectors Yet</h3>
-            <p class="text-slate-600 mb-6">Create your first sector to get started</p>
             <button
               onclick={openCreateSectorDialog}
-              class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/30"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all shadow-md"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
-              Create First Sector
+              Add Sector
             </button>
+          </div>
+        </div>
+
+        <!-- Map Builder -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-6">
+          {#if sectorsData.length > 0 || isMapEditMode}
+            <MapBuilder
+              sectors={mapSectorsData}
+              mapWidth={currentClassData.mapWidth || 20}
+              mapHeight={currentClassData.mapHeight || 16}
+              editable={isMapEditMode}
+              onSectorMove={handleSectorMove}
+              onSectorResize={handleSectorResize}
+              onMapResize={handleMapResize}
+              onSectorClick={handleMapSectorClick}
+            />
+          {:else}
+            <!-- Empty State -->
+            <div class="py-12 text-center">
+              <div class="text-6xl mb-4">🗺️</div>
+              <h3 class="text-xl font-bold text-slate-800 mb-2">No Sectors Yet</h3>
+              <p class="text-slate-600 mb-6">Create sectors to build your schoolyard map</p>
+              <button
+                onclick={openCreateSectorDialog}
+                class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/30"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Create First Sector
+              </button>
+            </div>
+          {/if}
+        </div>
+
+        <!-- Sector List (below map) -->
+        {#if sectorsData.length > 0}
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-6">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Sectors ({sectorsData.length})</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {#each missionsBySector as sector}
+                <div
+                  class="flex items-center gap-3 p-3 rounded-xl border-2 transition-all cursor-pointer hover:shadow-md"
+                  style="border-color: {getSectorColorHex(sector.type)}40; background-color: {getSectorColorHex(sector.type)}10;"
+                  onclick={() => handleMapSectorClick(sector)}
+                  onkeydown={(e) => e.key === 'Enter' && handleMapSectorClick(sector)}
+                  role="button"
+                  tabindex="0"
+                >
+                  <span class="text-2xl">{sector.icon}</span>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-slate-800 truncate">{sector.name}</p>
+                    <p class="text-xs text-slate-500">{sector.missions.length} missions</p>
+                  </div>
+                  <button
+                    onclick={(e) => { e.stopPropagation(); handleDeleteSector(sector.id, sector.name); }}
+                    disabled={deletingSectorId === sector.id}
+                    class="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    title="Delete sector"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              {/each}
+            </div>
           </div>
         {/if}
       </div>

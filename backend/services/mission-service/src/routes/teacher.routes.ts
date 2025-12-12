@@ -168,6 +168,52 @@ router.delete('/sectors/:id', requireTeacher, async (req: Request, res: Response
 	}
 });
 
+// PATCH /api/teacher/sectors/:id/position - Update sector grid position and size
+router.patch('/sectors/:id/position', requireTeacher, async (req: Request, res: Response) => {
+	try {
+		const userId = (req as any).userId;
+		const sectorId = req.params.id;
+		const { gridX, gridY, gridWidth, gridHeight } = req.body;
+
+		// Get teacher's class
+		const classId = await getActiveClassId(userId);
+		if (!classId) {
+			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
+		}
+
+		// Verify sector belongs to teacher's class
+		const sector = await prisma.sector.findFirst({
+			where: {
+				id: sectorId,
+				classId,
+			},
+		});
+
+		if (!sector) {
+			return res.status(404).json({ error: 'Not Found', message: 'Sector not found' });
+		}
+
+		// Build update data
+		const updateData: any = {};
+		if (gridX !== undefined) updateData.gridX = gridX;
+		if (gridY !== undefined) updateData.gridY = gridY;
+		if (gridWidth !== undefined) updateData.gridWidth = gridWidth;
+		if (gridHeight !== undefined) updateData.gridHeight = gridHeight;
+
+		// Update the sector
+		const updatedSector = await prisma.sector.update({
+			where: { id: sectorId },
+			data: updateData,
+		});
+
+		console.log('Updated sector position:', sectorId, updateData);
+		res.json(updatedSector);
+	} catch (error) {
+		console.error('Error updating sector position:', error);
+		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update sector position' });
+	}
+});
+
 // GET /api/teacher/missions - Returns all missions for teacher's class with sector info
 // Accepts optional ?classId= query param to specify which class
 router.get('/missions', requireTeacher, async (req: Request, res: Response) => {

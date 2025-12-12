@@ -143,6 +143,9 @@ router.get('/class', requireTeacher, async (req: Request, res: Response) => {
 					username: m.user.username,
 					role: m.user.role.toLowerCase(),
 				})),
+			// Map configuration
+			mapWidth: (teacherClass as any).mapWidth || 20,
+			mapHeight: (teacherClass as any).mapHeight || 16,
 		};
 
 		res.json(response);
@@ -270,6 +273,48 @@ router.post('/switch-class', requireTeacher, async (req: Request, res: Response)
 	} catch (error) {
 		console.error('Error switching class:', error);
 		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to switch class' });
+	}
+});
+
+// PATCH /api/teacher/map-size - Update class map dimensions
+router.patch('/map-size', requireTeacher, async (req: Request, res: Response) => {
+	try {
+		const userId = (req as any).userId;
+		const { mapWidth, mapHeight } = req.body;
+
+		// Validate dimensions
+		if (mapWidth !== undefined && (mapWidth < 10 || mapWidth > 40)) {
+			return res.status(400).json({ error: 'Bad Request', message: 'Map width must be between 10 and 40' });
+		}
+		if (mapHeight !== undefined && (mapHeight < 10 || mapHeight > 30)) {
+			return res.status(400).json({ error: 'Bad Request', message: 'Map height must be between 10 and 30' });
+		}
+
+		// Get teacher's active class
+		const classId = await getTeacherFirstClassId(userId);
+		if (!classId) {
+			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
+		}
+
+		// Build update data
+		const updateData: any = {};
+		if (mapWidth !== undefined) updateData.mapWidth = mapWidth;
+		if (mapHeight !== undefined) updateData.mapHeight = mapHeight;
+
+		// Update the class
+		const updatedClass = await prisma.class.update({
+			where: { id: classId },
+			data: updateData,
+		});
+
+		console.log('Updated map size for class:', classId, updateData);
+		res.json({
+			mapWidth: updatedClass.mapWidth,
+			mapHeight: updatedClass.mapHeight,
+		});
+	} catch (error) {
+		console.error('Error updating map size:', error);
+		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update map size' });
 	}
 });
 
