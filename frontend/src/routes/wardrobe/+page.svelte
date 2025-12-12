@@ -43,6 +43,11 @@ const STORAGE_KEY = 'wardrobe:selectedItemId';
     return type.charAt(0).toUpperCase() + type.slice(1);
   }
 
+  function clearSelection() {
+  selectedItem = null;
+  localStorage.removeItem(STORAGE_KEY);
+}
+
   onMount(() => {
   const savedId = localStorage.getItem(STORAGE_KEY);
   if (!savedId) return;
@@ -81,6 +86,20 @@ const STORAGE_KEY = 'wardrobe:selectedItemId';
     </h2>
 
     <div class="space-y-3 max-w-xl mx-auto mb-10">
+
+      {#if selectedItem}
+  <div class="flex justify-center mb-10">
+    <button
+      type="button"
+      on:click={clearSelection}
+      class="px-4 py-2 rounded-full border bg-white hover:bg-red-600 text-sm font-semibold text-gray-800 shadow"
+    >
+      Remove item
+    </button>
+  </div>
+{/if}
+
+
       <div
         class="flex items-center justify-between bg-gray-300 rounded-full px-6 py-3 text-sm md:text-base"
       >
