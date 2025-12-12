@@ -27,7 +27,7 @@ export const mockShopData: ShopPageData = {
             description: 'A stylish red cap for Groeny',
             type: 'hat',
             price: 50,
-            imageUrl: '/assets/shop/red-cap.png',
+            imageUrl: '/assets/shop/red-cap.png.png',
             owned: false
         },
         {
@@ -36,7 +36,7 @@ export const mockShopData: ShopPageData = {
             description: 'A cool blue cap for Groeny',
             type: 'hat',
             price: 50,
-            imageUrl: 'src/lib/assets/images/shop/blue-cap.png',
+            imageUrl: '/assets/shop/blue-cap.png.png',
             owned: false
         },
         {
@@ -45,7 +45,7 @@ export const mockShopData: ShopPageData = {
             description: 'A fancy bow tie accessory',
             type: 'accessory',
             price: 60,
-            imageUrl: 'src/lib/assets/images/shop/bow-tie.png',
+            imageUrl: '/assets/shop/bow-tie.png.png',
             owned: true
         },
         {
@@ -54,7 +54,7 @@ export const mockShopData: ShopPageData = {
             description: 'Cool sunglasses for sunny days',
             type: 'accessory',
             price: 40,
-            imageUrl: 'src/lib/assets/images/shop/sunglasses.png',
+            imageUrl: '/assets/shop/sunglasses.png.png',
             owned: true
         },
         {
@@ -63,7 +63,7 @@ export const mockShopData: ShopPageData = {
             description: 'Change Groeny to rainbow colors!',
             type: 'accessory',
             price: 100,
-            imageUrl: 'src/lib/assets/images/shop/rainbow-colors.png',
+            imageUrl: '/assets/shop/rainbow-colors.png.png',
             owned: false
         }
     ]
