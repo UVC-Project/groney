@@ -365,6 +365,54 @@
     }
   }
 
+  // Handler for renaming a sector
+  async function handleSectorRename(sectorId: string, newName: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors/${sectorId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
+        body: JSON.stringify({ name: newName }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to rename sector');
+      }
+
+      showToast(`Sector renamed to "${newName}" 📝`, 'success');
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to rename sector:', error);
+      showToast('Failed to rename sector. Please try again.', 'error');
+    }
+  }
+
+  // Handler for removing a sector from the map (moves it back to palette)
+  async function handleSectorRemoveFromMap(sectorId: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors/${sectorId}/position`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
+        body: JSON.stringify({ gridX: -1, gridY: -1 }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to remove sector from map');
+      }
+
+      showToast('Sector removed from map 📤', 'success');
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to remove sector from map:', error);
+      showToast('Failed to remove sector from map. Please try again.', 'error');
+    }
+  }
+
   function handleLogout() {
     // TODO: Implement logout functionality
     window.location.href = '/';
@@ -688,8 +736,11 @@
 
   let deletingSectorId = $state<string | null>(null);
 
-  async function handleDeleteSector(sectorId: string, sectorName: string) {
+  async function handleDeleteSector(sectorId: string) {
     if (deletingSectorId) return;
+
+    const sector = sectorsData.find(s => s.id === sectorId);
+    const sectorName = sector?.name || 'Unknown sector';
 
     const confirmed = confirm(`Are you sure you want to delete "${sectorName}"? This will also delete all missions in this sector.`);
     if (!confirmed) return;
@@ -1548,6 +1599,9 @@
               onSectorClick={handleMapSectorClick}
               onAddSector={handleAddSectorFromMap}
               onPlaceSector={handlePlaceSector}
+              onSectorRename={handleSectorRename}
+              onSectorDelete={handleDeleteSector}
+              onSectorRemoveFromMap={handleSectorRemoveFromMap}
             />
           {:else}
             <!-- Empty State -->
@@ -1588,7 +1642,7 @@
                     <p class="text-xs text-slate-500">{sector.missions.length} missions</p>
                   </div>
                   <button
-                    onclick={(e) => { e.stopPropagation(); handleDeleteSector(sector.id, sector.name); }}
+                    onclick={(e) => { e.stopPropagation(); handleDeleteSector(sector.id); }}
                     disabled={deletingSectorId === sector.id}
                     class="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                     title="Delete sector"

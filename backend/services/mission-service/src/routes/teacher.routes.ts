@@ -210,6 +210,58 @@ router.patch('/sectors/:id/position', requireTeacher, async (req: Request, res: 
 	}
 });
 
+// PATCH /api/teacher/sectors/:id - Update sector name and other properties
+router.patch('/sectors/:id', requireTeacher, async (req: Request, res: Response) => {
+	try {
+		const userId = (req as any).userId;
+		const sectorId = req.params.id;
+		const { name, type } = req.body;
+
+		// First find the sector to get its classId
+		const sector = await prisma.sector.findUnique({
+			where: { id: sectorId },
+		});
+
+		if (!sector) {
+			return res.status(404).json({ error: 'Not Found', message: 'Sector not found' });
+		}
+
+		// Verify teacher has access to this sector's class
+		const hasAccess = await verifyTeacherOwnsClass(userId, sector.classId);
+		if (!hasAccess) {
+			return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to this sector' });
+		}
+
+		// Build update data
+		const updateData: any = {};
+		if (name !== undefined) {
+			if (!name || name.length < 2) {
+				return res.status(400).json({ error: 'Bad Request', message: 'Sector name must be at least 2 characters' });
+			}
+			updateData.name = name;
+		}
+		if (type !== undefined) {
+			const validTypes = ['TREES', 'FLOWERS', 'POND', 'ANIMALS', 'GARDEN', 'PLAYGROUND', 'COMPOST', 'OTHER', 'CHICKENS'];
+			if (!validTypes.includes(type)) {
+				return res.status(400).json({ error: 'Bad Request', message: 'Invalid sector type' });
+			}
+			updateData.type = type;
+		}
+
+		// Update the sector
+		const updatedSector = await prisma.sector.update({
+			where: { id: sectorId },
+			data: updateData,
+		});
+
+		console.log('Updated sector:', sectorId, updateData);
+		res.json(updatedSector);
+	} catch (error) {
+		console.error('Error updating sector:', error);
+		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update sector' });
+	}
+});
+
 // GET /api/teacher/missions - Returns all missions for teacher's class with sector info
 // Accepts optional ?classId= query param to specify which class
 router.get('/missions', requireTeacher, async (req: Request, res: Response) => {

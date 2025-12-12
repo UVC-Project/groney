@@ -20,6 +20,9 @@
     onSectorClick?: (sector: MapSector) => void;
     onAddSector?: (type: string, x: number, y: number) => void;
     onPlaceSector?: (sectorId: string, x: number, y: number) => void;
+    onSectorRename?: (sectorId: string, newName: string) => void;
+    onSectorDelete?: (sectorId: string) => void;
+    onSectorRemoveFromMap?: (sectorId: string) => void;
   }
 
   let {
@@ -33,6 +36,9 @@
     onSectorClick,
     onAddSector,
     onPlaceSector,
+    onSectorRename,
+    onSectorDelete,
+    onSectorRemoveFromMap,
   }: Props = $props();
 
   // Split sectors into placed and unplaced
@@ -75,6 +81,12 @@
     isNew: boolean;
   } | null>(null);
   let dropPreview = $state<{ x: number; y: number } | null>(null);
+
+  // Sector editing state
+  let editingSectorId = $state<string | null>(null);
+  let editingName = $state<string>('');
+  let showEditDialog = $state<boolean>(false);
+  let editInputRef = $state<HTMLInputElement | null>(null);
 
   // Sector type configurations
   const sectorConfig: Record<string, { color: string; bgColor: string; icon: string; label: string }> = {
@@ -151,8 +163,72 @@
     onSectorClick?.(sector);
   }
 
+  function handleSectorDoubleClick(e: MouseEvent, sector: MapSector) {
+    if (!editable) return;
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // Start editing the sector name
+    editingSectorId = sector.id;
+    editingName = sector.name;
+    showEditDialog = true;
+    
+    // Focus the input after the dialog opens
+    setTimeout(() => {
+      editInputRef?.focus();
+      editInputRef?.select();
+    }, 100);
+  }
+
   function handleGridClick() {
     if (editable) selectedSectorId = null;
+  }
+
+  // Keyboard event handler for the entire map
+  function handleMapKeydown(e: KeyboardEvent) {
+    if (!editable || !selectedSectorId) return;
+    
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      const sector = placedSectors.find(s => s.id === selectedSectorId);
+      if (sector) {
+        handleRemoveSectorFromMap(sector);
+      }
+    }
+  }
+
+  // Edit dialog handlers
+  function handleEditSubmit() {
+    if (!editingSectorId || !editingName.trim()) return;
+    
+    onSectorRename?.(editingSectorId, editingName.trim());
+    closeEditDialog();
+  }
+
+  function handleEditCancel() {
+    closeEditDialog();
+  }
+
+  function closeEditDialog() {
+    showEditDialog = false;
+    editingSectorId = null;
+    editingName = '';
+  }
+
+  function handleRemoveSectorFromMap(sector: MapSector) {
+    const confirmed = confirm(`Remove "${sector.name}" from the map?\n\nThe sector will be moved back to the palette and can be placed again later.`);
+    if (confirmed) {
+      onSectorRemoveFromMap?.(sector.id);
+      selectedSectorId = null;
+    }
+  }
+
+  function handleDeleteSector(sector: MapSector) {
+    const confirmed = confirm(`Permanently delete "${sector.name}"?\n\nThis will also delete all missions in this sector. This action cannot be undone.`);
+    if (confirmed) {
+      onSectorDelete?.(sector.id);
+      selectedSectorId = null;
+    }
   }
 
   // Drag handlers for placing sectors from palette
@@ -286,16 +362,18 @@
 
   <!-- Grid Container -->
   <div class="rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 shadow-inner overflow-hidden">
-    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions a11y_no_noninteractive_tabindex -->
     <div
       class="relative mx-auto"
       style="width: {mapWidth * CELL_SIZE}px; height: {mapHeight * CELL_SIZE}px; margin: 16px auto;"
       onclick={handleGridClick}
+      onkeydown={editable ? handleMapKeydown : undefined}
       ondragover={editable ? handleGridDragOver : undefined}
       ondragleave={editable ? handleGridDragLeave : undefined}
       ondrop={editable ? handleGridDrop : undefined}
       role="application"
       aria-label="Schoolyard map"
+      tabindex={editable ? 0 : -1}
     >
       <!-- Grid Pattern -->
       <div 
@@ -356,6 +434,7 @@
             border: 3px solid {config.color};
           "
           onclick={(e) => handleSectorClick(e, sector)}
+          ondblclick={(e) => handleSectorDoubleClick(e, sector)}
           onmousedown={(e) => editable && handleMouseDown(e, sector, 'move')}
           onkeydown={(e) => e.key === 'Enter' && handleSectorClick(e as any, sector)}
           role="button"
@@ -424,7 +503,95 @@
         </span>
         <span>Drag corner to resize</span>
       </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-4 h-4 bg-slate-100 rounded flex items-center justify-center text-[10px]">🖱️</span>
+        <span>Double-click to edit</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-4 h-4 bg-red-100 rounded flex items-center justify-center text-[10px]">⌫</span>
+        <span>Delete key to remove</span>
+      </div>
     </div>
+  {/if}
+
+  <!-- Edit Sector Dialog -->
+  {#if showEditDialog && editingSectorId}
+    {@const sector = placedSectors.find(s => s.id === editingSectorId)}
+    {#if sector}
+      {@const config = getConfig(sector.type)}
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <div
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        onclick={handleEditCancel}
+        role="presentation"
+      >
+        <div
+          class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+          onclick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-dialog-title"
+          tabindex="0"
+        >
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-2xl">{config.icon}</span>
+            <h3 id="edit-dialog-title" class="text-lg font-bold text-slate-800">Edit Sector</h3>
+          </div>
+
+          <form onsubmit={(e) => { e.preventDefault(); handleEditSubmit(); }}>
+            <div class="mb-4">
+              <label for="sector-name" class="block text-sm font-medium text-slate-700 mb-2">
+                Sector Name
+              </label>
+              <input
+                id="sector-name"
+                bind:this={editInputRef}
+                bind:value={editingName}
+                type="text"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                placeholder="Enter sector name"
+                required
+                minlength="2"
+                maxlength="50"
+              />
+            </div>
+
+            <div class="flex items-center gap-3">
+              <button
+                type="submit"
+                class="flex-1 px-4 py-2 bg-emerald-500 text-white font-medium rounded-lg hover:bg-emerald-600 transition-colors"
+                disabled={!editingName.trim()}
+              >
+                Save Changes
+              </button>
+              <button
+                type="button"
+                onclick={handleEditCancel}
+                class="px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onclick={() => handleRemoveSectorFromMap(sector)}
+                class="px-4 py-2 bg-amber-100 text-amber-700 font-medium rounded-lg hover:bg-amber-200 transition-colors"
+                title="Remove from map"
+              >
+                📤 Remove
+              </button>
+              <button
+                type="button"
+                onclick={() => handleDeleteSector(sector)}
+                class="px-4 py-2 bg-red-100 text-red-700 font-medium rounded-lg hover:bg-red-200 transition-colors"
+                title="Delete permanently"
+              >
+                🗑️ Delete
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    {/if}
   {/if}
 </div>
 
