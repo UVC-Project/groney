@@ -292,27 +292,54 @@
   {/if}
   
   <!-- Grid Size Controls (only in edit mode) -->
+  <!-- Edit Controls & Hints -->
   {#if editable}
-    <div class="mb-2 flex items-center justify-end gap-3 text-xs text-slate-500">
-      <span>Map size:</span>
-      <input
-        type="number"
-        min="10"
-        max="30"
-        value={mapWidth}
-        onchange={(e) => onMapResize?.(parseInt(e.currentTarget.value), mapHeight)}
-        class="w-14 px-2 py-1 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500"
-      />
-      <span>×</span>
-      <input
-        type="number"
-        min="8"
-        max="20"
-        value={mapHeight}
-        onchange={(e) => onMapResize?.(mapWidth, parseInt(e.currentTarget.value))}
-        class="w-14 px-2 py-1 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500"
-      />
-      <span class="text-slate-400">(cells)</span>
+    <div class="mb-2 flex items-center justify-between gap-4 text-xs text-slate-500">
+      <!-- Editing hints -->
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-1">
+          <span class="text-[10px]">✋</span>
+          <span>Drag to move</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <span class="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+            <svg class="w-1.5 h-1.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 20h16M20 4v16" />
+            </svg>
+          </span>
+          <span>Resize</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <span class="text-[10px]">🖱️</span>
+          <span>Double-click to edit</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <span class="text-[10px]">⌫</span>
+          <span>Delete to remove</span>
+        </div>
+      </div>
+      
+      <!-- Grid size controls -->
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <span>Map size:</span>
+        <input
+          type="number"
+          min="10"
+          max="30"
+          value={mapWidth}
+          onchange={(e) => onMapResize?.(parseInt(e.currentTarget.value), mapHeight)}
+          class="w-12 px-1.5 py-0.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 text-center"
+        />
+        <span>×</span>
+        <input
+          type="number"
+          min="8"
+          max="20"
+          value={mapHeight}
+          onchange={(e) => onMapResize?.(mapWidth, parseInt(e.currentTarget.value))}
+          class="w-12 px-1.5 py-0.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 text-center"
+        />
+      </div>
     </div>
   {/if}
 
@@ -493,31 +520,7 @@
     <span>2 cells = 1 meter</span>
   </div>
 
-  <!-- Instructions -->
-  {#if editable && placedSectors.length > 0}
-    <div class="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
-      <div class="flex items-center gap-1.5">
-        <span class="w-4 h-4 bg-slate-100 rounded flex items-center justify-center text-[10px]">✋</span>
-        <span>Drag to move</span>
-      </div>
-      <div class="flex items-center gap-1.5">
-        <span class="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-          <svg class="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 20h16M20 4v16" />
-          </svg>
-        </span>
-        <span>Drag corner to resize</span>
-      </div>
-      <div class="flex items-center gap-1.5">
-        <span class="w-4 h-4 bg-slate-100 rounded flex items-center justify-center text-[10px]">🖱️</span>
-        <span>Double-click to edit</span>
-      </div>
-      <div class="flex items-center gap-1.5">
-        <span class="w-4 h-4 bg-red-100 rounded flex items-center justify-center text-[10px]">⌫</span>
-        <span>Delete key to remove</span>
-      </div>
-    </div>
-  {/if}
+
 
 
 </div>
