@@ -18,6 +18,8 @@
     onSectorResize?: (sectorId: string, width: number, height: number) => void;
     onMapResize?: (width: number, height: number) => void;
     onSectorClick?: (sector: MapSector) => void;
+    onAddSector?: (type: string, x: number, y: number) => void;
+    onPlaceSector?: (sectorId: string, x: number, y: number) => void;
   }
 
   let {
@@ -29,11 +31,29 @@
     onSectorResize,
     onMapResize,
     onSectorClick,
+    onAddSector,
+    onPlaceSector,
   }: Props = $props();
 
-  const CELL_SIZE = 32; // pixels per cell
-  const MIN_SECTOR_SIZE = 1;
-  const MAX_SECTOR_SIZE = 10;
+  // Split sectors into placed and unplaced
+  let placedSectors = $derived(sectors.filter(s => s.gridX >= 0 && s.gridY >= 0));
+  let unplacedSectors = $derived(sectors.filter(s => s.gridX < 0 || s.gridY < 0));
+
+  // Responsive cell size
+  let containerRef = $state<HTMLDivElement | null>(null);
+  let containerWidth = $state(800);
+  let CELL_SIZE = $derived(Math.max(28, Math.min(50, Math.floor((containerWidth - 40) / mapWidth))));
+
+  $effect(() => {
+    if (!containerRef) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        containerWidth = entry.contentRect.width;
+      }
+    });
+    observer.observe(containerRef);
+    return () => observer.disconnect();
+  });
 
   let dragState = $state<{
     sectorId: string;
@@ -47,37 +67,33 @@
   } | null>(null);
 
   let selectedSectorId = $state<string | null>(null);
-  let hoveredCell = $state<{ x: number; y: number } | null>(null);
+  
+  // Drag state for placing sectors
+  let placingDrag = $state<{
+    sectorId?: string;
+    type?: string;
+    isNew: boolean;
+  } | null>(null);
+  let dropPreview = $state<{ x: number; y: number } | null>(null);
 
-  // Sector type colors
-  const sectorColors: Record<string, string> = {
-    TREES: '#22c55e',
-    FLOWERS: '#ec4899',
-    POND: '#3b82f6',
-    ANIMALS: '#f59e0b',
-    GARDEN: '#f97316',
-    PLAYGROUND: '#a855f7',
-    COMPOST: '#84cc16',
-    OTHER: '#64748b',
-    CHICKENS: '#f59e0b',
+  // Sector type configurations
+  const sectorConfig: Record<string, { color: string; bgColor: string; icon: string; label: string }> = {
+    TREES: { color: '#16a34a', bgColor: '#dcfce7', icon: '🌳', label: 'Trees' },
+    FLOWERS: { color: '#db2777', bgColor: '#fce7f3', icon: '🌸', label: 'Flowers' },
+    POND: { color: '#2563eb', bgColor: '#dbeafe', icon: '🦆', label: 'Pond' },
+    ANIMALS: { color: '#d97706', bgColor: '#fef3c7', icon: '🐾', label: 'Animals' },
+    GARDEN: { color: '#ea580c', bgColor: '#ffedd5', icon: '🥕', label: 'Garden' },
+    PLAYGROUND: { color: '#9333ea', bgColor: '#f3e8ff', icon: '🎪', label: 'Playground' },
+    COMPOST: { color: '#65a30d', bgColor: '#ecfccb', icon: '♻️', label: 'Compost' },
+    OTHER: { color: '#475569', bgColor: '#f1f5f9', icon: '📍', label: 'Other' },
+    CHICKENS: { color: '#d97706', bgColor: '#fef3c7', icon: '🐔', label: 'Chickens' },
   };
 
-  const sectorIcons: Record<string, string> = {
-    TREES: '🌳',
-    FLOWERS: '🌸',
-    POND: '🦆',
-    ANIMALS: '🐾',
-    GARDEN: '🥕',
-    PLAYGROUND: '🎪',
-    COMPOST: '♻️',
-    OTHER: '📍',
-    CHICKENS: '🐔',
-  };
-
-  function getSectorColor(sector: MapSector): string {
-    return sector.color || sectorColors[sector.type] || '#64748b';
+  function getConfig(type: string) {
+    return sectorConfig[type?.toUpperCase()] || sectorConfig.OTHER;
   }
 
+  // Drag handlers for moving/resizing placed sectors
   function handleMouseDown(e: MouseEvent, sector: MapSector, type: 'move' | 'resize') {
     if (!editable) return;
     e.preventDefault();
@@ -111,20 +127,12 @@
     if (dragState.type === 'move') {
       const newX = Math.max(0, Math.min(mapWidth - sector.gridWidth, dragState.originalX + deltaX));
       const newY = Math.max(0, Math.min(mapHeight - sector.gridHeight, dragState.originalY + deltaY));
-
       if (newX !== sector.gridX || newY !== sector.gridY) {
         onSectorMove?.(sector.id, newX, newY);
       }
     } else if (dragState.type === 'resize') {
-      const newWidth = Math.max(
-        MIN_SECTOR_SIZE,
-        Math.min(MAX_SECTOR_SIZE, mapWidth - sector.gridX, dragState.originalWidth + deltaX)
-      );
-      const newHeight = Math.max(
-        MIN_SECTOR_SIZE,
-        Math.min(MAX_SECTOR_SIZE, mapHeight - sector.gridY, dragState.originalHeight + deltaY)
-      );
-
+      const newWidth = Math.max(2, Math.min(12, mapWidth - sector.gridX, dragState.originalWidth + deltaX));
+      const newHeight = Math.max(2, Math.min(10, mapHeight - sector.gridY, dragState.originalHeight + deltaY));
       if (newWidth !== sector.gridWidth || newHeight !== sector.gridHeight) {
         onSectorResize?.(sector.id, newWidth, newHeight);
       }
@@ -137,148 +145,215 @@
     window.removeEventListener('mouseup', handleMouseUp);
   }
 
-  function handleGridClick(e: MouseEvent) {
-    if (!editable) return;
-    selectedSectorId = null;
-  }
-
   function handleSectorClick(e: MouseEvent, sector: MapSector) {
     e.stopPropagation();
     selectedSectorId = sector.id;
     onSectorClick?.(sector);
   }
 
-  function handleCellHover(x: number, y: number) {
-    hoveredCell = { x, y };
+  function handleGridClick() {
+    if (editable) selectedSectorId = null;
   }
 
-  function handleCellLeave() {
-    hoveredCell = null;
+  // Drag handlers for placing sectors from palette
+  function handlePaletteDragStart(e: DragEvent, sectorId?: string, type?: string) {
+    if (!e.dataTransfer) return;
+    e.dataTransfer.setData('application/json', JSON.stringify({ sectorId, type }));
+    e.dataTransfer.effectAllowed = 'move';
+    placingDrag = { sectorId, type, isNew: !sectorId };
   }
 
-  // Generate grid cells
-  let gridCells = $derived(
-    Array.from({ length: mapHeight }, (_, y) =>
-      Array.from({ length: mapWidth }, (_, x) => ({ x, y }))
-    ).flat()
-  );
+  function handleGridDragOver(e: DragEvent) {
+    e.preventDefault();
+    if (!e.dataTransfer) return;
+    e.dataTransfer.dropEffect = 'move';
+    
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / CELL_SIZE);
+    const y = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+    const clampedX = Math.max(0, Math.min(mapWidth - 3, x));
+    const clampedY = Math.max(0, Math.min(mapHeight - 3, y));
+    dropPreview = { x: clampedX, y: clampedY };
+  }
+
+  function handleGridDragLeave() {
+    dropPreview = null;
+  }
+
+  function handleGridDrop(e: DragEvent) {
+    e.preventDefault();
+    if (!e.dataTransfer || !dropPreview) return;
+    
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('application/json'));
+      
+      if (data.sectorId) {
+        // Placing an existing unplaced sector
+        onPlaceSector?.(data.sectorId, dropPreview.x, dropPreview.y);
+      } else if (data.type) {
+        // Creating a new sector
+        onAddSector?.(data.type, dropPreview.x, dropPreview.y);
+      }
+    } catch (err) {
+      console.error('Drop error:', err);
+    }
+    
+    dropPreview = null;
+    placingDrag = null;
+  }
 </script>
 
-<div class="map-builder">
-  <!-- Map Size Controls -->
+<div class="map-builder select-none" bind:this={containerRef}>
+  <!-- Sector Palette -->
   {#if editable}
-    <div class="flex items-center gap-4 mb-4 p-3 bg-slate-100 rounded-lg">
-      <span class="text-sm font-medium text-slate-700">Map Size:</span>
-      <div class="flex items-center gap-2">
-        <label for="map-width" class="text-xs text-slate-600">Width</label>
-        <input
-          type="number"
-          id="map-width"
-          min="10"
-          max="40"
-          value={mapWidth}
-          onchange={(e) => onMapResize?.(parseInt(e.currentTarget.value), mapHeight)}
-          class="w-16 px-2 py-1 text-sm border border-slate-300 rounded"
-        />
+    <div class="mb-4 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="text-sm font-semibold text-slate-700">
+          {unplacedSectors.length > 0 ? 'Your Sectors (drag to map)' : 'Add New Sectors'}
+        </h4>
+        <div class="flex items-center gap-3 text-xs text-slate-500">
+          <span>Grid:</span>
+          <input
+            type="number"
+            min="10"
+            max="30"
+            value={mapWidth}
+            onchange={(e) => onMapResize?.(parseInt(e.currentTarget.value), mapHeight)}
+            class="w-14 px-2 py-1 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500"
+          />
+          <span>×</span>
+          <input
+            type="number"
+            min="8"
+            max="20"
+            value={mapHeight}
+            onchange={(e) => onMapResize?.(mapWidth, parseInt(e.currentTarget.value))}
+            class="w-14 px-2 py-1 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
       </div>
-      <div class="flex items-center gap-2">
-        <label for="map-height" class="text-xs text-slate-600">Height</label>
-        <input
-          type="number"
-          id="map-height"
-          min="10"
-          max="30"
-          value={mapHeight}
-          onchange={(e) => onMapResize?.(mapWidth, parseInt(e.currentTarget.value))}
-          class="w-16 px-2 py-1 text-sm border border-slate-300 rounded"
-        />
+      
+      <!-- Unplaced existing sectors -->
+      {#if unplacedSectors.length > 0}
+        <div class="mb-3">
+          <p class="text-xs text-slate-500 mb-2">Drag these sectors to place them on the map:</p>
+          <div class="flex flex-wrap gap-2">
+            {#each unplacedSectors as sector}
+              {@const config = getConfig(sector.type)}
+              <div
+                draggable="true"
+                ondragstart={(e) => handlePaletteDragStart(e, sector.id)}
+                class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
+                style="background-color: {config.bgColor}; border-color: {config.color};"
+                role="button"
+                tabindex="0"
+              >
+                <span class="text-xl">{config.icon}</span>
+                <div>
+                  <span class="text-sm font-semibold" style="color: {config.color};">{sector.name}</span>
+                  {#if sector.missions && sector.missions.length > 0}
+                    <span class="text-xs text-slate-500 ml-1">({sector.missions.length})</span>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+        <hr class="my-3 border-slate-200" />
+      {/if}
+      
+      <!-- New sector types -->
+      <p class="text-xs text-slate-500 mb-2">Or create new sectors:</p>
+      <div class="flex flex-wrap gap-2">
+        {#each Object.entries(sectorConfig) as [type, config]}
+          {#if type !== 'CHICKENS'}
+            <div
+              draggable="true"
+              ondragstart={(e) => handlePaletteDragStart(e, undefined, type)}
+              class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border hover:scale-105 text-sm"
+              style="background-color: {config.bgColor}; border-color: {config.color}40;"
+              role="button"
+              tabindex="0"
+            >
+              <span>{config.icon}</span>
+              <span style="color: {config.color};">{config.label}</span>
+            </div>
+          {/if}
+        {/each}
       </div>
-      <span class="text-xs text-slate-500">({mapWidth * 0.5}m × {mapHeight * 0.5}m)</span>
     </div>
   {/if}
 
   <!-- Grid Container -->
-  <div class="overflow-auto border border-slate-300 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50">
+  <div class="rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 shadow-inner overflow-hidden">
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
     <div
-      class="relative"
-      style="width: {mapWidth * CELL_SIZE}px; height: {mapHeight * CELL_SIZE}px;"
+      class="relative mx-auto"
+      style="width: {mapWidth * CELL_SIZE}px; height: {mapHeight * CELL_SIZE}px; margin: 16px auto;"
       onclick={handleGridClick}
-      onkeydown={(e) => e.key === 'Escape' && (selectedSectorId = null)}
+      ondragover={editable ? handleGridDragOver : undefined}
+      ondragleave={editable ? handleGridDragLeave : undefined}
+      ondrop={editable ? handleGridDrop : undefined}
       role="application"
-      aria-label="Schoolyard map grid"
-      tabindex="0"
+      aria-label="Schoolyard map"
     >
-      <!-- Grid Lines -->
-      <svg class="absolute inset-0 pointer-events-none" width="100%" height="100%">
-        {#each Array.from({ length: mapWidth + 1 }) as _, i}
-          <line
-            x1={i * CELL_SIZE}
-            y1="0"
-            x2={i * CELL_SIZE}
-            y2={mapHeight * CELL_SIZE}
-            stroke="#d1d5db"
-            stroke-width="1"
-          />
-        {/each}
-        {#each Array.from({ length: mapHeight + 1 }) as _, i}
-          <line
-            x1="0"
-            y1={i * CELL_SIZE}
-            x2={mapWidth * CELL_SIZE}
-            y2={i * CELL_SIZE}
-            stroke="#d1d5db"
-            stroke-width="1"
-          />
-        {/each}
-      </svg>
+      <!-- Grid Pattern -->
+      <div 
+        class="absolute inset-0 rounded-xl"
+        style="
+          background-image: 
+            linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px);
+          background-size: {CELL_SIZE}px {CELL_SIZE}px;
+        "
+      ></div>
 
-      <!-- Hover indicator for empty cells -->
-      {#if editable && hoveredCell}
+      <!-- Drop Preview -->
+      {#if dropPreview && placingDrag}
+        {@const currentDrag = placingDrag}
+        {@const config = currentDrag.sectorId 
+          ? getConfig(unplacedSectors.find(s => s.id === currentDrag.sectorId)?.type || 'OTHER')
+          : getConfig(currentDrag.type || 'OTHER')}
         <div
-          class="absolute bg-slate-200/50 pointer-events-none transition-all"
+          class="absolute rounded-xl border-2 border-dashed pointer-events-none animate-pulse z-30"
           style="
-            left: {hoveredCell.x * CELL_SIZE}px;
-            top: {hoveredCell.y * CELL_SIZE}px;
-            width: {CELL_SIZE}px;
-            height: {CELL_SIZE}px;
+            left: {dropPreview.x * CELL_SIZE}px;
+            top: {dropPreview.y * CELL_SIZE}px;
+            width: {3 * CELL_SIZE}px;
+            height: {3 * CELL_SIZE}px;
+            background-color: {config.bgColor}80;
+            border-color: {config.color};
           "
-        ></div>
+        >
+          <div class="absolute inset-0 flex items-center justify-center">
+            <span class="text-3xl opacity-60">{config.icon}</span>
+          </div>
+        </div>
       {/if}
 
-      <!-- Invisible cell hover detectors -->
-      {#if editable}
-        {#each gridCells as cell}
-          <div
-            class="absolute"
-            style="
-              left: {cell.x * CELL_SIZE}px;
-              top: {cell.y * CELL_SIZE}px;
-              width: {CELL_SIZE}px;
-              height: {CELL_SIZE}px;
-            "
-            onmouseenter={() => handleCellHover(cell.x, cell.y)}
-            onmouseleave={handleCellLeave}
-            role="presentation"
-          ></div>
-        {/each}
-      {/if}
-
-      <!-- Sectors -->
-      {#each sectors as sector (sector.id)}
+      <!-- Placed Sectors -->
+      {#each placedSectors as sector (sector.id)}
+        {@const config = getConfig(sector.type)}
         {@const isSelected = selectedSectorId === sector.id}
-        {@const color = getSectorColor(sector)}
+        {@const isDragging = dragState?.sectorId === sector.id}
         <div
-          class="absolute rounded-lg shadow-md transition-shadow cursor-pointer group"
-          class:ring-2={isSelected}
-          class:ring-blue-500={isSelected}
-          class:shadow-lg={isSelected}
+          class="absolute rounded-xl transition-all duration-100 group"
+          class:cursor-grab={editable && !isDragging}
+          class:cursor-grabbing={isDragging}
+          class:cursor-pointer={!editable}
+          class:ring-4={isSelected}
+          class:ring-blue-400={isSelected}
+          class:shadow-2xl={isSelected || isDragging}
+          class:shadow-lg={!isSelected && !isDragging}
+          class:z-20={isSelected || isDragging}
+          class:z-10={!isSelected && !isDragging}
           style="
             left: {sector.gridX * CELL_SIZE}px;
             top: {sector.gridY * CELL_SIZE}px;
             width: {sector.gridWidth * CELL_SIZE}px;
             height: {sector.gridHeight * CELL_SIZE}px;
-            background-color: {color}20;
-            border: 2px solid {color};
+            background: linear-gradient(145deg, {config.bgColor} 0%, white 100%);
+            border: 3px solid {config.color};
           "
           onclick={(e) => handleSectorClick(e, sector)}
           onmousedown={(e) => editable && handleMouseDown(e, sector, 'move')}
@@ -287,67 +362,70 @@
           tabindex="0"
           aria-label="{sector.name} sector"
         >
-          <!-- Sector Content -->
           <div class="absolute inset-0 flex flex-col items-center justify-center p-1 overflow-hidden">
-            <span class="text-2xl">{sectorIcons[sector.type] || '📍'}</span>
-            <span
-              class="text-xs font-semibold text-center truncate w-full px-1"
-              style="color: {color};"
-            >
+            <div class="transition-transform" class:scale-110={isSelected}
+              style="font-size: {Math.max(24, Math.min(40, sector.gridHeight * CELL_SIZE / 3))}px;">
+              {config.icon}
+            </div>
+            <div class="font-bold text-center leading-tight px-1 truncate w-full"
+              style="color: {config.color}; font-size: {Math.max(10, Math.min(14, sector.gridWidth * CELL_SIZE / 8))}px;">
               {sector.name}
-            </span>
+            </div>
             {#if sector.missions && sector.missions.length > 0}
-              <span class="text-[10px] text-slate-600">
+              <div class="mt-0.5 px-2 py-0.5 rounded-full text-white shadow-sm"
+                style="background-color: {config.color}; font-size: {Math.max(9, Math.min(11, CELL_SIZE / 4))}px;">
                 {sector.missions.length} mission{sector.missions.length !== 1 ? 's' : ''}
-              </span>
+              </div>
             {/if}
           </div>
 
-          <!-- Resize Handle (bottom-right corner) -->
           {#if editable && isSelected}
             <div
-              class="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 rounded-tl cursor-se-resize flex items-center justify-center"
-              onmousedown={(e) => handleMouseDown(e, sector, 'resize')}
+              class="absolute -bottom-2 -right-2 w-5 h-5 bg-blue-500 rounded-full cursor-se-resize flex items-center justify-center shadow-lg border-2 border-white hover:bg-blue-600 z-30"
+              onmousedown={(e) => { e.stopPropagation(); handleMouseDown(e, sector, 'resize'); }}
               role="button"
-              aria-label="Resize {sector.name}"
+              aria-label="Resize"
               tabindex="0"
             >
-              <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" />
-                <path d="M10 5a1 1 0 011 1v8a1 1 0 11-2 0V6a1 1 0 011-1z" />
-              </svg>
-            </div>
-          {/if}
-
-          <!-- Move indicator on hover -->
-          {#if editable}
-            <div
-              class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 20h16M20 4v16" />
               </svg>
             </div>
           {/if}
         </div>
       {/each}
+
+      <!-- Empty state -->
+      {#if placedSectors.length === 0}
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div class="text-center p-6 bg-white/70 rounded-2xl backdrop-blur-sm">
+            <div class="text-4xl mb-2">🗺️</div>
+            <p class="text-slate-600 font-medium text-sm">
+              {editable ? 'Drag sectors from above to build your map' : 'No sectors placed on map yet'}
+            </p>
+          </div>
+        </div>
+      {/if}
     </div>
   </div>
 
-  <!-- Legend -->
-  <div class="mt-4 flex flex-wrap gap-3">
-    {#each Object.entries(sectorColors) as [type, color]}
-      {#if type !== 'CHICKENS'}
-        <div class="flex items-center gap-1.5">
-          <div
-            class="w-4 h-4 rounded"
-            style="background-color: {color}20; border: 2px solid {color};"
-          ></div>
-          <span class="text-xs text-slate-600">{sectorIcons[type]} {type.charAt(0) + type.slice(1).toLowerCase()}</span>
-        </div>
-      {/if}
-    {/each}
-  </div>
+  <!-- Instructions -->
+  {#if editable && placedSectors.length > 0}
+    <div class="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+      <div class="flex items-center gap-1.5">
+        <span class="w-4 h-4 bg-slate-100 rounded flex items-center justify-center text-[10px]">✋</span>
+        <span>Drag to move</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+          <svg class="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 20h16M20 4v16" />
+          </svg>
+        </span>
+        <span>Drag corner to resize</span>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>

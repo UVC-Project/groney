@@ -173,7 +173,7 @@
   let mapSectorsData = $derived(
     sectorsData.map((sector, index) => {
       const display = getSectorDisplay(sector.type);
-      return {
+      const mapped = {
         ...sector,
         icon: display.icon,
         color: display.color,
@@ -184,8 +184,14 @@
         gridHeight: sector.gridHeight ?? 3,
         missions: missionsData.filter((m) => m.sectorId === sector.id),
       };
+      return mapped;
     })
   );
+  
+  // Debug: log when sectors data changes
+  $effect(() => {
+    console.log('📍 Sectors data updated:', sectorsData.length, 'sectors');
+  });
 
   // Sector color hex values for styling
   function getSectorColorHex(type: string): string {
@@ -274,6 +280,89 @@
     // Could open a sector detail modal or switch to missions tab filtered by sector
     console.log('Clicked sector:', sector.name);
     showToast(`Selected: ${sector.name}`, 'success');
+  }
+
+  async function handleAddSectorFromMap(type: string, x: number, y: number) {
+    // Generate a name based on type and count
+    const existingOfType = sectorsData.filter(s => s.type.toUpperCase() === type.toUpperCase());
+    const sectorNames: Record<string, string> = {
+      TREES: 'Forest Area',
+      FLOWERS: 'Flower Garden',
+      POND: 'Pond',
+      ANIMALS: 'Animal Area',
+      GARDEN: 'Vegetable Garden',
+      PLAYGROUND: 'Playground',
+      COMPOST: 'Compost Area',
+      OTHER: 'Custom Area',
+    };
+    const baseName = sectorNames[type] || 'New Sector';
+    const name = existingOfType.length > 0 ? `${baseName} ${existingOfType.length + 1}` : baseName;
+
+    // Get current class ID from localStorage or current class data
+    const classId = localStorage.getItem('teacher_selected_class_id') || currentClassData?.id;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors${classId ? `?classId=${classId}` : ''}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
+        body: JSON.stringify({
+          name,
+          type,
+          gridX: x,
+          gridY: y,
+          gridWidth: 3,
+          gridHeight: 3,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to create sector');
+      }
+
+      const newSector = await response.json();
+      console.log('Created sector:', newSector);
+
+      showToast(`${name} added to map! 🎉`, 'success');
+      
+      // Force page data refresh by invalidating all load functions
+      // Use a small delay to ensure the backend has committed the transaction
+      setTimeout(async () => {
+        await invalidateAll();
+      }, 100);
+    } catch (error) {
+      console.error('Failed to add sector:', error);
+      showToast('Failed to add sector. Please try again.', 'error');
+    }
+  }
+
+  // Handler for placing existing unplaced sectors on the map
+  async function handlePlaceSector(sectorId: string, x: number, y: number) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors/${sectorId}/position`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
+        body: JSON.stringify({ gridX: x, gridY: y }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to place sector on map');
+      }
+
+      const sector = sectorsData.find(s => s.id === sectorId);
+      showToast(`${sector?.name || 'Sector'} placed on map! 🎉`, 'success');
+      
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to place sector:', error);
+      showToast('Failed to place sector. Please try again.', 'error');
+    }
   }
 
   function handleLogout() {
@@ -1457,6 +1546,8 @@
               onSectorResize={handleSectorResize}
               onMapResize={handleMapResize}
               onSectorClick={handleMapSectorClick}
+              onAddSector={handleAddSectorFromMap}
+              onPlaceSector={handlePlaceSector}
             />
           {:else}
             <!-- Empty State -->

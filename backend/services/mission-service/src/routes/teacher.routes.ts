@@ -82,10 +82,12 @@ router.get('/sectors', requireTeacher, async (req: Request, res: Response) => {
 });
 
 // POST /api/teacher/sectors - Create a new sector
+// Accepts optional ?classId= query param to specify which class
 router.post('/sectors', requireTeacher, async (req: Request, res: Response) => {
 	try {
 		const userId = (req as any).userId;
-		const { name, type } = req.body;
+		const requestedClassId = req.query.classId as string | undefined;
+		const { name, type, gridX, gridY, gridWidth, gridHeight } = req.body;
 
 		// Validation
 		if (!name || name.length < 2) {
@@ -96,32 +98,29 @@ router.post('/sectors', requireTeacher, async (req: Request, res: Response) => {
 			return res.status(400).json({ error: 'Bad Request', message: 'Invalid sector type' });
 		}
 
-		const classId = await getActiveClassId(userId);
+		// Get class ID from query param or fall back to active class
+		const classId = await getActiveClassId(userId, requestedClassId);
 		if (!classId) {
 			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
 		}
 
-		// Check if sector name already exists in this class
-		const existingSector = await prisma.sector.findFirst({
-			where: {
-				classId,
-				name,
-			},
-		});
-		if (existingSector) {
-			return res.status(400).json({ error: 'Bad Request', message: 'A sector with this name already exists' });
-		}
+		// Note: We allow multiple sectors with the same name now for flexibility
+		// Teachers can have multiple "Trees" sectors, etc.
 
-		// Create the sector
+		// Create the sector with optional grid position
 		const sector = await prisma.sector.create({
 			data: {
 				classId,
 				name,
 				type,
+				gridX: gridX ?? 0,
+				gridY: gridY ?? 0,
+				gridWidth: gridWidth ?? 3,
+				gridHeight: gridHeight ?? 3,
 			},
 		});
 
-		console.log('Created sector:', sector.id);
+		console.log('Created sector:', sector.id, 'at position', gridX, gridY);
 		res.status(201).json(sector);
 	} catch (error) {
 		console.error('Error creating sector:', error);
@@ -175,22 +174,19 @@ router.patch('/sectors/:id/position', requireTeacher, async (req: Request, res: 
 		const sectorId = req.params.id;
 		const { gridX, gridY, gridWidth, gridHeight } = req.body;
 
-		// Get teacher's class
-		const classId = await getActiveClassId(userId);
-		if (!classId) {
-			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
-		}
-
-		// Verify sector belongs to teacher's class
-		const sector = await prisma.sector.findFirst({
-			where: {
-				id: sectorId,
-				classId,
-			},
+		// First find the sector to get its classId
+		const sector = await prisma.sector.findUnique({
+			where: { id: sectorId },
 		});
 
 		if (!sector) {
 			return res.status(404).json({ error: 'Not Found', message: 'Sector not found' });
+		}
+
+		// Verify teacher has access to this sector's class
+		const hasAccess = await verifyTeacherOwnsClass(userId, sector.classId);
+		if (!hasAccess) {
+			return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to this sector' });
 		}
 
 		// Build update data
@@ -428,6 +424,7 @@ router.delete('/missions/:id', requireTeacher, async (req: Request, res: Respons
 });
 
 // POST /api/teacher/initialize - Initializes sectors and missions for a class
+// Sectors are created but NOT placed on the map (gridX = -1) until teacher drags them
 router.post('/initialize', requireTeacher, async (req: Request, res: Response) => {
 	try {
 		const userId = (req as any).userId;
@@ -453,123 +450,34 @@ router.post('/initialize', requireTeacher, async (req: Request, res: Response) =
 		}
 
 		// Initialize sectors and missions in a transaction
+		// Sectors have gridX = -1 to indicate they're not placed on the map yet
 		await prisma.$transaction(async (tx) => {
-			// Create 5 default sectors
+			// Create 5 default sectors (NOT placed on map - gridX = -1)
 			const sectors = await Promise.all([
-				tx.sector.create({ data: { classId, name: 'Trees', type: 'TREES' } }),
-				tx.sector.create({ data: { classId, name: 'Flowers', type: 'FLOWERS' } }),
-				tx.sector.create({ data: { classId, name: 'Pond', type: 'POND' } }),
-				tx.sector.create({ data: { classId, name: 'Chickens', type: 'CHICKENS' } }),
-				tx.sector.create({ data: { classId, name: 'Garden', type: 'GARDEN' } }),
+				tx.sector.create({ data: { classId, name: 'Trees', type: 'TREES', gridX: -1, gridY: -1 } }),
+				tx.sector.create({ data: { classId, name: 'Flowers', type: 'FLOWERS', gridX: -1, gridY: -1 } }),
+				tx.sector.create({ data: { classId, name: 'Pond', type: 'POND', gridX: -1, gridY: -1 } }),
+				tx.sector.create({ data: { classId, name: 'Chickens', type: 'CHICKENS', gridX: -1, gridY: -1 } }),
+				tx.sector.create({ data: { classId, name: 'Garden', type: 'GARDEN', gridX: -1, gridY: -1 } }),
 			]);
 
 			// Create default missions for each sector
 			const missions = [
 				// Trees missions
-				{
-					sectorId: sectors[0].id,
-					title: 'Water the Trees',
-					description: 'Water all trees in the schoolyard',
-					xpReward: 15,
-					coinReward: 10,
-					thirstBoost: 20,
-					happinessBoost: 5,
-				},
-				{
-					sectorId: sectors[0].id,
-					title: 'Remove Dead Branches',
-					description: 'Clean up fallen branches and leaves',
-					xpReward: 20,
-					coinReward: 15,
-					happinessBoost: 10,
-					cleanlinessBoost: 15,
-				},
-
+				{ sectorId: sectors[0].id, title: 'Water the Trees', description: 'Water all trees in the schoolyard', xpReward: 15, coinReward: 10, thirstBoost: 20, happinessBoost: 5 },
+				{ sectorId: sectors[0].id, title: 'Remove Dead Branches', description: 'Clean up fallen branches and leaves', xpReward: 20, coinReward: 15, happinessBoost: 10, cleanlinessBoost: 15 },
 				// Flowers missions
-				{
-					sectorId: sectors[1].id,
-					title: 'Plant New Flowers',
-					description: 'Plant seasonal flowers in the beds',
-					xpReward: 25,
-					coinReward: 20,
-					thirstBoost: 10,
-					hungerBoost: 5,
-					happinessBoost: 15,
-					cleanlinessBoost: 5,
-				},
-				{
-					sectorId: sectors[1].id,
-					title: 'Weed the Flower Beds',
-					description: 'Remove weeds from flower areas',
-					xpReward: 10,
-					coinReward: 8,
-					thirstBoost: 5,
-					happinessBoost: 5,
-					cleanlinessBoost: 10,
-				},
-
+				{ sectorId: sectors[1].id, title: 'Plant New Flowers', description: 'Plant seasonal flowers in the beds', xpReward: 25, coinReward: 20, thirstBoost: 10, hungerBoost: 5, happinessBoost: 15, cleanlinessBoost: 5 },
+				{ sectorId: sectors[1].id, title: 'Weed the Flower Beds', description: 'Remove weeds from flower areas', xpReward: 10, coinReward: 8, thirstBoost: 5, happinessBoost: 5, cleanlinessBoost: 10 },
 				// Pond missions
-				{
-					sectorId: sectors[2].id,
-					title: 'Clean the Pond',
-					description: 'Remove debris from the pond',
-					xpReward: 30,
-					coinReward: 25,
-					thirstBoost: 15,
-					happinessBoost: 10,
-					cleanlinessBoost: 20,
-				},
-				{
-					sectorId: sectors[2].id,
-					title: 'Feed the Ducks',
-					description: 'Give food to the pond ducks',
-					xpReward: 15,
-					coinReward: 12,
-					hungerBoost: 15,
-					happinessBoost: 20,
-				},
-
+				{ sectorId: sectors[2].id, title: 'Clean the Pond', description: 'Remove debris from the pond', xpReward: 30, coinReward: 25, thirstBoost: 15, happinessBoost: 10, cleanlinessBoost: 20 },
+				{ sectorId: sectors[2].id, title: 'Feed the Ducks', description: 'Give food to the pond ducks', xpReward: 15, coinReward: 12, hungerBoost: 15, happinessBoost: 20 },
 				// Chickens missions
-				{
-					sectorId: sectors[3].id,
-					title: 'Feed the Chickens',
-					description: 'Give food and fresh water to chickens',
-					xpReward: 15,
-					coinReward: 12,
-					thirstBoost: 10,
-					hungerBoost: 20,
-					happinessBoost: 15,
-				},
-				{
-					sectorId: sectors[3].id,
-					title: 'Collect Eggs',
-					description: 'Gather eggs from the chicken coop',
-					xpReward: 20,
-					coinReward: 18,
-					hungerBoost: 10,
-					happinessBoost: 15,
-				},
-
+				{ sectorId: sectors[3].id, title: 'Feed the Chickens', description: 'Give food and fresh water to chickens', xpReward: 15, coinReward: 12, thirstBoost: 10, hungerBoost: 20, happinessBoost: 15 },
+				{ sectorId: sectors[3].id, title: 'Collect Eggs', description: 'Gather eggs from the chicken coop', xpReward: 20, coinReward: 18, hungerBoost: 10, happinessBoost: 15 },
 				// Garden missions
-				{
-					sectorId: sectors[4].id,
-					title: 'Harvest Vegetables',
-					description: 'Collect ripe vegetables from the garden',
-					xpReward: 20,
-					coinReward: 18,
-					thirstBoost: 5,
-					hungerBoost: 25,
-					happinessBoost: 20,
-				},
-				{
-					sectorId: sectors[4].id,
-					title: 'Water the Garden',
-					description: 'Water all plants in the vegetable garden',
-					xpReward: 15,
-					coinReward: 10,
-					thirstBoost: 25,
-					happinessBoost: 10,
-				},
+				{ sectorId: sectors[4].id, title: 'Harvest Vegetables', description: 'Collect ripe vegetables from the garden', xpReward: 20, coinReward: 18, thirstBoost: 5, hungerBoost: 25, happinessBoost: 20 },
+				{ sectorId: sectors[4].id, title: 'Water the Garden', description: 'Water all plants in the vegetable garden', xpReward: 15, coinReward: 10, thirstBoost: 25, happinessBoost: 10 },
 			];
 
 			await tx.mission.createMany({ data: missions });
