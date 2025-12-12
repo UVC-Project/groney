@@ -338,32 +338,70 @@
     </div>
   {/if}
 
-  <!-- Grid Container -->
-  <div class="rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 shadow-inner overflow-hidden">
-    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions a11y_no_noninteractive_tabindex -->
-    <div
-      bind:this={gridRef}
-      class="relative mx-auto"
-      style="width: {mapWidth * CELL_SIZE}px; height: {mapHeight * CELL_SIZE}px; margin: 16px auto;"
-      onclick={handleGridClick}
-      onkeydown={editable ? handleMapKeydown : undefined}
-      ondragover={editable ? handleGridDragOver : undefined}
-      ondragleave={editable ? handleGridDragLeave : undefined}
-      ondrop={editable ? handleGridDrop : undefined}
-      role="application"
-      aria-label="Schoolyard map"
-      tabindex={editable ? 0 : -1}
-    >
-      <!-- Grid Pattern -->
-      <div 
-        class="absolute inset-0 rounded-xl"
-        style="
-          background-image: 
-            linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px);
-          background-size: {CELL_SIZE}px {CELL_SIZE}px;
-        "
-      ></div>
+  <!-- Grid Container with Scale -->
+  <div class="rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 shadow-inner overflow-hidden flex justify-center">
+    <div class="relative inline-block" style="padding: 24px 16px 16px 28px;">
+      <!-- Top Scale (X-axis) -->
+      <div class="absolute top-1 left-7 right-4 flex" style="height: 20px;">
+        {#each Array(Math.floor(mapWidth / 2) + 1) as _, i}
+          <div 
+            class="absolute flex flex-col items-center"
+            style="left: {i * 2 * CELL_SIZE}px; transform: translateX(-50%);"
+          >
+            <span class="text-[10px] text-slate-400 font-medium">{i}m</span>
+            <div class="w-px h-1.5 bg-slate-300"></div>
+          </div>
+        {/each}
+      </div>
+
+      <!-- Left Scale (Y-axis) -->
+      <div class="absolute top-6 left-0 bottom-4 flex flex-col" style="width: 24px;">
+        {#each Array(Math.floor(mapHeight / 2) + 1) as _, i}
+          <div 
+            class="absolute flex items-center gap-0.5"
+            style="top: {i * 2 * CELL_SIZE}px; transform: translateY(-50%); right: 0;"
+          >
+            <span class="text-[10px] text-slate-400 font-medium">{i}m</span>
+            <div class="h-px w-1.5 bg-slate-300"></div>
+          </div>
+        {/each}
+      </div>
+
+      <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions a11y_no_noninteractive_tabindex -->
+      <div
+        bind:this={gridRef}
+        class="relative"
+        style="width: {mapWidth * CELL_SIZE}px; height: {mapHeight * CELL_SIZE}px;"
+        onclick={handleGridClick}
+        onkeydown={editable ? handleMapKeydown : undefined}
+        ondragover={editable ? handleGridDragOver : undefined}
+        ondragleave={editable ? handleGridDragLeave : undefined}
+        ondrop={editable ? handleGridDrop : undefined}
+        role="application"
+        aria-label="Schoolyard map"
+        tabindex={editable ? 0 : -1}
+      >
+        <!-- Grid Pattern -->
+        <div 
+          class="absolute inset-0 rounded-xl"
+          style="
+            background-image: 
+              linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px);
+            background-size: {CELL_SIZE}px {CELL_SIZE}px;
+          "
+        ></div>
+        
+        <!-- Major grid lines (every 2 cells = 1 meter) -->
+        <div 
+          class="absolute inset-0 rounded-xl pointer-events-none"
+          style="
+            background-image: 
+              linear-gradient(to right, rgba(0,0,0,0.12) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(0,0,0,0.12) 1px, transparent 1px);
+            background-size: {CELL_SIZE * 2}px {CELL_SIZE * 2}px;
+          "
+        ></div>
 
       <!-- Drop Preview -->
       {#if dropPreview && placingDrag}
@@ -464,7 +502,17 @@
           </div>
         </div>
       {/if}
+      </div>
     </div>
+  </div>
+
+  <!-- Scale Legend -->
+  <div class="mt-2 flex items-center justify-center gap-2 text-xs text-slate-400">
+    <div class="flex items-center gap-1">
+      <div class="w-4 h-px bg-slate-300"></div>
+      <div class="w-4 h-px bg-slate-300"></div>
+    </div>
+    <span>2 cells = 1 meter</span>
   </div>
 
   <!-- Instructions -->
