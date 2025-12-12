@@ -491,6 +491,11 @@
 
   function closeCreateClassDialog() {
     isCreateClassDialogOpen = false;
+    // Reset form when dialog is closed
+    classForm = {
+      className: '',
+      schoolName: '',
+    };
   }
 
   function handleDialogKeydown(event: KeyboardEvent, closeHandler: () => void) {
@@ -534,8 +539,17 @@
       // Initialize the class with sectors and missions
       await initializeClass(newClass.id);
       
+      // Automatically switch to the newly created class
+      await switchToNewClass(newClass.id);
+      
       // Show success toast
       showToast(`Class "${newClass.name}" created successfully! 🎉`, 'success');
+      
+      // Reset form
+      classForm = {
+        className: '',
+        schoolName: '',
+      };
       
       closeCreateClassDialog();
       
@@ -614,6 +628,34 @@
       showToast('Failed to switch class. Please try again.', 'error');
     } finally {
       isSwitchingClass = false;
+    }
+  }
+
+  async function switchToNewClass(classId: string) {
+    try {
+      // Call API to switch active class with authentication
+      const response = await fetch(`${API_BASE_URL}/api/teacher/switch-class`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(TEST_TEACHER),
+        },
+        body: JSON.stringify({ classId })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to switch to new class');
+      }
+
+      console.log('✅ Automatically switched to new class:', classId);
+
+      // Save selected class to localStorage for persistence
+      localStorage.setItem('teacher_selected_class_id', classId);
+    } catch (error) {
+      console.error('❌ Failed to switch to new class:', error);
+      // Don't show error toast here as it would interfere with the success message
+      // The class was created successfully, just the auto-switch failed
     }
   }
 
