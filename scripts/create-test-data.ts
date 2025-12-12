@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { MissionCategory, PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -102,11 +102,11 @@ async function createTestData() {
     // 5. Create missions for each sector
     console.log('\n🎯 Creating missions...');
     const missionTemplates = [
-      { title: 'Water the trees', description: 'Help keep our trees healthy by watering them', xp: 15, coins: 10, thirst: 5 },
-      { title: 'Plant new flowers', description: 'Add beautiful flowers to our garden', xp: 20, coins: 15, happiness: 10 },
-      { title: 'Feed the ducks', description: 'Give the ducks their daily food', xp: 10, coins: 5, hunger: 5 },
-      { title: 'Collect eggs', description: 'Gather fresh eggs from the chicken coop', xp: 15, coins: 20, hunger: 10 },
-      { title: 'Weed the garden', description: 'Remove weeds from the vegetable garden', xp: 25, coins: 15, cleanliness: 15 },
+      { title: 'Water the trees', description: 'Help keep our trees healthy by watering them', xp: 15, coins: 10, thirst: 5, coordinates_x: 25.0, coordinates_y: 30.0, category: MissionCategory.THIRST},
+      { title: 'Plant new flowers', description: 'Add beautiful flowers to our garden', xp: 20, coins: 15, happiness: 10, coordinates_x: 40.0, coordinates_y: 50.0, category: MissionCategory.HAPPINESS},
+      { title: 'Feed the ducks', description: 'Give the ducks their daily food', xp: 10, coins: 5, hunger: 5, coordinates_x: 60.0, coordinates_y: 20.0, category: MissionCategory.HUNGER},
+      { title: 'Collect eggs', description: 'Gather fresh eggs from the chicken coop', xp: 15, coins: 20, hunger: 10, coordinates_x: 15.0, coordinates_y: 70.0, category: MissionCategory.HUNGER},
+      { title: 'Weed the garden', description: 'Remove weeds from the vegetable garden', xp: 25, coins: 15, cleanliness: 15, coordinates_x: 80.0, coordinates_y: 40.0, category: MissionCategory.CLEANLINESS},
     ];
 
     const missions = [];
@@ -124,6 +124,9 @@ async function createTestData() {
           happinessBoost: template.happiness || 0,
           cleanlinessBoost: template.cleanliness || 0,
           requiresPhoto: true,
+          coordinates_x: template.coordinates_x || 0,
+          coordinates_y: template.coordinates_y || 0,
+          category: template.category,
         },
       });
       missions.push(mission);
