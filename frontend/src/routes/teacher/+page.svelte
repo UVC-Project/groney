@@ -84,6 +84,11 @@
   let isMapEditMode = $state(false);
   let isSavingMap = $state(false);
   
+  // Sector edit dialog state
+  let editingSector = $state<{ id: string; name: string; type: string } | null>(null);
+  let editingSectorName = $state<string>('');
+  let editSectorInputRef = $state<HTMLInputElement | null>(null);
+  
   // Toast notification state
   let toastMessage = $state<string>('');
   let toastType = $state<'success' | 'error'>('success');
@@ -411,6 +416,54 @@
       console.error('Failed to remove sector from map:', error);
       showToast('Failed to remove sector from map. Please try again.', 'error');
     }
+  }
+
+  // Handler for opening the sector edit dialog
+  function handleSectorEdit(sector: { id: string; name: string; type: string }) {
+    editingSector = sector;
+    editingSectorName = sector.name;
+    
+    // Focus the input after the dialog opens
+    setTimeout(() => {
+      editSectorInputRef?.focus();
+      editSectorInputRef?.select();
+    }, 100);
+  }
+
+  // Handler for saving sector name changes
+  async function handleSectorEditSubmit() {
+    if (!editingSector || !editingSectorName.trim()) return;
+    
+    await handleSectorRename(editingSector.id, editingSectorName.trim());
+    closeSectorEditDialog();
+  }
+
+  // Handler for removing sector from map via edit dialog
+  async function handleSectorEditRemove() {
+    if (!editingSector) return;
+    
+    const confirmed = confirm(`Remove "${editingSector.name}" from the map?\n\nThe sector will be moved back to the palette and can be placed again later.`);
+    if (confirmed) {
+      await handleSectorRemoveFromMap(editingSector.id);
+      closeSectorEditDialog();
+    }
+  }
+
+  // Handler for deleting sector via edit dialog
+  async function handleSectorEditDelete() {
+    if (!editingSector) return;
+    
+    const confirmed = confirm(`Permanently delete "${editingSector.name}"?\n\nThis will also delete all missions in this sector. This action cannot be undone.`);
+    if (confirmed) {
+      await handleDeleteSector(editingSector.id);
+      closeSectorEditDialog();
+    }
+  }
+
+  // Close the sector edit dialog
+  function closeSectorEditDialog() {
+    editingSector = null;
+    editingSectorName = '';
   }
 
   function handleLogout() {
@@ -1602,6 +1655,7 @@
               onSectorRename={handleSectorRename}
               onSectorDelete={handleDeleteSector}
               onSectorRemoveFromMap={handleSectorRemoveFromMap}
+              onSectorEdit={handleSectorEdit}
             />
           {:else}
             <!-- Empty State -->
@@ -1660,6 +1714,83 @@
     {/if}
   </main>
 </div>
+
+<!-- Sector Edit Dialog -->
+{#if editingSector}
+  <div
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    onclick={closeSectorEditDialog}
+    onkeydown={(e) => e.key === 'Escape' && closeSectorEditDialog()}
+    role="presentation"
+    tabindex="-1"
+  >
+    <div
+      class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+      onclick={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-sector-dialog-title"
+      tabindex="0"
+    >
+      <div class="flex items-center gap-3 mb-4">
+        <span class="text-2xl">{getSectorDisplay(editingSector.type).icon}</span>
+        <h3 id="edit-sector-dialog-title" class="text-lg font-bold text-slate-800">Edit Sector</h3>
+      </div>
+
+      <form onsubmit={(e) => { e.preventDefault(); handleSectorEditSubmit(); }}>
+        <div class="mb-4">
+          <label for="edit-sector-name" class="block text-sm font-medium text-slate-700 mb-2">
+            Sector Name
+          </label>
+          <input
+            id="edit-sector-name"
+            bind:this={editSectorInputRef}
+            bind:value={editingSectorName}
+            type="text"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            placeholder="Enter sector name"
+            required
+            minlength="2"
+            maxlength="50"
+          />
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button
+            type="submit"
+            class="flex-1 px-4 py-2 bg-emerald-500 text-white font-medium rounded-lg hover:bg-emerald-600 transition-colors"
+            disabled={!editingSectorName.trim()}
+          >
+            Save Changes
+          </button>
+          <button
+            type="button"
+            onclick={closeSectorEditDialog}
+            class="px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onclick={handleSectorEditRemove}
+            class="px-4 py-2 bg-amber-100 text-amber-700 font-medium rounded-lg hover:bg-amber-200 transition-colors"
+            title="Remove from map"
+          >
+            📤 Remove
+          </button>
+          <button
+            type="button"
+            onclick={handleSectorEditDelete}
+            class="px-4 py-2 bg-red-100 text-red-700 font-medium rounded-lg hover:bg-red-200 transition-colors"
+            title="Delete permanently"
+          >
+            🗑️ Delete
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+{/if}
 
 <!-- Create Class Dialog -->
 {#if isCreateClassDialogOpen}
