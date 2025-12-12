@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import { config } from 'dotenv';
 import shopRoutes from './routes/shopRoutes';
 import teacherRoutes from './routes/teacherRoutes';
+import mapRoutes from './routes/mapRoutes';
 
 config();
 
@@ -19,6 +20,9 @@ app.use('/api', shopRoutes);
 
 // Teacher endpoints (protected with auth middleware)
 app.use('/api/teacher', teacherRoutes);
+
+// Mission endpoints
+app.use('/map', mapRoutes);
 
 app.get('/', (_req, res) => {
   res.json({
