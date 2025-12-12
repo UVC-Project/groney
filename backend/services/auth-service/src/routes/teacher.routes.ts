@@ -282,12 +282,12 @@ router.patch('/map-size', requireTeacher, async (req: Request, res: Response) =>
 		const userId = (req as any).userId;
 		const { mapWidth, mapHeight } = req.body;
 
-		// Validate dimensions
-		if (mapWidth !== undefined && (mapWidth < 10 || mapWidth > 40)) {
-			return res.status(400).json({ error: 'Bad Request', message: 'Map width must be between 10 and 40' });
+		// Validate dimensions (minimum 5x5, maximum 30x30)
+		if (mapWidth !== undefined && (mapWidth < 5 || mapWidth > 30)) {
+			return res.status(400).json({ error: 'Bad Request', message: 'Map width must be between 5 and 30' });
 		}
-		if (mapHeight !== undefined && (mapHeight < 10 || mapHeight > 30)) {
-			return res.status(400).json({ error: 'Bad Request', message: 'Map height must be between 10 and 30' });
+		if (mapHeight !== undefined && (mapHeight < 5 || mapHeight > 30)) {
+			return res.status(400).json({ error: 'Bad Request', message: 'Map height must be between 5 and 30' });
 		}
 
 		// Get teacher's active class

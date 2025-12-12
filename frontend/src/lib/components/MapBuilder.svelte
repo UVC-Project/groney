@@ -324,19 +324,19 @@
         <span>Map size:</span>
         <input
           type="number"
-          min="10"
+          min="5"
           max="30"
           value={mapWidth}
-          onchange={(e) => onMapResize?.(parseInt(e.currentTarget.value), mapHeight)}
+          onchange={(e) => onMapResize?.(Math.max(5, parseInt(e.currentTarget.value) || 5), mapHeight)}
           class="w-12 px-1.5 py-0.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 text-center"
         />
         <span>×</span>
         <input
           type="number"
-          min="8"
-          max="20"
+          min="5"
+          max="30"
           value={mapHeight}
-          onchange={(e) => onMapResize?.(mapWidth, parseInt(e.currentTarget.value))}
+          onchange={(e) => onMapResize?.(mapWidth, Math.max(5, parseInt(e.currentTarget.value) || 5))}
           class="w-12 px-1.5 py-0.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 text-center"
         />
       </div>
