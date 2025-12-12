@@ -1,11 +1,15 @@
-<script>
+<script lang="ts">
   import ScrollToTopButton from '$lib/components/ScrollToTop.svelte';
   import LogoutModal from '$lib/components/LogoutModal.svelte';
   import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
+  import type { PageData } from './$types';
+  
+  export let data: PageData;
 
   let showLogoutModal = false;
-
-   function logout() {
+  const coins = data.coins;
+   
+  function logout() {
     showLogoutModal = false;
   }
 </script>
@@ -28,7 +32,7 @@
 <!-- Level + coins -->
   <div class="flex justify-center gap-3 mb-6">
     <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg">🎖️ 5</div>
-    <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg">🪙 50</div>
+    <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg">🪙{coins}</div>
   </div>
 
 <!-- Mascot circle -->
