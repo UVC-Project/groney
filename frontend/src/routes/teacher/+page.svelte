@@ -302,6 +302,9 @@
 
       console.log('✅ Switched to class:', classId);
 
+      // Save selected class to localStorage for persistence
+      localStorage.setItem('teacher_selected_class_id', classId);
+
       // Refresh data without full page reload
       await invalidateAll();
     } catch (error) {

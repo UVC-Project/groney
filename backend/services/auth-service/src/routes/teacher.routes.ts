@@ -16,7 +16,7 @@ const requireTeacher = (req: Request, res: Response, next: Function) => {
 	next();
 };
 
-// Helper to get teacher's first class (since activeClassId is removed)
+// Helper to get teacher's first class (fallback when no classId specified)
 async function getTeacherFirstClassId(userId: string): Promise<string | null> {
 	const membership = await prisma.classUser.findFirst({
 		where: { userId },
@@ -24,6 +24,16 @@ async function getTeacherFirstClassId(userId: string): Promise<string | null> {
 		orderBy: { class: { createdAt: 'desc' } },
 	});
 	return membership?.classId || null;
+}
+
+// Helper to verify teacher has access to a class
+async function verifyTeacherClassAccess(userId: string, classId: string): Promise<boolean> {
+	const membership = await prisma.classUser.findUnique({
+		where: {
+			classId_userId: { classId, userId },
+		},
+	});
+	return !!membership;
 }
 
 // GET /api/teacher/classes - Returns all classes for a teacher
@@ -57,12 +67,25 @@ router.get('/classes', requireTeacher, async (req: Request, res: Response) => {
 });
 
 // GET /api/teacher/class - Returns current active class with mascot and students
+// Accepts optional ?classId= query param to specify which class to fetch
 router.get('/class', requireTeacher, async (req: Request, res: Response) => {
 	try {
 		const userId = (req as any).userId;
+		const requestedClassId = req.query.classId as string | undefined;
 
-		// Get teacher's first class (most recent)
-		const classId = await getTeacherFirstClassId(userId);
+		let classId: string | null;
+
+		if (requestedClassId) {
+			// Verify teacher has access to the requested class
+			const hasAccess = await verifyTeacherClassAccess(userId, requestedClassId);
+			if (!hasAccess) {
+				return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to this class' });
+			}
+			classId = requestedClassId;
+		} else {
+			// Fall back to first class (most recent)
+			classId = await getTeacherFirstClassId(userId);
+		}
 
 		if (!classId) {
 			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
