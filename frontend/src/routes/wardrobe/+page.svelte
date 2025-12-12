@@ -2,6 +2,7 @@
   import PageWrapper from '$lib/components/PageWrapper.svelte';
   import type { PageData } from './$types';
   import type { ShopItem } from '$lib/shop/mockData';
+  import { overlayMap } from '$lib/wardrobe/overlayMap';
 
   import GroenyImg from '$lib/assets/images/groeny.png';
 
@@ -9,6 +10,9 @@
   import BlueCapImg from '$lib/assets/images/shop/blue-cap.png';
   import BowTieImg from '$lib/assets/images/shop/bow-tie.png';
   import SunglassesImg from '$lib/assets/images/shop/sunglasses.png';
+  import { onMount } from 'svelte';
+
+const STORAGE_KEY = 'wardrobe:selectedItemId';
 
   export let data: PageData;
 
@@ -30,13 +34,22 @@
   }
 
   function selectItem(item: ShopItem) {
-    selectedItem = item;
-  }
+  selectedItem = item;
+  localStorage.setItem(STORAGE_KEY, item.id);
+}
 
   function formatType(type: string | undefined) {
     if (!type) return 'None';
     return type.charAt(0).toUpperCase() + type.slice(1);
   }
+
+  onMount(() => {
+  const savedId = localStorage.getItem(STORAGE_KEY);
+  if (!savedId) return;
+
+  const found = allItems.find((i) => i.id === savedId);
+  if (found) selectedItem = found;
+});
 </script>
 
 <PageWrapper title="Wardrobe">
@@ -44,8 +57,24 @@
     class="w-full max-w-5xl mx-auto bg-white rounded-[40px] border border-gray-100 px-6 md:px-16 py-10 md:py-14"
   >
     <div class="flex justify-center mb-10">
-      <img src={GroenyImg} alt="Groeny Wardrobe" class="w-40 md:w-56 drop-shadow-lg" />
-    </div>
+  <div class="relative w-40 md:w-56">
+    <img src={GroenyImg} alt="Groeny Wardrobe" class="w-full drop-shadow-lg" />
+
+    {#if selectedItem && overlayMap[selectedItem.id]}
+      <img
+        src={getItemImage(selectedItem) ?? ''}
+        alt={selectedItem.name}
+        class="absolute pointer-events-none"
+        style={`
+          top:${overlayMap[selectedItem.id].top};
+          left:${overlayMap[selectedItem.id].left};
+          width:${overlayMap[selectedItem.id].width};
+          transform: translate(-50%, -50%) rotate(${overlayMap[selectedItem.id].rotate ?? '0deg'});
+        `}
+      />
+    {/if}
+  </div>
+</div>
 
     <h2 class="text-xl md:text-2xl font-extrabold text-center text-gray-800 mb-6">
       Currently Wearing
