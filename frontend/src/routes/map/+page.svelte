@@ -12,13 +12,10 @@
 
   function handleAccepted(event: CustomEvent<{ missionId: string }>) {
     console.log('Mission accepted:', event.detail.missionId);
-    // optional: mark mission locally as IN_PROGRESS or refetch
   }
 </script>
 
 <MissionMap
   {missions}
-  {currentUserId}
-  {currentClassId}
   on:accepted={handleAccepted}
 />
