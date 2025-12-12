@@ -4,7 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2f55ad1e-a7d1-415c-8376-e78240547a5e" name="Changes" comment="" />
+    <list default="true" id="2f55ad1e-a7d1-415c-8376-e78240547a5e" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/lib/shop/mockData.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/lib/shop/mockData.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/routes/wardrobe/+page.svelte" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/routes/wardrobe/+page.svelte" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -13,9 +17,13 @@
   <component name="ComposerSettings">
     <execution />
   </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;Shell Script.setup.sh.executor&quot;: &quot;Run&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;shop-sprint2&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\Iva\\PhpstormProjects\\groney\\node_modules\\typescript\\lib&quot;
   }

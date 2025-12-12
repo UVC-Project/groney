@@ -7,7 +7,7 @@ export const shopItems: ShopItem[] = [
         description: 'A stylish red cap for Groeny',
         type: 'hat',
         price: 50,
-        imageUrl: '/assets/shop/red-cap.png'
+        imageUrl: 'frontend/src/lib/assets/images/shop/red-cap.png'
     },
     {
         id: 'blue-cap',
@@ -15,7 +15,7 @@ export const shopItems: ShopItem[] = [
         description: 'A cool blue cap for Groeny',
         type: 'hat',
         price: 50,
-        imageUrl: '/assets/shop/blue-cap.png'
+        imageUrl: 'frontend/src/lib/assets/images/shop/blue-cap.png'
     },
     {
         id: 'bow-tie',
@@ -23,7 +23,7 @@ export const shopItems: ShopItem[] = [
         description: 'A fancy bow tie accessory',
         type: 'accessory',
         price: 60,
-        imageUrl: '/assets/shop/bow-tie.png'
+        imageUrl: 'frontend/src/lib/assets/images/shop/bow-tie.png'
     },
     {
         id: 'sunglasses',
@@ -31,16 +31,8 @@ export const shopItems: ShopItem[] = [
         description: 'Cool sunglasses for sunny days',
         type: 'accessory',
         price: 40,
-        imageUrl: '/assets/shop/sunglasses.png'
+        imageUrl: 'frontend/src/lib/assets/images/shop/sunglasses.png'
     },
-    {
-        id: 'rainbow-colors',
-        name: 'Rainbow Colors',
-        description: 'Change Groeny to rainbow colors!',
-        type: 'accessory',
-        price: 100,
-        imageUrl: '/assets/shop/rainbow-colors.png'
-    }
 ];
 
 export const mascots: Mascot[] = [
