@@ -87,6 +87,9 @@
   let editingName = $state<string>('');
   let showEditDialog = $state<boolean>(false);
   let editInputRef = $state<HTMLInputElement | null>(null);
+  
+  // Grid container reference for focus management
+  let gridRef = $state<HTMLDivElement | null>(null);
 
   // Sector type configurations
   const sectorConfig: Record<string, { color: string; bgColor: string; icon: string; label: string }> = {
@@ -161,6 +164,11 @@
     e.stopPropagation();
     selectedSectorId = sector.id;
     onSectorClick?.(sector);
+    
+    // Focus the grid container to enable keyboard events
+    if (editable) {
+      gridRef?.focus();
+    }
   }
 
   function handleSectorDoubleClick(e: MouseEvent, sector: MapSector) {
@@ -364,6 +372,7 @@
   <div class="rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 shadow-inner overflow-hidden">
     <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions a11y_no_noninteractive_tabindex -->
     <div
+      bind:this={gridRef}
       class="relative mx-auto"
       style="width: {mapWidth * CELL_SIZE}px; height: {mapHeight * CELL_SIZE}px; margin: 16px auto;"
       onclick={handleGridClick}
