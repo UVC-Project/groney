@@ -1676,8 +1676,8 @@
           {/if}
         </div>
 
-        <!-- Sector List (below map) -->
-        {#if sectorsData.length > 0}
+        <!-- Sector List (below map) - only show when not editing -->
+        {#if sectorsData.length > 0 && !isMapEditMode}
           <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-6">
             <h3 class="text-lg font-bold text-slate-800 mb-4">Sectors ({sectorsData.length})</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">

@@ -258,83 +258,61 @@
 </script>
 
 <div class="map-builder select-none" bind:this={containerRef}>
-  <!-- Sector Palette -->
-  {#if editable}
+  <!-- Unplaced Sectors Palette (only show when there are unplaced sectors) -->
+  {#if editable && unplacedSectors.length > 0}
     <div class="mb-4 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-      <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center justify-between mb-2">
         <h4 class="text-sm font-semibold text-slate-700">
-          {unplacedSectors.length > 0 ? 'Your Sectors (drag to map)' : 'Add New Sectors'}
+          Unplaced Sectors ({unplacedSectors.length})
         </h4>
-        <div class="flex items-center gap-3 text-xs text-slate-500">
-          <span>Grid:</span>
-          <input
-            type="number"
-            min="10"
-            max="30"
-            value={mapWidth}
-            onchange={(e) => onMapResize?.(parseInt(e.currentTarget.value), mapHeight)}
-            class="w-14 px-2 py-1 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500"
-          />
-          <span>×</span>
-          <input
-            type="number"
-            min="8"
-            max="20"
-            value={mapHeight}
-            onchange={(e) => onMapResize?.(mapWidth, parseInt(e.currentTarget.value))}
-            class="w-14 px-2 py-1 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500"
-          />
-        </div>
+        <p class="text-xs text-slate-400">Drag to place on map</p>
       </div>
-      
-      <!-- Unplaced existing sectors -->
-      {#if unplacedSectors.length > 0}
-        <div class="mb-3">
-          <p class="text-xs text-slate-500 mb-2">Drag these sectors to place them on the map:</p>
-          <div class="flex flex-wrap gap-2">
-            {#each unplacedSectors as sector}
-              {@const config = getConfig(sector.type)}
-              <div
-                draggable="true"
-                ondragstart={(e) => handlePaletteDragStart(e, sector.id)}
-                class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
-                style="background-color: {config.bgColor}; border-color: {config.color};"
-                role="button"
-                tabindex="0"
-              >
-                <span class="text-xl">{config.icon}</span>
-                <div>
-                  <span class="text-sm font-semibold" style="color: {config.color};">{sector.name}</span>
-                  {#if sector.missions && sector.missions.length > 0}
-                    <span class="text-xs text-slate-500 ml-1">({sector.missions.length})</span>
-                  {/if}
-                </div>
-              </div>
-            {/each}
-          </div>
-        </div>
-        <hr class="my-3 border-slate-200" />
-      {/if}
-      
-      <!-- New sector types -->
-      <p class="text-xs text-slate-500 mb-2">Or create new sectors:</p>
       <div class="flex flex-wrap gap-2">
-        {#each Object.entries(sectorConfig) as [type, config]}
-          {#if type !== 'CHICKENS'}
-            <div
-              draggable="true"
-              ondragstart={(e) => handlePaletteDragStart(e, undefined, type)}
-              class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border hover:scale-105 text-sm"
-              style="background-color: {config.bgColor}; border-color: {config.color}40;"
-              role="button"
-              tabindex="0"
-            >
-              <span>{config.icon}</span>
-              <span style="color: {config.color};">{config.label}</span>
+        {#each unplacedSectors as sector}
+          {@const config = getConfig(sector.type)}
+          <div
+            draggable="true"
+            ondragstart={(e) => handlePaletteDragStart(e, sector.id)}
+            class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
+            style="background-color: {config.bgColor}; border-color: {config.color};"
+            role="button"
+            tabindex="0"
+          >
+            <span class="text-xl">{config.icon}</span>
+            <div>
+              <span class="text-sm font-semibold" style="color: {config.color};">{sector.name}</span>
+              {#if sector.missions && sector.missions.length > 0}
+                <span class="text-xs text-slate-500 ml-1">({sector.missions.length})</span>
+              {/if}
             </div>
-          {/if}
+          </div>
         {/each}
       </div>
+    </div>
+  {/if}
+  
+  <!-- Grid Size Controls (only in edit mode) -->
+  {#if editable}
+    <div class="mb-2 flex items-center justify-end gap-3 text-xs text-slate-500">
+      <span>Map size:</span>
+      <input
+        type="number"
+        min="10"
+        max="30"
+        value={mapWidth}
+        onchange={(e) => onMapResize?.(parseInt(e.currentTarget.value), mapHeight)}
+        class="w-14 px-2 py-1 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500"
+      />
+      <span>×</span>
+      <input
+        type="number"
+        min="8"
+        max="20"
+        value={mapHeight}
+        onchange={(e) => onMapResize?.(mapWidth, parseInt(e.currentTarget.value))}
+        class="w-14 px-2 py-1 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500"
+      />
+      <span class="text-slate-400">(cells)</span>
     </div>
   {/if}
 
