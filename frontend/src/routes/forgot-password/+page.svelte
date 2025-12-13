@@ -1,6 +1,5 @@
 <script lang="ts">
   import { requestPasswordReset } from '$lib/auth/auth';
-  import { goto } from '$app/navigation';
 
   let email = '';
   let error = '';
@@ -11,11 +10,10 @@
     loading = true;
 
     try {
-      const res = await requestPasswordReset(email);
+      await requestPasswordReset(email);
 
-      goto(`/reset-password?token=${res.token}`);
     } catch (err: any) {
-      error = err.message;
+      error = 'Something went wrong. Please try again.';
     } finally {
       loading = false;
     }

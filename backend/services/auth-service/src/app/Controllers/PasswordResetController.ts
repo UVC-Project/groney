@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 const prisma: PrismaClient = new PrismaClient(); import crypto from "crypto";
 import bcrypt from "bcrypt";
+import { sendResetPasswordEmail } from "../../utils/mailer";
 
 export default class PasswordResetController {
     /**
@@ -21,19 +22,24 @@ export default class PasswordResetController {
         if (!user || user.role !== "TEACHER")
             return res.status(404).json({ message: "Teacher not found" });
 
+        await prisma.passwordResetToken.deleteMany({
+            where: { userId: user.id }
+        });
+
         const token = crypto.randomBytes(32).toString("hex");
 
         await prisma.passwordResetToken.create({
             data: {
                 userId: user.id,
                 token,
-                expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 mins
+                expiresAt: new Date(Date.now() + 15 * 60 * 1000)
             }
         });
 
+        await sendResetPasswordEmail(email, token);
+
         return res.json({
             message: "Password reset token created",
-            token // this needs to be emailed later
         });
     }
 

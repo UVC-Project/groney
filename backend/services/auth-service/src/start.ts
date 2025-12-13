@@ -2,7 +2,6 @@ import express from 'express';
 import { config } from 'dotenv';
 import RegisterController from './app/Controllers/RegisterController';
 import LoginController from './app/Controllers/LoginController';
-import { authMiddleware } from './app/Middleware/AuthMiddleware';
 import LogoutController from './app/Controllers/LogoutController';
 import PasswordResetController from './app/Controllers/PasswordResetController';
 import teacherRoutes from './routes/teacher.routes';
@@ -37,7 +36,7 @@ app.post("/login", LoginController.login);
 app.post("/register/teacher", RegisterController.registerTeacher);
 app.post("/register/student", RegisterController.registerStudent);
 
-app.post("/logout", authMiddleware, LogoutController.logout);
+app.post("/logout", LogoutController.logout);
 
 app.post("/password/forgot", PasswordResetController.requestReset);
 app.post("/password/reset", PasswordResetController.resetPassword);

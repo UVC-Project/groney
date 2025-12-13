@@ -152,6 +152,9 @@
           <span>Remember me</span>
         </label>
 
+        <a href="/forgot-password" class="text-blue-500 text-semibold">Forgot password?</a
+        >
+
         <button
           type="submit"
           class="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold transition"
