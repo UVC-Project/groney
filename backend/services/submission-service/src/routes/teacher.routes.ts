@@ -20,8 +20,14 @@ const requireTeacher = (req: Request, res: Response, next: Function) => {
 };
 
 // Helper function to get teacher's active class ID (using ClassUser join table)
-async function getActiveClassId(userId: string): Promise<string | null> {
-	// Get the most recent class the user is a member of
+async function getActiveClassId(userId: string, requestedClassId?: string): Promise<string | null> {
+	// If a specific classId is requested, verify access and return it
+	if (requestedClassId) {
+		const hasAccess = await verifyTeacherOwnsClass(userId, requestedClassId);
+		return hasAccess ? requestedClassId : null;
+	}
+	
+	// Otherwise, get the most recent class the user is a member of
 	const membership = await prisma.classUser.findFirst({
 		where: { userId },
 		include: { class: true },
@@ -45,12 +51,14 @@ async function verifyTeacherOwnsClass(userId: string, classId: string): Promise<
 }
 
 // GET /api/teacher/submissions - Returns pending submissions for teacher's class
+// Accepts optional ?classId= query param to specify which class
 router.get('/submissions', requireTeacher, async (req: Request, res: Response) => {
 	try {
 		const userId = (req as any).userId;
+		const requestedClassId = req.query.classId as string | undefined;
 
-		// Get teacher's active class ID
-		const classId = await getActiveClassId(userId);
+		// Get teacher's active class ID (with optional override)
+		const classId = await getActiveClassId(userId, requestedClassId);
 
 		if (!classId) {
 			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });

@@ -27,6 +27,9 @@ export interface Class {
 	classCode: string;
 	mascot: Mascot;
 	students: User[];
+	// Map configuration
+	mapWidth: number;
+	mapHeight: number;
 }
 
 export interface ClassListItem {
@@ -35,14 +38,30 @@ export interface ClassListItem {
 	school: string;
 }
 
-export type SectorType = 'trees' | 'flowers' | 'pond' | 'chickens' | 'garden';
+export type SectorType =
+	| 'TREES'
+	| 'FLOWERS'
+	| 'POND'
+	| 'ANIMALS'
+	| 'GARDEN'
+	| 'PLAYGROUND'
+	| 'COMPOST'
+	| 'OTHER'
+	| 'CHICKENS';
 
 export interface Sector {
 	id: string;
 	name: string;
 	type: SectorType;
-	description: string;
+	description?: string;
 	classId: string;
+	// Map grid position and size
+	gridX: number;
+	gridY: number;
+	gridWidth: number;
+	gridHeight: number;
+	color?: string;
+	missions?: Mission[];
 }
 
 export interface Mission {
