@@ -6,8 +6,6 @@
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
   import { logout as authLogout } from '$lib/auth/auth';
-
-  let showLogoutModal = false;
   
   import type { PageData } from './$types';
   
