@@ -108,6 +108,32 @@ router.use(
 	})
 );
 
+// Map size update route
+router.use(
+	'/map-size',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/teacher/map-size': '/api/teacher/map-size',
+		},
+		onProxyReq: (proxyReq, req) => {
+			if (req.headers['x-user-id']) {
+				proxyReq.setHeader('x-user-id', req.headers['x-user-id'] as string);
+			}
+			if (req.headers['x-user-role']) {
+				proxyReq.setHeader('x-user-role', req.headers['x-user-role'] as string);
+			}
+			if (req.body && Object.keys(req.body).length > 0) {
+				const bodyData = JSON.stringify(req.body);
+				proxyReq.setHeader('Content-Type', 'application/json');
+				proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+				proxyReq.write(bodyData);
+			}
+		},
+	})
+);
+
 // Mission Service routes - Sectors, Missions, Initialization
 router.use(
 	'/sectors',

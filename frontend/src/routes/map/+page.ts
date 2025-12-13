@@ -1,9 +1,13 @@
 import type { PageLoad } from './$types';
 import type { Mission } from '$lib/types';
+import { API_BASE_URL } from '$lib/config';
 
-export const load: PageLoad = async ({ fetch }) => {
+// Disable SSR for this page
+export const ssr = false;
+
+export const load: PageLoad = async () => {
   try {
-    const res = await fetch('/map/missions');
+    const res = await fetch(`${API_BASE_URL}/map/missions`);
 
     if (!res.ok) {
       console.error('Failed to fetch missions:', res.status, await res.text());

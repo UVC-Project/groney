@@ -41,6 +41,9 @@ model Class {
   name       String
   school     String
   classCode  String   @unique
+  // Map configuration
+  mapWidth   Int      @default(20)  // Grid width in cells (each cell ~0.5m)
+  mapHeight  Int      @default(16)  // Grid height in cells
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -95,6 +98,12 @@ model Sector {
   classId   String
   name      String
   type      SectorType
+  // Grid position and size (for map builder)
+  gridX     Int        @default(0)  // X position on grid
+  gridY     Int        @default(0)  // Y position on grid
+  gridWidth Int        @default(2)  // Width in grid cells
+  gridHeight Int       @default(2)  // Height in grid cells
+  color     String?    // Optional custom color
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 

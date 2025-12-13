@@ -16,7 +16,7 @@ const requireTeacher = (req: Request, res: Response, next: Function) => {
 	next();
 };
 
-// Helper to get teacher's first class (since activeClassId is removed)
+// Helper to get teacher's first class (fallback when no classId specified)
 async function getTeacherFirstClassId(userId: string): Promise<string | null> {
 	const membership = await prisma.classUser.findFirst({
 		where: { userId },
@@ -24,6 +24,16 @@ async function getTeacherFirstClassId(userId: string): Promise<string | null> {
 		orderBy: { class: { createdAt: 'desc' } },
 	});
 	return membership?.classId || null;
+}
+
+// Helper to verify teacher has access to a class
+async function verifyTeacherClassAccess(userId: string, classId: string): Promise<boolean> {
+	const membership = await prisma.classUser.findUnique({
+		where: {
+			classId_userId: { classId, userId },
+		},
+	});
+	return !!membership;
 }
 
 // GET /api/teacher/classes - Returns all classes for a teacher
@@ -57,12 +67,25 @@ router.get('/classes', requireTeacher, async (req: Request, res: Response) => {
 });
 
 // GET /api/teacher/class - Returns current active class with mascot and students
+// Accepts optional ?classId= query param to specify which class to fetch
 router.get('/class', requireTeacher, async (req: Request, res: Response) => {
 	try {
 		const userId = (req as any).userId;
+		const requestedClassId = req.query.classId as string | undefined;
 
-		// Get teacher's first class (most recent)
-		const classId = await getTeacherFirstClassId(userId);
+		let classId: string | null;
+
+		if (requestedClassId) {
+			// Verify teacher has access to the requested class
+			const hasAccess = await verifyTeacherClassAccess(userId, requestedClassId);
+			if (!hasAccess) {
+				return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to this class' });
+			}
+			classId = requestedClassId;
+		} else {
+			// Fall back to first class (most recent)
+			classId = await getTeacherFirstClassId(userId);
+		}
 
 		if (!classId) {
 			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
@@ -120,6 +143,9 @@ router.get('/class', requireTeacher, async (req: Request, res: Response) => {
 					username: m.user.username,
 					role: m.user.role.toLowerCase(),
 				})),
+			// Map configuration
+			mapWidth: (teacherClass as any).mapWidth || 20,
+			mapHeight: (teacherClass as any).mapHeight || 16,
 		};
 
 		res.json(response);
@@ -247,6 +273,48 @@ router.post('/switch-class', requireTeacher, async (req: Request, res: Response)
 	} catch (error) {
 		console.error('Error switching class:', error);
 		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to switch class' });
+	}
+});
+
+// PATCH /api/teacher/map-size - Update class map dimensions
+router.patch('/map-size', requireTeacher, async (req: Request, res: Response) => {
+	try {
+		const userId = (req as any).userId;
+		const { mapWidth, mapHeight } = req.body;
+
+		// Validate dimensions (minimum 5x5, maximum 30x30)
+		if (mapWidth !== undefined && (mapWidth < 5 || mapWidth > 30)) {
+			return res.status(400).json({ error: 'Bad Request', message: 'Map width must be between 5 and 30' });
+		}
+		if (mapHeight !== undefined && (mapHeight < 5 || mapHeight > 30)) {
+			return res.status(400).json({ error: 'Bad Request', message: 'Map height must be between 5 and 30' });
+		}
+
+		// Get teacher's active class
+		const classId = await getTeacherFirstClassId(userId);
+		if (!classId) {
+			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
+		}
+
+		// Build update data
+		const updateData: any = {};
+		if (mapWidth !== undefined) updateData.mapWidth = mapWidth;
+		if (mapHeight !== undefined) updateData.mapHeight = mapHeight;
+
+		// Update the class
+		const updatedClass = await prisma.class.update({
+			where: { id: classId },
+			data: updateData,
+		});
+
+		console.log('Updated map size for class:', classId, updateData);
+		res.json({
+			mapWidth: updatedClass.mapWidth,
+			mapHeight: updatedClass.mapHeight,
+		});
+	} catch (error) {
+		console.error('Error updating map size:', error);
+		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update map size' });
 	}
 });
 

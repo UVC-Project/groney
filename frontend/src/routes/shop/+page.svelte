@@ -6,7 +6,6 @@
   import BlueCapImg from '$lib/assets/images/shop/blue-cap.png';
   import BowTieImg from '$lib/assets/images/shop/bow-tie.png';
   import SunglassesImg from '$lib/assets/images/shop/sunglasses.png';
-  import RainbowColorsImg from '$lib/assets/images/shop/rainbow-colors.png';
 
   export let data: PageData;
 
@@ -19,8 +18,7 @@
     'red-cap': RedCapImg,
     'blue-cap': BlueCapImg,
     'bow-tie': BowTieImg,
-    'sunglasses': SunglassesImg,
-    'rainbow-colors': RainbowColorsImg
+    'sunglasses': SunglassesImg
   };
 
   function getItemImage(item: Item): string | null {

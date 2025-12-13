@@ -3,14 +3,28 @@ import type { PageLoad } from './$types';
 import type { TeacherDashboardData } from '$lib/types/teacher';
 import { API_BASE_URL } from '$lib/config';
 import { TEST_TEACHER, getAuthHeaders } from '$lib/auth/context';
+import { browser } from '$app/environment';
 
-export const load: PageLoad = async ({ fetch }): Promise<TeacherDashboardData> => {
+// Get selected class ID from localStorage (browser only)
+function getSelectedClassId(): string | null {
+	if (browser) {
+		return localStorage.getItem('teacher_selected_class_id');
+	}
+	return null;
+}
+
+export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardData> => {
 	// TODO: Replace TEST_TEACHER with real user from session when auth is implemented
 	const authHeaders = getAuthHeaders(TEST_TEACHER);
 
+	// Check for classId in URL params first, then localStorage
+	const urlClassId = url.searchParams.get('classId');
+	const storedClassId = getSelectedClassId();
+	const selectedClassId = urlClassId || storedClassId;
+
 	// Helper function to make authenticated requests
-	const authenticatedFetch = (url: string) => {
-		return fetch(`${API_BASE_URL}${url}`, {
+	const authenticatedFetch = (endpoint: string) => {
+		return fetch(`${API_BASE_URL}${endpoint}`, {
 			headers: {
 				'Content-Type': 'application/json',
 				...authHeaders,
@@ -19,16 +33,21 @@ export const load: PageLoad = async ({ fetch }): Promise<TeacherDashboardData> =
 	};
 
 	try {
-		console.log('🔄 Loading teacher dashboard data...');
+		console.log('🔄 Loading teacher dashboard data...', { selectedClassId });
 		
+		// Build class endpoint with optional classId
+		const classEndpoint = selectedClassId 
+			? `/api/teacher/class?classId=${selectedClassId}`
+			: '/api/teacher/class';
+
 		// Fetch all data in parallel for better performance
 		const [classResponse, allClassesResponse, sectorsResponse, missionsResponse, submissionsResponse] =
 			await Promise.all([
-				authenticatedFetch('/api/teacher/class'),
+				authenticatedFetch(classEndpoint),
 				authenticatedFetch('/api/teacher/classes'),
-				authenticatedFetch('/api/teacher/sectors'),
-				authenticatedFetch('/api/teacher/missions'),
-				authenticatedFetch('/api/teacher/submissions')
+				authenticatedFetch(`/api/teacher/sectors${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
+				authenticatedFetch(`/api/teacher/missions${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
+				authenticatedFetch(`/api/teacher/submissions${selectedClassId ? `?classId=${selectedClassId}` : ''}`)
 			]);
 
 		console.log('📊 API Response Status:', {
