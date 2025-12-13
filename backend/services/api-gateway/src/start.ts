@@ -4,8 +4,12 @@ import morgan from 'morgan';
 import { config } from 'dotenv';
 import shopRoutes from './routes/shopRoutes';
 import teacherRoutes from './routes/teacherRoutes';
+<<<<<<< HEAD
 import authRoutes from './routes/authRoutes';
 import { noAuthMiddleware } from './middleware/noAuthMiddleware';
+=======
+import mapRoutes from './routes/mapRoutes';
+>>>>>>> main
 
 config();
 
@@ -23,6 +27,9 @@ app.use('/api/auth', noAuthMiddleware, authRoutes);
 
 // Teacher endpoints (protected with auth middleware)
 app.use('/api/teacher', teacherRoutes);
+
+// Mission endpoints
+app.use('/map', mapRoutes);
 
 app.get('/', (_req, res) => {
   res.json({

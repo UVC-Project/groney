@@ -4,6 +4,7 @@
   import { createEventDispatcher } from 'svelte';
   import schoolMap from '$lib/assets/school_map.png';
   import PageWrapper from './PageWrapper.svelte';
+  import { API_BASE_URL } from '$lib/config';
 
   export let missions: Mission[] = [];
   export let currentUserId: string;
@@ -33,7 +34,7 @@
       isAccepting = true;
       errorMessage = '';
 
-      const res = await fetch(`http://localhost:3003/missions/${mission.id}/accept`, {
+      const res = await fetch(`${API_BASE_URL}/map/missions/${mission.id}/accept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
