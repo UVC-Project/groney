@@ -1,4 +1,7 @@
-// src/lib/shop/mockData.ts
+import RedCapImg from '$lib/assets/images/shop/red-cap.png';
+import BlueCapImg from '$lib/assets/images/shop/blue-cap.png';
+import BowTieImg from '$lib/assets/images/shop/bow-tie.png';
+import SunglassesImg from '$lib/assets/images/shop/sunglasses.png';
 
 export type ShopItemType = 'hat' | 'accessory';
 
@@ -17,7 +20,6 @@ export interface ShopPageData {
     items: ShopItem[];
 }
 
-// Sprint 1: in-memory catalog (frontend only)
 export const mockShopData: ShopPageData = {
     coins: 200,
     items: [
@@ -27,7 +29,7 @@ export const mockShopData: ShopPageData = {
             description: 'A stylish red cap for Groeny',
             type: 'hat',
             price: 50,
-            imageUrl: '/assets/shop/red-cap.png.png',
+            imageUrl: RedCapImg,
             owned: false
         },
         {
@@ -36,7 +38,7 @@ export const mockShopData: ShopPageData = {
             description: 'A cool blue cap for Groeny',
             type: 'hat',
             price: 50,
-            imageUrl: '/assets/shop/blue-cap.png.png',
+            imageUrl: BlueCapImg,
             owned: false
         },
         {
@@ -45,7 +47,7 @@ export const mockShopData: ShopPageData = {
             description: 'A fancy bow tie accessory',
             type: 'accessory',
             price: 60,
-            imageUrl: '/assets/shop/bow-tie.png.png',
+            imageUrl: BowTieImg,
             owned: true
         },
         {
@@ -54,17 +56,8 @@ export const mockShopData: ShopPageData = {
             description: 'Cool sunglasses for sunny days',
             type: 'accessory',
             price: 40,
-            imageUrl: '/assets/shop/sunglasses.png.png',
+            imageUrl: SunglassesImg,
             owned: true
-        },
-        {
-            id: 'rainbow-colors',
-            name: 'Rainbow Colors',
-            description: 'Change Groeny to rainbow colors!',
-            type: 'accessory',
-            price: 100,
-            imageUrl: '/assets/shop/rainbow-colors.png.png',
-            owned: false
         }
     ]
 };
