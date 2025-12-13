@@ -18,7 +18,7 @@
     'red-cap': RedCapImg,
     'blue-cap': BlueCapImg,
     'bow-tie': BowTieImg,
-    'sunglasses': SunglassesImg
+    sunglasses: SunglassesImg
   };
 
   function getItemImage(item: Item): string | null {
@@ -56,25 +56,45 @@
       }
 
       coins = json.mascot.coins;
-      items = items.map((i) =>
-              i.id === id ? { ...i, owned: true } : i
-      );
+      items = items.map((i) => (i.id === id ? { ...i, owned: true } : i));
     } catch (err) {
       alert('Shop service offline');
     }
   }
 
-  function onApplyClick(id: string) {
+  async function onApplyClick(id: string) {
     const item = items.find((i) => i.id === id);
-    if (!item) return;
+    if (!item || !item.owned) return;
 
-    alert(`Pretending to apply "${item.name}" – avatar integration is next sprint.`);
+    try {
+      const res = await fetch(`${API_BASE}/api/mascot/equip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          classId: 'class-1',
+          itemId: id
+        })
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        alert(json.message ?? 'Failed to equip item');
+        return;
+      }
+
+      localStorage.setItem('wardrobe:selectedItemId', id);
+    } catch (err) {
+      alert('Wardrobe service offline');
+    }
   }
 </script>
 
 <PageWrapper title="Shop">
   <div class="flex justify-center mb-6">
-    <div class="bg-yellow-300 rounded-full px-8 py-3 shadow-lg flex items-center gap-3 border-2 border-yellow-400">
+    <div
+      class="bg-yellow-300 rounded-full px-8 py-3 shadow-lg flex items-center gap-3 border-2 border-yellow-400"
+    >
       <span class="text-2xl">🪙</span>
       <span class="font-semibold text-xl">{coins}</span>
     </div>
@@ -83,23 +103,23 @@
   <div class="flex justify-center mb-8">
     <div class="bg-white rounded-full shadow-inner flex overflow-hidden border border-green-300">
       <button
-              class={`px-6 py-2 text-sm font-semibold transition-colors ${
+        class={`px-6 py-2 text-sm font-semibold transition-colors ${
           activeTab === 'groeny'
             ? 'bg-green-400 text-white'
             : 'text-gray-600 hover:bg-gray-100'
         }`}
-              on:click={() => (activeTab = 'groeny')}
+        on:click={() => (activeTab = 'groeny')}
       >
         Groeny Items
       </button>
 
       <button
-              class={`px-6 py-2 text-sm font-semibold transition-colors ${
+        class={`px-6 py-2 text-sm font-semibold transition-colors ${
           activeTab === 'schoolyard'
             ? 'bg-green-400 text-white'
             : 'text-gray-600 hover:bg-gray-100'
         }`}
-              on:click={() => (activeTab = 'schoolyard')}
+        on:click={() => (activeTab = 'schoolyard')}
       >
         Schoolyard Supplies
       </button>
@@ -109,7 +129,9 @@
   {#if activeTab === 'groeny'}
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-10">
       {#each items as item}
-        <article class="bg-white rounded-3xl shadow-md border-4 border-amber-300 flex flex-col overflow-hidden">
+        <article
+          class="bg-white rounded-3xl shadow-md border-4 border-amber-300 flex flex-col overflow-hidden"
+        >
           <div class="flex-1 flex flex-col items-center justify-center p-6">
             {#if getItemImage(item)}
               <div class="h-24 mb-4 flex items-center justify-center">
@@ -132,18 +154,18 @@
 
             {#if item.owned}
               <button
-                      type="button"
-                      class="text-xs font-semibold rounded-full px-4 py-1 bg-emerald-400 text-white hover:bg-emerald-500 transition-colors"
-                      on:click={() => onApplyClick(item.id)}
+                type="button"
+                class="text-xs font-semibold rounded-full px-4 py-1 bg-emerald-400 text-white hover:bg-emerald-500 transition-colors"
+                on:click={() => onApplyClick(item.id)}
               >
                 Apply
               </button>
             {:else}
               <button
-                      type="button"
-                      class="text-xs font-semibold rounded-full px-4 py-1 bg-blue-400 text-white hover:bg-blue-500 transition-colors disabled:opacity-60"
-                      on:click={() => onBuyClick(item.id)}
-                      disabled={coins < item.price}
+                type="button"
+                class="text-xs font-semibold rounded-full px-4 py-1 bg-blue-400 text-white hover:bg-blue-500 transition-colors disabled:opacity-60"
+                on:click={() => onBuyClick(item.id)}
+                disabled={coins < item.price}
               >
                 Buy
               </button>
