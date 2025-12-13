@@ -72,3 +72,33 @@ export async function registerStudent(payload: {
 export function logout() {
 	clearUser();
 }
+
+export async function requestPasswordReset(email: string) {
+	const res = await fetch(`${CONFIG.api.baseUrl}/api/auth/password/forgot`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ email })
+	});
+
+	if (!res.ok) {
+		const err = await res.json();
+		throw new Error(err.message || 'Failed to request password reset');
+	}
+
+	return res.json();
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+	const res = await fetch(`${CONFIG.api.baseUrl}/api/auth/password/reset`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ token, newPassword })
+	});
+
+	if (!res.ok) {
+		const err = await res.json();
+		throw new Error(err.message || 'Failed to reset password');
+	}
+
+	return res.json();
+}

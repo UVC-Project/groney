@@ -32,4 +32,12 @@ router.post('/register/student', (req, res) => {
     return forwardPost('/register/student', req.body, res);
 });
 
+router.post('/password/forgot', (req, res) => {
+    return forwardPost('/password/forgot', req.body, res);
+});
+
+router.post('/password/reset', (req, res) => {
+    return forwardPost('/password/reset', req.body, res);
+});
+
 export default router;
