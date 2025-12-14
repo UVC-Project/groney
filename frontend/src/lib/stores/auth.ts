@@ -93,7 +93,7 @@ function createAuthStore() {
 			password: string;
 			className: string;
 			schoolName: string;
-		}): Promise<{ success: boolean; error?: string }> {
+		}): Promise<{ success: boolean; error?: string; classId?: string }> {
 			try {
 				const response = await fetch(`${API_BASE_URL}/api/auth/register/teacher`, {
 					method: 'POST',
@@ -107,7 +107,7 @@ function createAuthStore() {
 					return { success: false, error: result.message || 'Registration failed' };
 				}
 
-				return { success: true };
+				return { success: true, classId: result.class?.id };
 			} catch (error) {
 				console.error('Registration error:', error);
 				return { success: false, error: 'Network error. Please try again.' };

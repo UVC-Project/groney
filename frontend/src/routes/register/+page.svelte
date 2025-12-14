@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { auth } from '$lib/stores/auth';
+	import { API_BASE_URL } from '$lib/config';
 
 	// Get registration type from URL params
 	let registrationType = $derived($page.url.searchParams.get('type') || 'student');
@@ -69,7 +70,28 @@
 			// Auto-login after registration
 			const loginResult = await auth.login(username, password);
 			if (loginResult.success) {
-				if (registrationType === 'teacher') {
+				if (registrationType === 'teacher' && result.classId) {
+					// Initialize the class with default sectors and missions
+					try {
+						const authState = await new Promise<{ token: string | null; user: { id: string; role: string } | null }>((resolve) => {
+							auth.subscribe((state) => resolve({ token: state.token, user: state.user }))();
+						});
+
+						await fetch(`${API_BASE_URL}/api/teacher/initialize`, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+								...(authState.user ? { 'x-user-id': authState.user.id, 'x-user-role': authState.user.role } : {}),
+								...(authState.token ? { Authorization: `Bearer ${authState.token}` } : {}),
+							},
+							body: JSON.stringify({ classId: result.classId }),
+						});
+					} catch (initError) {
+						console.error('Failed to initialize class:', initError);
+						// Continue anyway - class was created, just without default data
+					}
+					goto('/teacher');
+				} else if (registrationType === 'teacher') {
 					goto('/teacher');
 				} else {
 					goto('/');
