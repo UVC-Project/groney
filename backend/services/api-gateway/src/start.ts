@@ -5,6 +5,8 @@ import { config } from 'dotenv';
 import shopRoutes from './routes/shopRoutes';
 import teacherRoutes from './routes/teacherRoutes';
 import mapRoutes from './routes/mapRoutes';
+import authRoutes from './routes/authRoutes';
+import studentRoutes from './routes/studentRoutes';
 
 config();
 
@@ -13,16 +15,24 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(morgan('dev'));
-app.use(express.json());
 
-// Shop endpoints
-app.use('/api', shopRoutes);
+// Auth endpoints MUST come BEFORE express.json() to allow proxy to forward raw body
+app.use('/api/auth', authRoutes);
 
-// Teacher endpoints (protected with auth middleware)
+// Teacher endpoints (proxy routes - must come before body parser)
 app.use('/api/teacher', teacherRoutes);
 
-// Mission endpoints
+// Student endpoints (proxy routes - must come before body parser)
+app.use('/api/student', studentRoutes);
+
+// Mission endpoints (proxy routes)
 app.use('/map', mapRoutes);
+
+// Body parser for non-proxy routes
+app.use(express.json());
+
+// Shop endpoints (local routes that need body parsing)
+app.use('/api', shopRoutes);
 
 app.get('/', (_req, res) => {
   res.json({

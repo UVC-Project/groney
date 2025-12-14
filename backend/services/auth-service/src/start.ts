@@ -29,10 +29,15 @@ app.get('/health', (_req, res) => {
 app.use('/api/teacher', teacherRoutes);
 
 // Auth routes
-app.post("/login", LoginController.login);
+app.post('/api/auth/login', LoginController.login);
+app.get('/api/auth/verify', LoginController.verifyToken);
+app.post('/api/auth/register/teacher', RegisterController.registerTeacher);
+app.post('/api/auth/register/student', RegisterController.registerStudent);
 
-app.post("/register/teacher", RegisterController.registerTeacher);
-app.post("/register/student", RegisterController.registerStudent);
+// Legacy routes (for backwards compatibility)
+app.post('/login', LoginController.login);
+app.post('/register/teacher', RegisterController.registerTeacher);
+app.post('/register/student', RegisterController.registerStudent);
 
 // 404 handler for undefined routes
 app.use((_req, res) => {

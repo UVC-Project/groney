@@ -1,7 +1,8 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { isTeacher } from '$lib/stores/auth';
 
-  const navItems = [
+  const studentNavItems = [
     { href: '/', label: 'Home', icon: '🏡' },
     { href: '/map', label: 'Map', icon: '🧭' },
     { href: '/shop', label: 'Shop', icon: '🛒' },
@@ -9,7 +10,15 @@
     { href: '/wiki', label: 'Wiki', icon: '📚' },
   ];
 
+  const teacherNavItems = [
+    { href: '/', label: 'Home', icon: '🏡' },
+    { href: '/teacher', label: 'Dashboard', icon: '📊' },
+    { href: '/map', label: 'Map', icon: '🧭' },
+    { href: '/wiki', label: 'Wiki', icon: '📚' },
+  ];
+
   $: currentPath = $page.url.pathname;
+  $: navItems = $isTeacher ? teacherNavItems : studentNavItems;
 </script>
 
 <nav
