@@ -1,6 +1,7 @@
 import express from 'express';
 import mapRoutes from './routes/map.routes';
 import teacherRoutes from './routes/teacher.routes';
+import studentRoutes from './routes/student.routes';
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -23,6 +24,9 @@ app.get('/health', (_req, res) => {
 
 // Teacher routes
 app.use('/api/teacher', teacherRoutes);
+
+// Student routes
+app.use('/api/student', studentRoutes);
 
 app.use('/map', mapRoutes);
 

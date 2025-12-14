@@ -6,6 +6,7 @@ import shopRoutes from './routes/shopRoutes';
 import teacherRoutes from './routes/teacherRoutes';
 import mapRoutes from './routes/mapRoutes';
 import authRoutes from './routes/authRoutes';
+import studentRoutes from './routes/studentRoutes';
 
 config();
 
@@ -20,6 +21,9 @@ app.use('/api/auth', authRoutes);
 
 // Teacher endpoints (proxy routes - must come before body parser)
 app.use('/api/teacher', teacherRoutes);
+
+// Student endpoints (proxy routes - must come before body parser)
+app.use('/api/student', studentRoutes);
 
 // Mission endpoints (proxy routes)
 app.use('/map', mapRoutes);
