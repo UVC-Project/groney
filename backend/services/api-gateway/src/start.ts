@@ -5,6 +5,7 @@ import { config } from 'dotenv';
 import shopRoutes from './routes/shopRoutes';
 import teacherRoutes from './routes/teacherRoutes';
 import mapRoutes from './routes/mapRoutes';
+import authRoutes from './routes/authRoutes';
 
 config();
 
@@ -14,6 +15,9 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
+
+// Auth endpoints (public)
+app.use('/api/auth', authRoutes);
 
 // Shop endpoints
 app.use('/api', shopRoutes);

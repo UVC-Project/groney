@@ -42,8 +42,10 @@
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import MapBuilder from '$lib/components/MapBuilder.svelte';
   import { API_BASE_URL } from '$lib/config';
-  import { TEST_TEACHER, getAuthHeaders } from '$lib/auth/context';
-  import { invalidateAll } from '$app/navigation';
+  import { getAuthHeaders } from '$lib/auth/context';
+  import { auth, user } from '$lib/stores/auth';
+  import { invalidateAll, goto } from '$app/navigation';
+  import { get } from 'svelte/store';
 
   let { data }: { data: PageData } = $props();
   
@@ -221,7 +223,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ gridX: x, gridY: y }),
       });
@@ -243,7 +245,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ gridWidth: width, gridHeight: height }),
       });
@@ -265,7 +267,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ mapWidth: width, mapHeight: height }),
       });
@@ -311,7 +313,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           name,
@@ -351,7 +353,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ gridX: x, gridY: y }),
       });
@@ -377,7 +379,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ name: newName }),
       });
@@ -401,7 +403,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ gridX: -1, gridY: -1 }),
       });
@@ -467,8 +469,8 @@
   }
 
   function handleLogout() {
-    // TODO: Implement logout functionality
-    window.location.href = '/';
+    auth.logout();
+    goto('/login');
   }
 
   function copyClassCode() {
@@ -520,7 +522,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           className: classForm.className,
@@ -569,7 +571,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ classId })
       });
@@ -606,7 +608,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ classId })
       });
@@ -638,7 +640,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ classId })
       });
@@ -722,7 +724,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify(missionForm)
       });
@@ -800,7 +802,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify(sectorForm)
       });
@@ -846,7 +848,7 @@
       const response = await fetch(`${API_BASE_URL}/api/teacher/sectors/${sectorId}`, {
         method: 'DELETE',
         headers: {
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
       });
 
@@ -890,7 +892,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ status: 'completed' })
       });
@@ -934,7 +936,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ status: 'rejected' })
       });
@@ -974,7 +976,7 @@
               Teacher Dashboard
             </h1>
             <p class="text-xs sm:text-sm text-slate-500 hidden sm:block">
-              Welcome, John!
+              Welcome, {$user?.firstName || 'Teacher'}!
             </p>
           </div>
         </div>
