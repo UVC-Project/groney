@@ -797,8 +797,11 @@
     isCreatingSector = true;
 
     try {
-      // Call API endpoint with authentication
-      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors`, {
+      // Get current class ID from localStorage or current class data
+      const classId = localStorage.getItem('teacher_selected_class_id') || currentClassData?.id;
+      
+      // Call API endpoint with authentication and classId
+      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors${classId ? `?classId=${classId}` : ''}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
