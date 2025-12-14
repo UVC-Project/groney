@@ -116,77 +116,87 @@
 	</div>
 
 	<!-- Map Container -->
-	<div class="map-container rounded-2xl overflow-hidden shadow-xl border-4 border-white/50">
+	<div class="map-container rounded-2xl shadow-xl border-4 border-white/50 overflow-hidden">
 		<div class="relative bg-gradient-to-b from-sky-200 via-sky-100 to-emerald-200">
-			<!-- Sky decorations -->
-			<div class="absolute top-2 left-4 text-2xl opacity-60 animate-float-slow">☁️</div>
-			<div class="absolute top-4 right-8 text-xl opacity-50 animate-float-slower">☁️</div>
-			<div class="absolute top-2 right-3 text-3xl animate-pulse-slow">☀️</div>
 
-			<div class="relative p-3 sm:p-4 flex justify-center">
-				<div
-					class="relative rounded-xl overflow-hidden"
-					style="width: {mapWidth * CELL_SIZE}px; height: {mapHeight * CELL_SIZE}px;"
-				>
-					<!-- Grass background -->
-					<div class="absolute inset-0 bg-gradient-to-br from-green-300 via-emerald-300 to-green-400"></div>
-					<div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(circle at 2px 2px, rgba(0,100,0,0.3) 1px, transparent 1px); background-size: 12px 12px;"></div>
 
-					<!-- Sectors -->
-					{#each placedSectors as sector (sector.id)}
-						{@const config = getConfig(sector.type)}
-						{@const isSelected = selectedSector?.id === sector.id}
-						{@const missionCount = sector.missions?.length || 0}
-						<button
-							class="sector-btn absolute rounded-2xl transition-all duration-300 group"
-							class:selected={isSelected}
-							style="
-								left: {sector.gridX * CELL_SIZE}px;
-								top: {sector.gridY * CELL_SIZE}px;
-								width: {sector.gridWidth * CELL_SIZE}px;
-								height: {sector.gridHeight * CELL_SIZE}px;
-								--sector-color: {config.color};
-								--sector-shadow: {config.shadowColor};
-								background: linear-gradient(145deg, {config.gradientFrom} 0%, {config.gradientTo} 100%);
-								border: 4px solid {config.color};
-								box-shadow: 0 6px 20px {config.shadowColor}, inset 0 2px 10px rgba(255,255,255,0.5);
-							"
-							onclick={() => handleSectorClick(sector)}
-						>
-							<!-- Shine -->
-							<div class="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
-								<div class="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-white/40 to-transparent rotate-12"></div>
-							</div>
+			<div class="relative p-4 sm:p-5 flex justify-center">
+				<!-- Map grid with padding for hover effects -->
+				<div class="map-grid-wrapper" style="padding: 8px;">
+					<div
+						class="relative rounded-xl"
+						style="width: {mapWidth * CELL_SIZE}px; height: {mapHeight * CELL_SIZE}px;"
+					>
+						<!-- Grass background -->
+						<div class="absolute inset-0 bg-gradient-to-br from-green-300 via-emerald-300 to-green-400 rounded-xl"></div>
+						<div class="absolute inset-0 opacity-20 rounded-xl" style="background-image: radial-gradient(circle at 2px 2px, rgba(0,100,0,0.3) 1px, transparent 1px); background-size: 12px 12px;"></div>
 
-							<div class="absolute inset-0 flex flex-col items-center justify-center p-2">
-								<div class="sector-icon transition-transform duration-300 group-hover:scale-125 drop-shadow-lg"
-									style="font-size: {Math.max(28, Math.min(56, sector.gridHeight * CELL_SIZE / 2.2))}px;">
-									{config.icon}
+						<!-- Sectors -->
+						{#each placedSectors as sector (sector.id)}
+							{@const config = getConfig(sector.type)}
+							{@const isSelected = selectedSector?.id === sector.id}
+							{@const missionCount = sector.missions?.length || 0}
+							{@const sectorWidth = sector.gridWidth * CELL_SIZE}
+							{@const sectorHeight = sector.gridHeight * CELL_SIZE}
+							{@const isSmall = sectorWidth < 100 || sectorHeight < 100}
+							<button
+								class="sector-btn absolute rounded-2xl transition-all duration-200 group"
+								class:selected={isSelected}
+								style="
+									left: {sector.gridX * CELL_SIZE}px;
+									top: {sector.gridY * CELL_SIZE}px;
+									width: {sectorWidth}px;
+									height: {sectorHeight}px;
+									--sector-color: {config.color};
+									--sector-shadow: {config.shadowColor};
+									background: linear-gradient(145deg, {config.gradientFrom} 0%, {config.gradientTo} 100%);
+									border: 3px solid {config.color};
+									box-shadow: 0 4px 12px {config.shadowColor}, inset 0 2px 8px rgba(255,255,255,0.5);
+								"
+								onclick={() => handleSectorClick(sector)}
+							>
+								<!-- Shine -->
+								<div class="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
+									<div class="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-white/30 to-transparent rotate-12"></div>
 								</div>
-								<div class="font-bold text-center leading-tight px-1 truncate w-full drop-shadow-sm mt-1"
-									style="color: {config.color}; font-size: {Math.max(12, Math.min(18, sector.gridWidth * CELL_SIZE / 6))}px; text-shadow: 0 1px 2px rgba(255,255,255,0.8);">
-									{sector.name}
-								</div>
-								{#if missionCount > 0}
-									<div class="mission-badge mt-1.5 px-2.5 py-1 rounded-full text-white font-bold shadow-lg flex items-center gap-1"
-										style="background: linear-gradient(135deg, {config.color} 0%, color-mix(in srgb, {config.color} 70%, black) 100%); font-size: {Math.max(11, Math.min(14, CELL_SIZE / 3))}px;">
-										🎯 {missionCount}
+
+								<div class="absolute inset-0 flex flex-col items-center justify-center p-1.5 overflow-hidden">
+									<!-- Icon -->
+									<div class="sector-icon drop-shadow-md flex-shrink-0"
+										style="font-size: {isSmall ? Math.max(20, sectorHeight / 3) : Math.max(28, Math.min(48, sectorHeight / 2.5))}px;">
+										{config.icon}
 									</div>
-								{/if}
-							</div>
-						</button>
-					{/each}
+									
+									<!-- Name - only show if sector is big enough -->
+									{#if sectorHeight > 70}
+										<div class="sector-name font-bold text-center leading-tight px-1 w-full flex-shrink-0"
+											style="color: {config.color}; font-size: {Math.max(10, Math.min(14, sectorWidth / 8))}px; text-shadow: 0 1px 1px rgba(255,255,255,0.9);">
+											{sector.name}
+										</div>
+									{/if}
+									
+									<!-- Mission badge -->
+									{#if missionCount > 0}
+										<div class="mission-badge mt-1 px-2 py-0.5 rounded-full text-white font-bold shadow-md flex items-center gap-0.5 flex-shrink-0"
+											style="background: {config.color}; font-size: {isSmall ? '10px' : '11px'};">
+											🎯 {missionCount}
+										</div>
+									{/if}
+								</div>
+							</button>
+						{/each}
 
-					<!-- Empty state -->
-					{#if placedSectors.length === 0}
-						<div class="absolute inset-0 flex items-center justify-center">
-							<div class="text-center p-8 bg-white/90 rounded-3xl backdrop-blur-sm shadow-2xl border-2 border-slate-200">
-								<div class="text-6xl mb-4 animate-bounce-slow">🏫</div>
-								<p class="text-slate-700 font-bold text-lg">No map areas yet!</p>
-								<p class="text-slate-500 mt-2">Your teacher is still building the map.</p>
+						<!-- Empty state -->
+						{#if placedSectors.length === 0}
+							<div class="absolute inset-0 flex items-center justify-center">
+								<div class="text-center p-8 bg-white/90 rounded-3xl backdrop-blur-sm shadow-2xl border-2 border-slate-200">
+									<div class="text-6xl mb-4 animate-bounce-slow">🏫</div>
+									<p class="text-slate-700 font-bold text-lg">No map areas yet!</p>
+									<p class="text-slate-500 mt-2">Your teacher is still building the map.</p>
+								</div>
 							</div>
-						</div>
-					{/if}
+						{/if}
+					</div>
 				</div>
 			</div>
 		</div>
@@ -273,14 +283,21 @@
 		user-select: none;
 	}
 
+	.map-grid-wrapper {
+		/* Allow hover effects to show without clipping */
+		overflow: visible;
+	}
+
 	.sector-btn {
 		cursor: pointer;
 		transform-origin: center;
+		z-index: 10;
 	}
 
 	.sector-btn:hover {
-		transform: scale(1.05) translateY(-4px);
-		z-index: 30 !important;
+		transform: scale(1.03);
+		z-index: 20 !important;
+		box-shadow: 0 8px 24px var(--sector-shadow), inset 0 2px 8px rgba(255,255,255,0.5) !important;
 	}
 
 	.sector-btn:active {
@@ -288,8 +305,15 @@
 	}
 
 	.sector-btn.selected {
-		transform: scale(1.05) translateY(-4px);
-		z-index: 30 !important;
+		transform: scale(1.03);
+		z-index: 20 !important;
+	}
+
+	.sector-name {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		max-width: 100%;
 	}
 
 	@keyframes slide-up {
