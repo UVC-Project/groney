@@ -14,19 +14,21 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(morgan('dev'));
-app.use(express.json());
 
-// Auth endpoints (public)
+// Auth endpoints MUST come BEFORE express.json() to allow proxy to forward raw body
 app.use('/api/auth', authRoutes);
 
-// Shop endpoints
-app.use('/api', shopRoutes);
-
-// Teacher endpoints (protected with auth middleware)
+// Teacher endpoints (proxy routes - must come before body parser)
 app.use('/api/teacher', teacherRoutes);
 
-// Mission endpoints
+// Mission endpoints (proxy routes)
 app.use('/map', mapRoutes);
+
+// Body parser for non-proxy routes
+app.use(express.json());
+
+// Shop endpoints (local routes that need body parsing)
+app.use('/api', shopRoutes);
 
 app.get('/', (_req, res) => {
   res.json({
