@@ -797,8 +797,11 @@
     isCreatingSector = true;
 
     try {
-      // Call API endpoint with authentication
-      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors`, {
+      // Get current class ID from localStorage or current class data
+      const classId = localStorage.getItem('teacher_selected_class_id') || currentClassData?.id;
+      
+      // Call API endpoint with authentication and classId
+      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors${classId ? `?classId=${classId}` : ''}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1408,7 +1411,19 @@
                 <div class="text-center py-8">
                   <div class="text-4xl mb-2">{sector.icon}</div>
                   <p class="text-slate-500">No missions yet for {sector.name}</p>
-                  <p class="text-sm text-slate-400 mt-1">Click "Create Mission" to add one</p>
+                  <p class="text-sm text-slate-400 mt-1 mb-4">Add a mission to get started</p>
+                  <button
+                    onclick={() => {
+                      missionForm.sectorId = sector.id;
+                      openCreateMissionDialog();
+                    }}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors shadow-sm"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Create Mission
+                  </button>
                 </div>
               {/if}
             </div>
