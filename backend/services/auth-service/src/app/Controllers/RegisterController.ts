@@ -54,7 +54,11 @@ export default class RegisterController {
                     name: className,
                     school: schoolName,
                     classCode: `${className.toUpperCase()}-${Date.now()}`,
-                    teacherId: teacher.id,
+                    members: {
+                        create: {
+                            userId: teacher.id,
+                        },
+                    },
                 },
             });
 

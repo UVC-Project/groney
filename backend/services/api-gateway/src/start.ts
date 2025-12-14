@@ -4,18 +4,9 @@ import morgan from 'morgan';
 import { config } from 'dotenv';
 import shopRoutes from './routes/shopRoutes';
 import teacherRoutes from './routes/teacherRoutes';
-<<<<<<< HEAD
-<<<<<<< HEAD
-import authRoutes from './routes/authRoutes';
-import { noAuthMiddleware } from './middleware/noAuthMiddleware';
-=======
-import mapRoutes from './routes/mapRoutes';
->>>>>>> main
-=======
 import authRoutes from './routes/authRoutes';
 import { noAuthMiddleware } from './middleware/noAuthMiddleware';
 import mapRoutes from './routes/mapRoutes';
->>>>>>> 797e0329ae244908a4f69d76815f5ec031049db4
 
 config();
 

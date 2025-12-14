@@ -2,7 +2,7 @@
 CREATE TYPE "UserRole" AS ENUM ('STUDENT', 'TEACHER');
 
 -- CreateEnum
-CREATE TYPE "SectorType" AS ENUM ('TREES', 'FLOWERS', 'POND', 'CHICKENS', 'GARDEN');
+CREATE TYPE "SectorType" AS ENUM ('TREES', 'FLOWERS', 'POND', 'ANIMALS', 'GARDEN', 'PLAYGROUND', 'COMPOST', 'OTHER', 'CHICKENS');
 
 -- CreateEnum
 CREATE TYPE "MissionCategory" AS ENUM ('THIRST', 'HUNGER', 'HAPPINESS', 'CLEANLINESS');
@@ -53,11 +53,20 @@ CREATE TABLE "classes" (
     "name" TEXT NOT NULL,
     "school" TEXT NOT NULL,
     "classCode" TEXT NOT NULL,
-    "teacherId" TEXT NOT NULL,
+    "mapWidth" INTEGER NOT NULL DEFAULT 20,
+    "mapHeight" INTEGER NOT NULL DEFAULT 16,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "classes_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "class_users" (
+    "classId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+
+    CONSTRAINT "class_users_pkey" PRIMARY KEY ("classId","userId")
 );
 
 -- CreateTable
@@ -87,6 +96,11 @@ CREATE TABLE "sectors" (
     "classId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "type" "SectorType" NOT NULL,
+    "gridX" INTEGER NOT NULL DEFAULT 0,
+    "gridY" INTEGER NOT NULL DEFAULT 0,
+    "gridWidth" INTEGER NOT NULL DEFAULT 2,
+    "gridHeight" INTEGER NOT NULL DEFAULT 2,
+    "color" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -233,10 +247,13 @@ CREATE INDEX "activities_classId_idx" ON "activities"("classId");
 CREATE INDEX "activities_createdAt_idx" ON "activities"("createdAt");
 
 -- AddForeignKey
-ALTER TABLE "users" ADD CONSTRAINT "users_classId_fkey" FOREIGN KEY ("classId") REFERENCES "classes"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "PasswordResetToken" ADD CONSTRAINT "PasswordResetToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PasswordResetToken" ADD CONSTRAINT "PasswordResetToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "class_users" ADD CONSTRAINT "class_users_classId_fkey" FOREIGN KEY ("classId") REFERENCES "classes"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "class_users" ADD CONSTRAINT "class_users_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "mascots" ADD CONSTRAINT "mascots_classId_fkey" FOREIGN KEY ("classId") REFERENCES "classes"("id") ON DELETE CASCADE ON UPDATE CASCADE;

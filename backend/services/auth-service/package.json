@@ -8,6 +8,9 @@
     "start": "tsx src/start.ts",
     "test": "vitest"
   },
+  "prisma": {
+    "schema": "../../../prisma/schema.prisma"
+  },
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "bcrypt": "^5.1.1",
