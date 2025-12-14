@@ -1,11 +1,10 @@
-// Temporary auth context for testing teacher dashboard
-// This will be replaced by your colleague's full authentication implementation
+// Auth context - now uses the auth store
+// This file provides backwards compatibility with existing code
 
-export interface User {
-	id: string;
-	username: string;
-	role: 'TEACHER' | 'STUDENT';
-}
+import { get } from 'svelte/store';
+import { auth, type User } from '$lib/stores/auth';
+
+export type { User } from '$lib/stores/auth';
 
 export interface AuthContext {
 	user: User | null;
@@ -13,39 +12,59 @@ export interface AuthContext {
 	isTeacher: boolean;
 }
 
-// Test teacher for development
-export const TEST_TEACHER: User = {
-	id: 'cmiuh3yr20000exu2jf0bhl9w', // Real teacher ID from database
-	username: 'teacher1',
-	role: 'TEACHER',
-};
-
-// Mock auth context for testing
-export function createTestAuthContext(): AuthContext {
-	return {
-		user: TEST_TEACHER,
-		isAuthenticated: true,
-		isTeacher: true,
-	};
+// Get current user from store (for backwards compatibility)
+export function getCurrentUser(): User | null {
+	const state = get(auth);
+	return state.user;
 }
 
-// Auth headers for API requests
-export function getAuthHeaders(user: User | null): Record<string, string> {
-	if (!user) {
+// Get auth headers for API requests
+export function getAuthHeaders(user?: User | null): Record<string, string> {
+	const state = get(auth);
+	const currentUser = user || state.user;
+	const token = state.token;
+
+	if (!currentUser) {
 		return {};
 	}
 
+	const headers: Record<string, string> = {
+		'x-user-id': currentUser.id,
+		'x-user-role': currentUser.role,
+	};
+
+	if (token) {
+		headers['Authorization'] = `Bearer ${token}`;
+	}
+
+	return headers;
+}
+
+// Legacy TEST_TEACHER export for backwards compatibility during migration
+// This will be removed once all components use the auth store
+export const TEST_TEACHER: User = {
+	id: 'legacy-test-id',
+	username: 'teacher1',
+	firstName: 'Test',
+	lastName: 'Teacher',
+	role: 'TEACHER',
+};
+
+// Mock auth context for testing (legacy)
+export function createTestAuthContext(): AuthContext {
+	const state = get(auth);
 	return {
-		'x-user-id': user.id,
-		'x-user-role': user.role,
+		user: state.user,
+		isAuthenticated: !!state.user,
+		isTeacher: state.user?.role === 'TEACHER',
 	};
 }
 
-// API client with auth headers
+// API client with auth headers (legacy)
 export async function authenticatedFetch(
 	url: string,
 	options: RequestInit = {},
-	user: User | null = TEST_TEACHER
+	user?: User | null
 ): Promise<Response> {
 	const headers = {
 		'Content-Type': 'application/json',
@@ -58,10 +77,3 @@ export async function authenticatedFetch(
 		headers,
 	});
 }
-
-// For your colleague's reference - where real auth will plug in:
-// 1. Replace TEST_TEACHER with real user from session/JWT
-// 2. Replace createTestAuthContext() with real auth state
-// 3. Replace authenticatedFetch() with real auth headers from session
-// 4. Add login/logout functions
-// 5. Add session management

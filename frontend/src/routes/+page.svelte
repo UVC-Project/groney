@@ -3,15 +3,33 @@
   import LogoutModal from '$lib/components/LogoutModal.svelte';
   import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
   import type { PageData } from './$types';
+  import { auth, user, isAuthenticated } from '$lib/stores/auth';
+  import { goto } from '$app/navigation';
+  import { browser } from '$app/environment';
   
   export let data: PageData;
 
   let showLogoutModal = false;
   const coins = data.coins;
+
+  // Redirect to login if not authenticated
+  $: if (browser && !$isAuthenticated) {
+    // Small delay to allow store to initialize from localStorage
+    setTimeout(() => {
+      if (!$isAuthenticated) {
+        goto('/login');
+      }
+    }, 100);
+  }
    
   function logout() {
+    auth.logout();
     showLogoutModal = false;
+    goto('/login');
   }
+
+  // Get display name
+  $: displayName = $user?.firstName || 'Student';
 </script>
 
 <!-- Main container -->
@@ -19,7 +37,7 @@
 
 <!-- Welcome text + username -->
  <div class="flex justify-between items-center mb-6">
-   <p class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white text-sm font-medium text-gray-800 shadow-lg">Welcome, Boy!</p>
+   <p class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white text-sm font-medium text-gray-800 shadow-lg">Welcome, {displayName}!</p>
    <div class="flex items-center gap-4">
       <BackgroundPicker />
        <button class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white hover:bg-gray-300 text-sm font-medium text-gray-800 shadow-lg" on:click={() => showLogoutModal = true}>Logout</button>
