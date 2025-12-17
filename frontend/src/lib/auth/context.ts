@@ -22,10 +22,41 @@ if (browser) {
 	if (savedUser) user.set(JSON.parse(savedUser));
 }
 
-// Test teacher for development
+// Get current user from store (for backwards compatibility)
+export function getCurrentUser(): User | null {
+	const state = get(auth);
+	return state.user;
+}
+
+// Get auth headers for API requests
+export function getAuthHeaders(user?: User | null): Record<string, string> {
+	const state = get(auth);
+	const currentUser = user || state.user;
+	const token = state.token;
+
+	if (!currentUser) {
+		return {};
+	}
+
+	const headers: Record<string, string> = {
+		'x-user-id': currentUser.id,
+		'x-user-role': currentUser.role,
+	};
+
+	if (token) {
+		headers['Authorization'] = `Bearer ${token}`;
+	}
+
+	return headers;
+}
+
+// Legacy TEST_TEACHER export for backwards compatibility during migration
+// This will be removed once all components use the auth store
 export const TEST_TEACHER: User = {
-	id: 'cmiuh3yr20000exu2jf0bhl9w', // Real teacher ID from database
+	id: 'legacy-test-id',
 	username: 'teacher1',
+	firstName: 'Test',
+	lastName: 'Teacher',
 	role: 'TEACHER',
 };
 

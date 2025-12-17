@@ -8,6 +8,9 @@
   import { logout as authLogout } from '$lib/auth/auth';
   
   import type { PageData } from './$types';
+  import { auth, user, isAuthenticated } from '$lib/stores/auth';
+  import { goto } from '$app/navigation';
+  import { browser } from '$app/environment';
   
   export let data: PageData;
   
@@ -28,6 +31,9 @@
       goto('/auth');
     }
   }
+
+  // Get display name
+  $: displayName = $user?.firstName || 'Student';
 </script>
 
 <!-- Main container -->

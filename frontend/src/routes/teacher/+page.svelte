@@ -42,8 +42,10 @@
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import MapBuilder from '$lib/components/MapBuilder.svelte';
   import { API_BASE_URL } from '$lib/config';
-  import { TEST_TEACHER, getAuthHeaders } from '$lib/auth/context';
-  import { invalidateAll } from '$app/navigation';
+  import { getAuthHeaders } from '$lib/auth/context';
+  import { auth, user } from '$lib/stores/auth';
+  import { invalidateAll, goto } from '$app/navigation';
+  import { get } from 'svelte/store';
 
   let { data }: { data: PageData } = $props();
   
@@ -221,7 +223,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ gridX: x, gridY: y }),
       });
@@ -243,7 +245,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ gridWidth: width, gridHeight: height }),
       });
@@ -265,7 +267,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ mapWidth: width, mapHeight: height }),
       });
@@ -311,7 +313,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           name,
@@ -351,7 +353,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ gridX: x, gridY: y }),
       });
@@ -377,7 +379,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ name: newName }),
       });
@@ -401,7 +403,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ gridX: -1, gridY: -1 }),
       });
@@ -467,8 +469,8 @@
   }
 
   function handleLogout() {
-    // TODO: Implement logout functionality
-    window.location.href = '/';
+    auth.logout();
+    goto('/login');
   }
 
   function copyClassCode() {
@@ -520,7 +522,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           className: classForm.className,
@@ -569,7 +571,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ classId })
       });
@@ -606,7 +608,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ classId })
       });
@@ -638,7 +640,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ classId })
       });
@@ -722,7 +724,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify(missionForm)
       });
@@ -795,12 +797,15 @@
     isCreatingSector = true;
 
     try {
-      // Call API endpoint with authentication
-      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors`, {
+      // Get current class ID from localStorage or current class data
+      const classId = localStorage.getItem('teacher_selected_class_id') || currentClassData?.id;
+      
+      // Call API endpoint with authentication and classId
+      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors${classId ? `?classId=${classId}` : ''}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify(sectorForm)
       });
@@ -846,7 +851,7 @@
       const response = await fetch(`${API_BASE_URL}/api/teacher/sectors/${sectorId}`, {
         method: 'DELETE',
         headers: {
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
       });
 
@@ -890,7 +895,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ status: 'completed' })
       });
@@ -934,7 +939,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ status: 'rejected' })
       });
@@ -974,7 +979,7 @@
               Teacher Dashboard
             </h1>
             <p class="text-xs sm:text-sm text-slate-500 hidden sm:block">
-              Welcome, John!
+              Welcome, {$user?.firstName || 'Teacher'}!
             </p>
           </div>
         </div>
@@ -1406,7 +1411,19 @@
                 <div class="text-center py-8">
                   <div class="text-4xl mb-2">{sector.icon}</div>
                   <p class="text-slate-500">No missions yet for {sector.name}</p>
-                  <p class="text-sm text-slate-400 mt-1">Click "Create Mission" to add one</p>
+                  <p class="text-sm text-slate-400 mt-1 mb-4">Add a mission to get started</p>
+                  <button
+                    onclick={() => {
+                      missionForm.sectorId = sector.id;
+                      openCreateMissionDialog();
+                    }}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors shadow-sm"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Create Mission
+                  </button>
                 </div>
               {/if}
             </div>
