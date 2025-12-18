@@ -7,13 +7,14 @@ import teacherRoutes from './routes/teacherRoutes';
 import authRoutes from './routes/authRoutes';
 import { noAuthMiddleware } from './middleware/noAuthMiddleware';
 import mapRoutes from './routes/mapRoutes';
-import authRoutes from './routes/authRoutes';
 import studentRoutes from './routes/studentRoutes';
 
 config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
 
 app.use(cors());
 app.use(morgan('dev'));

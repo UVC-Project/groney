@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import { PrismaClient, UserRole  } from "@prisma/client";
-import bcrypt from "bcrypt";
+import { PrismaClient, UserRole } from "@prisma/client";
+// import bcrypt from "bcrypt";
+import bcrypt from 'bcrypt';
 const prisma: PrismaClient = new PrismaClient();
 
 export default class RegisterController {
@@ -12,10 +13,10 @@ export default class RegisterController {
      */
     static async registerTeacher(req: Request, res: Response) {
         try {
-            const { firstName, lastName, username, password, className, schoolName } =
+            const { firstName, lastName, username, email, password, className, schoolName } =
                 req.body;
 
-            if (!firstName || !lastName || !username || !password || !className || !schoolName) {
+            if (!firstName || !lastName || !username || !email || !password || !className || !schoolName) {
                 return res.status(400).json({ message: "Missing required fields" });
             }
 
@@ -31,6 +32,14 @@ export default class RegisterController {
                 return res.status(409).json({ message: "Username is already taken" });
             }
 
+            const emailTaken = await prisma.user.findUnique({
+                where: { email },
+            });
+
+            if (emailTaken) {
+                return res.status(409).json({ message: "Email is already registered" });
+            }
+
             const hashed = await bcrypt.hash(password, 10);
 
             const teacher = await prisma.user.create({
@@ -38,6 +47,7 @@ export default class RegisterController {
                     firstName,
                     lastName,
                     username,
+                    email,
                     password: hashed,
                     role: UserRole.TEACHER,
                 },
@@ -48,7 +58,21 @@ export default class RegisterController {
                     name: className,
                     school: schoolName,
                     classCode: `${className.toUpperCase()}-${Date.now()}`,
-                    teacherId: teacher.id,
+                },
+            });
+
+            await prisma.classUser.create({
+                data: {
+                    classId: cls.id,
+                    userId: teacher.id,
+                },
+            });
+
+            await prisma.user.update({
+                where: { id: teacher.id },
+                data: {
+                    classId: cls.id,
+                    activeClassId: cls.id,
                 },
             });
 
