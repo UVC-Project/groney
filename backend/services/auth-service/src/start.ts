@@ -32,7 +32,7 @@ app.use('/api/teacher', teacherRoutes);
 
 // Auth routes
 app.post('/api/auth/login', LoginController.login);
-app.get('/api/auth/verify', LoginController.verifyToken);
+// app.get('/api/auth/verify', LoginController.verifyToken);
 app.post('/api/auth/register/teacher', RegisterController.registerTeacher);
 app.post('/api/auth/register/student', RegisterController.registerStudent);
 

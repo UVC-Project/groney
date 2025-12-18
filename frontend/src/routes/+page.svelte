@@ -6,11 +6,7 @@
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
   import { logout as authLogout } from '$lib/auth/auth';
-  
   import type { PageData } from './$types';
-  import { auth, user, isAuthenticated } from '$lib/stores/auth';
-  import { goto } from '$app/navigation';
-  import { browser } from '$app/environment';
   
   export let data: PageData;
   
