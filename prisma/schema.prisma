@@ -26,6 +26,8 @@ model User {
   submissions Submission[]
   purchases   Purchase[]
   activities  Activity[]
+  supplyRequests SupplyRequest[]
+
 
   @@map("users")
 }
@@ -53,6 +55,8 @@ model Class {
   activities  Activity[]
   submissions Submission[]
   purchases   Purchase[]
+  supplyRequests SupplyRequest[]
+
 
   @@index([classCode])
   @@map("classes")
@@ -90,6 +94,45 @@ model Mascot {
 
   @@map("mascots")
 }
+
+enum SupplyRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Supply {
+  id          String   @id
+  name        String
+  description String   @default("")
+  imageUrl    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requests SupplyRequest[]
+
+  @@map("supplies")
+}
+
+model SupplyRequest {
+  id        String              @id @default(cuid())
+  supplyId  String
+  userId    String
+  classId   String
+  status    SupplyRequestStatus @default(PENDING)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  supply Supply @relation(fields: [supplyId], references: [id], onDelete: Cascade)
+  class  Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@index([userId])
+  @@index([status])
+  @@map("supply_requests")
+}
+
 
 // Sector model (areas of the schoolyard)
 model Sector {

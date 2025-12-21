@@ -277,6 +277,37 @@ async function createTestData() {
       console.error('   ❌ Shop seeding failed:', e);
     }
 
+    console.log('\n🧤 Seeding schoolyard supplies...');
+    try {
+      const result = await prisma.supply.createMany({
+        data: [
+          {
+            id: 'gloves',
+            name: 'Gloves',
+            description: 'Protect hands while working in the garden.',
+            imageUrl: '/assets/supplies/gloves.png'
+          },
+          {
+            id: 'seeds',
+            name: 'Seeds',
+            description: 'Seeds for planting new flowers or vegetables.',
+            imageUrl: '/assets/supplies/seeds.png'
+          },
+          {
+            id: 'watering-can',
+            name: 'Watering can',
+            description: 'For watering plants.',
+            imageUrl: '/assets/supplies/watering-can.png'
+          }
+        ],
+        skipDuplicates: true
+      });
+
+      console.log(`   ✅ Supplies seeded. Inserted: ${result.count}`);
+    } catch (e) {
+      console.error('   ❌ Supplies seeding failed:', e);
+    }
+
 
 
     // Summary
