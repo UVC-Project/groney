@@ -2,10 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { config } from 'dotenv';
-import { shopItems, getMascotByClassId, purchases } from './shopData';
-import type { Mascot, Purchase } from './types';
+import { PrismaClient, ActivityType, ItemType } from '@prisma/client';
 
 config();
+
+const prisma = new PrismaClient();
 
 const app = express();
 const PORT = Number(process.env.PORT ?? process.env.SHOP_SERVICE_PORT ?? 3005);
@@ -26,35 +27,76 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'shop-service' });
 });
 
-app.get('/api/shop/items', (req, res) => {
+/**
+ * GET /api/shop/items?userId=...
+ * Returns all shop items and marks which ones are owned by the user.
+ */
+app.get('/api/shop/items', async (req, res) => {
   const userId = req.query.userId as string | undefined;
 
-  const ownedIds = new Set(
-      purchases
-          .filter((p) => !userId || p.userId === userId)
-          .map((p) => p.itemId)
-  );
+  try {
+    const items = await prisma.shopItem.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
 
-  const itemsWithOwned = shopItems.map((item) => ({
-    ...item,
-    owned: ownedIds.has(item.id)
-  }));
+    const ownedIds = new Set<string>();
+    if (userId) {
+      const owned = await prisma.purchase.findMany({
+        where: { userId },
+        select: { itemId: true }
+      });
 
-  res.json(itemsWithOwned);
-});
+      for (const p of owned) ownedIds.add(p.itemId);
+    }
 
-app.get('/api/mascot/:classId', (req, res) => {
-  const { classId } = req.params;
-  const mascot = getMascotByClassId(classId);
+    const itemsWithOwned = items.map((item) => ({
+      ...item,
+      owned: userId ? ownedIds.has(item.id) : false
+    }));
 
-  if (!mascot) {
-    return res.status(404).json({ message: 'Mascot not found' });
+    res.json(itemsWithOwned);
+  } catch (err) {
+    console.error('Error fetching shop items:', err);
+    res.status(500).json({ message: 'Failed to fetch shop items' });
   }
-
-  res.json(mascot);
 });
 
-app.post('/api/shop/purchase', (req, res) => {
+/**
+ * GET /api/mascot/:classId
+ * Returns the mascot for a class.
+ */
+app.get('/api/mascot/:classId', async (req, res) => {
+  const { classId } = req.params;
+
+  try {
+    const mascot = await prisma.mascot.findUnique({
+      where: { classId }
+    });
+
+    if (!mascot) {
+      return res.status(404).json({ message: 'Mascot not found' });
+    }
+
+    res.json(mascot);
+  } catch (err) {
+    console.error('Error fetching mascot:', err);
+    res.status(500).json({ message: 'Failed to fetch mascot' });
+  }
+});
+
+/**
+ * POST /api/shop/purchase
+ * Body: { userId, classId, itemId }
+ * Transaction:
+ *  - verify mascot exists
+ *  - verify item exists
+ *  - verify not already owned (requires @@unique([userId, itemId]) on Purchase)
+ *  - verify enough coins
+ *  - decrement coins
+ *  - create purchase
+ *  - create activity log
+ */
+app.post('/api/shop/purchase', async (req, res) => {
   const { userId, classId, itemId } = req.body as {
     userId?: string;
     classId?: string;
@@ -65,72 +107,149 @@ app.post('/api/shop/purchase', (req, res) => {
     return res.status(400).json({ message: 'Missing userId, classId or itemId' });
   }
 
-  const mascot = getMascotByClassId(classId);
-  if (!mascot) {
-    return res.status(404).json({ message: 'Mascot not found' });
+  try {
+    const item = await prisma.shopItem.findUnique({
+      where: { id: itemId }
+    });
+
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const mascot = await tx.mascot.findUnique({
+        where: { classId }
+      });
+
+      if (!mascot) {
+        throw new Error('MASCOT_NOT_FOUND');
+      }
+
+      const alreadyOwned = await tx.purchase.findUnique({
+        where: { userId_itemId: { userId, itemId } }
+      });
+
+      if (alreadyOwned) {
+        throw new Error('ALREADY_OWNED');
+      }
+
+      if (mascot.coins < item.price) {
+        throw new Error('NOT_ENOUGH_COINS');
+      }
+
+      const updatedMascot = await tx.mascot.update({
+        where: { id: mascot.id },
+        data: {
+          coins: { decrement: item.price }
+        }
+      });
+
+      const purchase = await tx.purchase.create({
+        data: {
+          userId,
+          classId,
+          itemId
+        }
+      });
+
+      // If your schema requires other Activity fields (e.g. "title" etc),
+      // adjust this data shape to match.
+      await tx.activity.create({
+        data: {
+          classId,
+          userId,
+          type: ActivityType.PURCHASE,
+          content: `bought ${item.name}`
+        }
+      });
+
+      return { updatedMascot, purchase };
+    });
+
+    res.json({ mascot: result.updatedMascot, purchase: result.purchase });
+  } catch (err: any) {
+    if (err?.message === 'MASCOT_NOT_FOUND') {
+      return res.status(404).json({ message: 'Mascot not found' });
+    }
+    if (err?.message === 'ALREADY_OWNED') {
+      return res.status(400).json({ message: 'Item already owned' });
+    }
+    if (err?.message === 'NOT_ENOUGH_COINS') {
+      return res.status(400).json({ message: 'Not enough coins' });
+    }
+
+    console.error('Error purchasing item:', err);
+    res.status(500).json({ message: 'Failed to purchase item' });
   }
-
-  const item = shopItems.find((i) => i.id === itemId);
-  if (!item) {
-    return res.status(404).json({ message: 'Item not found' });
-  }
-
-  const alreadyOwned = purchases.some(
-      (p) => p.userId === userId && p.itemId === itemId
-  );
-  if (alreadyOwned) {
-    return res.status(400).json({ message: 'Item already owned' });
-  }
-
-  if (mascot.coins < item.price) {
-    return res.status(400).json({ message: 'Not enough coins' });
-  }
-
-  mascot.coins -= item.price;
-  mascot.updatedAt = new Date().toISOString();
-
-  const purchase: Purchase = {
-    id: `purchase-${Date.now()}`,
-    userId,
-    classId,
-    itemId,
-    purchasedAt: new Date().toISOString()
-  };
-
-  purchases.push(purchase);
-  res.json({ mascot, purchase });
 });
 
-app.post('/api/mascot/equip', (req, res) => {
-  const { classId, itemId } = req.body as {
+/**
+ * POST /api/mascot/equip
+ * Body: { classId, itemId, userId? }
+ * Equips hat or accessory (no colors).
+ * Optional ownership check if userId provided.
+ */
+app.post('/api/mascot/equip', async (req, res) => {
+  const { classId, itemId, userId } = req.body as {
     classId?: string;
     itemId?: string;
+    userId?: string;
   };
 
   if (!classId || !itemId) {
     return res.status(400).json({ message: 'Missing classId or itemId' });
   }
 
-  const mascot = getMascotByClassId(classId);
-  if (!mascot) {
-    return res.status(404).json({ message: 'Mascot not found' });
-  }
+  try {
+    const mascot = await prisma.mascot.findUnique({
+      where: { classId }
+    });
 
-  const item = shopItems.find((i) => i.id === itemId);
-  if (!item) {
-    return res.status(404).json({ message: 'Wearable item not found' });
-  }
+    if (!mascot) {
+      return res.status(404).json({ message: 'Mascot not found' });
+    }
 
-  if (item.type === 'hat') {
-    mascot.equippedHat = item.id;
-  } else if (item.type === 'accessory') {
-    mascot.equippedAccessory = item.id;
-  } else {
+    const item = await prisma.shopItem.findUnique({
+      where: { id: itemId }
+    });
+
+    if (!item) {
+      return res.status(404).json({ message: 'Wearable item not found' });
+    }
+
+    // Optional: enforce that the user owns the item before equipping it
+    if (userId) {
+      const owned = await prisma.purchase.findUnique({
+        where: { userId_itemId: { userId, itemId } }
+      });
+
+      if (!owned) {
+        return res.status(403).json({ message: 'You do not own this item' });
+      }
+    }
+
+    // Expecting Prisma enum values (HAT, ACCESSORY). If your schema uses strings, adjust accordingly.
+    if (item.type === ItemType.HAT) {
+      const updated = await prisma.mascot.update({
+        where: { id: mascot.id },
+        data: { equippedHat: item.id }
+      });
+      return res.json(updated);
+    }
+
+    if (item.type === ItemType.ACCESSORY) {
+      const updated = await prisma.mascot.update({
+        where: { id: mascot.id },
+        data: { equippedAccessory: item.id }
+      });
+      return res.json(updated);
+    }
+
     return res.status(400).json({ message: 'This item type cannot be equipped' });
+  } catch (err) {
+    console.error('Error equipping item:', err);
+    res.status(500).json({ message: 'Failed to equip item' });
   }
-
-  mascot.updatedAt = new Date().toISOString();
-  res.json(mascot);
 });
 
 app.use((_req, res) => {
