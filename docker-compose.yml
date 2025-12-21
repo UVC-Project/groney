@@ -49,6 +49,7 @@ services:
       MISSION_SERVICE_URL: http://mission-service:3003
       SUBMISSION_SERVICE_URL: http://submission-service:3004
       SHOP_SERVICE_URL: http://shop-service:3005
+      SUPPLY_SERVICE_URL: http://supply-service:3007
       CALCULATION_SERVICE_URL: http://calculation-service:3006
       REDIS_URL: redis://redis:6379
     depends_on:
