@@ -82,7 +82,6 @@ model Mascot {
   coins           Int      @default(0)
   equippedHat     String?
   equippedAccessory String?
-  equippedColor   String?
   lastDecayAt     DateTime @default(now())
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -201,6 +200,7 @@ enum SubmissionStatus {
 model ShopItem {
   id        String       @id @default(cuid())
   name      String
+  description String   @default("")
   type      ItemType
   price     Int
   imageUrl  String
@@ -215,7 +215,6 @@ model ShopItem {
 enum ItemType {
   HAT
   ACCESSORY
-  COLOR
 }
 
 // Purchase model
