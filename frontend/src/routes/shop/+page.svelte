@@ -15,11 +15,12 @@
   type Item = PageData['items'][number];
 
   const imageMap: Record<string, string> = {
-    'red-cap': RedCapImg,
-    'blue-cap': BlueCapImg,
-    'bow-tie': BowTieImg,
-    sunglasses: SunglassesImg
+    'hat-red-cap': RedCapImg,
+    'hat-blue-cap': BlueCapImg,
+    'acc-bow-tie': BowTieImg,
+    'acc-sunglasses': SunglassesImg
   };
+
 
   function getItemImage(item: Item): string | null {
     if (imageMap[item.id]) return imageMap[item.id];
@@ -28,7 +29,8 @@
     return null;
   }
 
-  const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3005';
+  const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+
 
   let coins = data.coins;
   let items = data.items.slice();
