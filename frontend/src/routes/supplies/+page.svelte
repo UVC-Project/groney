@@ -80,7 +80,7 @@
 
   async function onRequestClick(supply: Supply) {
     try {
-      const res = await fetchWithTimeout(`${API_BASE}/api/supplies/request`, {
+      const res = await fetchWithTimeout(`${API_BASE}/api/supply-requests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, classId, supplyId: supply.id })

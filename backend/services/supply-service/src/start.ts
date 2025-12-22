@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { config } from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, SupplyRequestStatus } from '@prisma/client';
 
 config();
 
@@ -29,6 +29,7 @@ app.get('/health', (_req, res) => {
 
 /**
  * Student: list available supplies
+ * GET /api/supplies
  */
 app.get('/api/supplies', async (_req, res) => {
   try {
@@ -36,16 +37,18 @@ app.get('/api/supplies', async (_req, res) => {
       orderBy: { createdAt: 'asc' }
     });
     res.json(supplies);
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error('Failed to fetch supplies:', error);
     res.status(500).json({ message: 'Failed to fetch supplies' });
   }
 });
 
 /**
  * Student: request a supply (creates DB row)
+ * POST /api/supply-requests
+ * body: { userId, classId, supplyId }
  */
-app.post('/api/supplies/request', async (req, res) => {
+app.post('/api/supply-requests', async (req, res) => {
   const { userId, classId, supplyId } = req.body as {
     userId?: string;
     classId?: string;
@@ -57,12 +60,25 @@ app.post('/api/supplies/request', async (req, res) => {
   }
 
   try {
-    const supply = await prisma.supply.findUnique({ where: { id: supplyId } });
+    // Validate foreign keys exist (more helpful errors)
+    const [user, klass, supply] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { id: true } }),
+      prisma.class.findUnique({ where: { id: classId }, select: { id: true } }),
+      prisma.supply.findUnique({ where: { id: supplyId }, select: { id: true } })
+    ]);
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!klass) return res.status(404).json({ message: 'Class not found' });
     if (!supply) return res.status(404).json({ message: 'Supply not found' });
 
     // Prevent duplicate pending requests for same user+class+supply
     const existing = await prisma.supplyRequest.findFirst({
-      where: { userId, classId, supplyId, status: 'PENDING' }
+      where: {
+        userId,
+        classId,
+        supplyId,
+        status: SupplyRequestStatus.PENDING
+      }
     });
 
     if (existing) {
@@ -74,13 +90,13 @@ app.post('/api/supplies/request', async (req, res) => {
         userId,
         classId,
         supplyId,
-        status: 'PENDING'
+        status: SupplyRequestStatus.PENDING
       }
     });
 
     res.status(201).json(created);
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error('Failed to create supply request:', error);
     res.status(500).json({ message: 'Failed to create supply request' });
   }
 });
@@ -91,35 +107,44 @@ app.post('/api/supplies/request', async (req, res) => {
  */
 app.get('/api/teacher/supply-requests', async (req, res) => {
   const classId = req.query.classId as string | undefined;
-  const status = (req.query.status as string | undefined) ?? 'PENDING';
+  const statusQuery = req.query.status as string | undefined;
 
   if (!classId) return res.status(400).json({ message: 'Missing classId' });
 
+  const status =
+    statusQuery && statusQuery in SupplyRequestStatus
+      ? (statusQuery as SupplyRequestStatus)
+      : SupplyRequestStatus.PENDING;
+
   try {
     const rows = await prisma.supplyRequest.findMany({
-      where: { classId, status: status as any },
+      where: { classId, status },
       include: {
         supply: true,
-        user: { select: { id: true, username: true, firstName: true, lastName: true } }
+        user: {
+          select: { id: true, username: true, firstName: true, lastName: true }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
 
     res.json(rows);
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error('Failed to fetch supply requests:', error);
     res.status(500).json({ message: 'Failed to fetch supply requests' });
   }
 });
 
 /**
  * Teacher: approve/reject request
+ * POST /api/teacher/supply-requests/:id/status
+ * body: { status: 'APPROVED' | 'REJECTED' }
  */
 app.post('/api/teacher/supply-requests/:id/status', async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body as { status?: 'APPROVED' | 'REJECTED' };
+  const { status } = req.body as { status?: SupplyRequestStatus };
 
-  if (status !== 'APPROVED' && status !== 'REJECTED') {
+  if (status !== SupplyRequestStatus.APPROVED && status !== SupplyRequestStatus.REJECTED) {
     return res.status(400).json({ message: 'Invalid status' });
   }
 
@@ -130,8 +155,8 @@ app.post('/api/teacher/supply-requests/:id/status', async (req, res) => {
     });
 
     res.json(updated);
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error('Failed to update supply request status:', error);
     res.status(500).json({ message: 'Failed to update supply request status' });
   }
 });
