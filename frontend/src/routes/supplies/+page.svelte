@@ -1,18 +1,21 @@
 <script lang="ts">
   import PageWrapper from '$lib/components/PageWrapper.svelte';
+  import GlovesImg from '$lib/assets/images/supplies/gloves.png';
+  import SeedsImg from '$lib/assets/images/supplies/seeds.png';
+  import WateringCanImg from '$lib/assets/images/supplies/watering-can.png';
 
   type Supply = {
     id: string;
     name: string;
     description: string | null;
-    imageUrl: string | null;
+    imageUrl: string | null; // kept for compatibility, but we won't use it for rendering
   };
 
   export let data: { supplies: Supply[] };
 
   const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
-  // TODO later: replace with real values from login/class selection
+  // TODO: replace with real values from login/class selection
   const userId = 'user-1';
   const classId = 'class-1';
 
@@ -23,6 +26,32 @@
     bannerMsg = msg;
     bannerType = type;
     window.setTimeout(() => (bannerMsg = null), 3500);
+  }
+
+  const imageMap: Record<string, string> = {
+    gloves: GlovesImg,
+    seeds: SeedsImg,
+    'watering-can': WateringCanImg
+  };
+
+  function slugify(value: string) {
+    return value
+      .trim()
+      .toLowerCase()
+      .replace(/_/g, '-')
+      .replace(/\s+/g, '-');
+  }
+
+  function getSupplyImage(supply: Supply): string | null {
+    // Prefer ID-based mapping (best)
+    const byId = imageMap[supply.id];
+    if (byId) return byId;
+
+    // Fallback: map by a slugified name (helps if IDs are like cuid())
+    const byName = imageMap[slugify(supply.name)];
+    if (byName) return byName;
+
+    return null;
   }
 
   type FetchOptions = {
@@ -94,11 +123,13 @@
   {:else}
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-10">
       {#each data.supplies as supply}
-        <article class="bg-white rounded-3xl shadow-md border-4 border-green-200 flex flex-col overflow-hidden">
+        <article
+          class="bg-white rounded-3xl shadow-md border-4 border-green-200 flex flex-col overflow-hidden"
+        >
           <div class="flex-1 flex flex-col items-center justify-center p-6">
-            {#if supply.imageUrl}
+            {#if getSupplyImage(supply)}
               <div class="h-24 mb-4 flex items-center justify-center">
-                <img src={supply.imageUrl} alt={supply.name} class="max-h-24" />
+                <img src={getSupplyImage(supply)} alt={supply.name} class="max-h-24" />
               </div>
             {/if}
 

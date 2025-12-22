@@ -291,7 +291,7 @@ async function createTestData() {
             id: 'seeds',
             name: 'Seeds',
             description: 'Seeds for planting new flowers or vegetables.',
-            imageUrl: '/assets/supplies/seeds.png'
+            imageUrl: '/assets/images/supplies/seeds.png'
           },
           {
             id: 'watering-can',
