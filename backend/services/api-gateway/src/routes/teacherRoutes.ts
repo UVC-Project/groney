@@ -238,4 +238,12 @@ router.use(
 	})
 );
 
+router.use(
+	'/supply-requests',
+	createProxyMiddleware({
+		target: process.env.SUPPLY_SERVICE_URL,
+		changeOrigin: true,
+	})
+);
+
 export default router;
