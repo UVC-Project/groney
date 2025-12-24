@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import PageWrapper from '$lib/components/PageWrapper.svelte';
+
   import GlovesImg from '$lib/assets/images/supplies/gloves.png';
   import SeedsImg from '$lib/assets/images/supplies/seeds.png';
   import WateringCanImg from '$lib/assets/images/supplies/watering-can.png';
@@ -15,9 +17,27 @@
 
   const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
-  // TODO: replace with real values from login/class selection
-  const userId = 'user-1';
-  const classId = 'class-1';
+  // ✅ Get real logged-in user + class from localStorage (auth store)
+  type StoredAuth = {
+    user?: { id: string };
+    classes?: { id: string }[];
+  };
+
+  let userId = '';
+  let classId = '';
+
+  onMount(() => {
+    try {
+      const raw = localStorage.getItem('auth');
+      if (!raw) return;
+
+      const parsed: StoredAuth = JSON.parse(raw);
+      userId = parsed.user?.id ?? '';
+      classId = parsed.classes?.[0]?.id ?? ''; // first class for now
+    } catch {
+      // ignore
+    }
+  });
 
   let bannerMsg: string | null = null;
   let bannerType: 'error' | 'success' = 'success';
@@ -35,19 +55,13 @@
   };
 
   function slugify(value: string) {
-    return value
-      .trim()
-      .toLowerCase()
-      .replace(/_/g, '-')
-      .replace(/\s+/g, '-');
+    return value.trim().toLowerCase().replace(/_/g, '-').replace(/\s+/g, '-');
   }
 
   function getSupplyImage(supply: Supply): string | null {
-    // Prefer ID-based mapping (best)
     const byId = imageMap[supply.id];
     if (byId) return byId;
 
-    // Fallback: map by a slugified name (helps if IDs are like cuid())
     const byName = imageMap[slugify(supply.name)];
     if (byName) return byName;
 
@@ -79,6 +93,12 @@
   }
 
   async function onRequestClick(supply: Supply) {
+    // ✅ Guard: must have real IDs
+    if (!userId || !classId) {
+      showBanner('Please log in and select a class first.', 'error');
+      return;
+    }
+
     try {
       const res = await fetchWithTimeout(`${API_BASE}/api/supply-requests`, {
         method: 'POST',
@@ -123,9 +143,7 @@
   {:else}
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-10">
       {#each data.supplies as supply}
-        <article
-          class="bg-white rounded-3xl shadow-md border-4 border-green-200 flex flex-col overflow-hidden"
-        >
+        <article class="bg-white rounded-3xl shadow-md border-4 border-green-200 flex flex-col overflow-hidden">
           <div class="flex-1 flex flex-col items-center justify-center p-6">
             {#if getSupplyImage(supply)}
               <div class="h-24 mb-4 flex items-center justify-center">
