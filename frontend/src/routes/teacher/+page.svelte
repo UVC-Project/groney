@@ -46,6 +46,8 @@
   import { auth, user } from '$lib/stores/auth';
   import { invalidateAll, goto } from '$app/navigation';
   import { get } from 'svelte/store';
+  import TeacherSuppliesTab from '$lib/components/TeacherSuppliesTab.svelte';
+
 
   let { data }: { data: PageData } = $props();
   
@@ -58,7 +60,14 @@
   // Local state for data that can be modified optimistically
   let missionsData = $state<Mission[]>(data.missions || []);
   let submissionsData = $state<Submission[]>(data.submissions || []);
-  
+
+  // Supply requests are derived directly from page `data` so they always stay in sync
+  // when the page is invalidated and reloaded (no local state or optimistic updates needed)
+  let supplyRequestsData = $derived(data.supplyRequests || []);
+
+
+
+
   // Sync local state when data changes from server
   $effect(() => {
     missionsData = data.missions || [];
@@ -66,8 +75,15 @@
   $effect(() => {
     submissionsData = data.submissions || [];
   });
+  $effect(() => {
+    console.log('Supply requests in page data:', data.supplyRequests);
+  });
 
-  let activeTab = $state<'overview' | 'missions' | 'submissions' | 'map'>('overview');
+
+
+
+
+  let activeTab = $state<'overview' | 'missions' | 'submissions' | 'supplies' | 'map'>('overview');
   let isCreateClassDialogOpen = $state(false);
   let isCreateMissionDialogOpen = $state(false);
   let isCreateSectorDialogOpen = $state(false);
@@ -125,17 +141,21 @@
     cleanlinessBoost: 0,
   });
 
+
   const tabs = [
     { id: 'overview' as const, label: 'Overview', icon: '📊' },
     { id: 'missions' as const, label: 'Missions', icon: '🎯' },
     { id: 'submissions' as const, label: 'Submissions', icon: '📝' },
+    { id: 'supplies' as const, label: 'Supplies', icon: '🧤' },
     { id: 'map' as const, label: 'Map', icon: '🗺️' },
   ];
+
 
   // Computed values
   let hasMultipleClasses = $derived(allClassesData.length > 1);
   let currentClassId = $derived(currentClassData?.id || '');
-  
+
+
   // Helper function to get sector display properties
   function getSectorDisplay(type: string) {
     const displays: Record<string, { icon: string; color: string }> = {
@@ -1430,6 +1450,12 @@
           </div>
         {/each}
       </div>
+    {:else if currentClassData && activeTab === 'supplies'}
+      <TeacherSuppliesTab
+        supplyRequests={supplyRequestsData}
+        onToast={showToast}
+      />
+
     {:else if currentClassData && activeTab === 'submissions'}
       <div class="space-y-6">
         <!-- Header with View Toggle -->

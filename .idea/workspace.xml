@@ -5,7 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2f55ad1e-a7d1-415c-8376-e78240547a5e" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/frontend/src/lib/components/TeacherSuppliesTab.svelte" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/services/supply-service/src/routes/supplyRoutes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/services/supply-service/src/routes/supplyRoutes.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/services/supply-service/src/start.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/services/supply-service/src/start.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/routes/teacher/+page.svelte" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/routes/teacher/+page.svelte" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/routes/teacher/+page.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/routes/teacher/+page.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -28,6 +33,7 @@
     "Shell Script.setup.sh.executor": "Run",
     "git-widget-placeholder": "shop-sprint2and3",
     "node.js.selected.package.tslint": "(autodetect)",
+    "prettierjs.PrettierConfiguration.Package": "C:\\Users\\Iva\\PhpstormProjects\\groney\\node_modules\\prettier",
     "ts.external.directory.path": "C:\\Users\\Iva\\PhpstormProjects\\groney\\node_modules\\typescript\\lib"
   }
 }]]></component>

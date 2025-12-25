@@ -3,6 +3,8 @@ import type { PageLoad } from './$types';
 import type { TeacherDashboardData } from '$lib/types/teacher';
 import { API_BASE_URL } from '$lib/config';
 import { browser } from '$app/environment';
+export const ssr = false;
+
 
 // Get auth data from localStorage (browser only)
 function getAuthData(): { user: { id: string; role: string } | null; token: string | null } {
@@ -28,7 +30,7 @@ function getSelectedClassId(): string | null {
 	return null;
 }
 
-export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardData> => {
+export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardData & { supplyRequests?: any[] }> => {
 	const { user, token } = getAuthData();
 
 	// Redirect to login if not authenticated
@@ -54,15 +56,16 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 	// Check for classId in URL params first, then localStorage
 	const urlClassId = url.searchParams.get('classId');
 	const storedClassId = getSelectedClassId();
-	const selectedClassId = urlClassId || storedClassId;
+	let selectedClassId = urlClassId || storedClassId;
+
 
 	// Helper function to make authenticated requests
 	const authenticatedFetch = (endpoint: string) => {
 		return fetch(`${API_BASE_URL}${endpoint}`, {
 			headers: {
 				'Content-Type': 'application/json',
-				...authHeaders,
-			},
+				...authHeaders
+			}
 		});
 	};
 
@@ -70,19 +73,37 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 		console.log('🔄 Loading teacher dashboard data...', { selectedClassId, userId: user?.id });
 
 		// Build class endpoint with optional classId
-		const classEndpoint = selectedClassId
-			? `/api/teacher/class?classId=${selectedClassId}`
-			: '/api/teacher/class';
+		const classEndpoint = selectedClassId ? `/api/teacher/class?classId=${selectedClassId}` : '/api/teacher/class';
+
+		// Only fetch supply requests when classId exists
+		const SUPPLY_API_BASE_URL = import.meta.env.VITE_SUPPLY_API_URL ?? 'http://localhost:3007';
+
+		const supplyRequestsPromise = selectedClassId
+			? fetch(`${SUPPLY_API_BASE_URL}/api/teacher/supply-requests?classId=${selectedClassId}&status=PENDING`, {
+				headers: {
+					'Content-Type': 'application/json',
+					...authHeaders
+				}
+			})
+			: Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
+
 
 		// Fetch all data in parallel for better performance
-		const [classResponse, allClassesResponse, sectorsResponse, missionsResponse, submissionsResponse] =
-			await Promise.all([
-				authenticatedFetch(classEndpoint),
-				authenticatedFetch('/api/teacher/classes'),
-				authenticatedFetch(`/api/teacher/sectors${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
-				authenticatedFetch(`/api/teacher/missions${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
-				authenticatedFetch(`/api/teacher/submissions${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
-			]);
+		const [
+			classResponse,
+			allClassesResponse,
+			sectorsResponse,
+			missionsResponse,
+			submissionsResponse,
+			supplyRequestsResponse
+		] = await Promise.all([
+			authenticatedFetch(classEndpoint),
+			authenticatedFetch('/api/teacher/classes'),
+			authenticatedFetch(`/api/teacher/sectors${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
+			authenticatedFetch(`/api/teacher/missions${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
+			authenticatedFetch(`/api/teacher/submissions${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
+			supplyRequestsPromise
+		]);
 
 		console.log('📊 API Response Status:', {
 			class: classResponse.status,
@@ -90,11 +111,11 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectors: sectorsResponse.status,
 			missions: missionsResponse.status,
 			submissions: submissionsResponse.status,
+			supplyRequests: supplyRequestsResponse.status
 		});
 
 		// Handle 404 for class (teacher hasn't created a class yet) - this is not an error
-		const currentClass =
-			classResponse.ok && classResponse.status !== 404 ? await classResponse.json() : null;
+		const currentClass = classResponse.ok && classResponse.status !== 404 ? await classResponse.json() : null;
 
 		// Check other critical requests
 		if (!allClassesResponse.ok && allClassesResponse.status !== 404) {
@@ -109,12 +130,16 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 		if (!submissionsResponse.ok && submissionsResponse.status !== 404) {
 			throw new Error(`Failed to fetch submissions: ${submissionsResponse.status}`);
 		}
+		if (!supplyRequestsResponse.ok && supplyRequestsResponse.status !== 404) {
+			throw new Error(`Failed to fetch supply requests: ${supplyRequestsResponse.status}`);
+		}
 
 		// Parse all responses (handle 404s gracefully)
 		const allClasses = allClassesResponse.ok ? await allClassesResponse.json() : [];
 		const sectors = sectorsResponse.ok ? await sectorsResponse.json() : [];
 		const missions = missionsResponse.ok ? await missionsResponse.json() : [];
 		const submissions = submissionsResponse.ok ? await submissionsResponse.json() : [];
+		const supplyRequests = supplyRequestsResponse.ok ? await supplyRequestsResponse.json() : [];
 
 		console.log('✅ Loaded data:', {
 			currentClass: currentClass ? 'Found' : 'None',
@@ -122,6 +147,7 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectors: sectors.length,
 			missions: missions.length,
 			submissions: submissions.length,
+			supplyRequests: supplyRequests.length
 		});
 
 		return {
@@ -130,19 +156,19 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectors,
 			missions,
 			submissions,
+			supplyRequests
 		};
 	} catch (error) {
 		console.error('❌ Error loading teacher dashboard data:', error);
 
-		// Return empty data structure with error message
-		// This is for actual errors (network issues, server errors, etc.)
 		return {
 			currentClass: null,
 			allClasses: [],
 			sectors: [],
 			missions: [],
 			submissions: [],
-			error: error instanceof Error ? error.message : 'Failed to load dashboard data',
+			supplyRequests: [],
+			error: error instanceof Error ? error.message : 'Failed to load dashboard data'
 		};
 	}
 };
