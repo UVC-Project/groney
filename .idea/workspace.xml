@@ -6,6 +6,12 @@
   <component name="ChangeListManager">
     <list default="true" id="2f55ad1e-a7d1-415c-8376-e78240547a5e" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/lib/config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/lib/config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/lib/types/teacher.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/lib/types/teacher.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/routes/+page.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/routes/+page.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/routes/teacher/+page.svelte" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/routes/teacher/+page.svelte" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/routes/teacher/+page.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/routes/teacher/+page.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -23,14 +29,14 @@
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Shell Script.setup.sh.executor": "Run",
-    "git-widget-placeholder": "shop-sprint2and3",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "ts.external.directory.path": "C:\\Users\\Iva\\PhpstormProjects\\groney\\node_modules\\typescript\\lib"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Shell Script.setup.sh.executor&quot;: &quot;Run&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;shop-sprint2and3&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\Iva\\PhpstormProjects\\groney\\node_modules\\typescript\\lib&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\Iva\PhpstormProjects\groney\frontend\src\lib\assets\images\shop" />
