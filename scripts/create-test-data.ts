@@ -285,19 +285,19 @@ async function createTestData() {
             id: 'gloves',
             name: 'Gloves',
             description: 'Protect hands while working in the garden.',
-            imageUrl: '/assets/supplies/gloves.png'
+            imageUrl: '/src/lib/assets/images/supplies/gloves.png'
           },
           {
             id: 'seeds',
             name: 'Seeds',
             description: 'Seeds for planting new flowers or vegetables.',
-            imageUrl: '/assets/images/supplies/seeds.png'
+            imageUrl: '/src/lib/assets/images/supplies/seeds.png'
           },
           {
             id: 'watering-can',
             name: 'Watering can',
             description: 'For watering plants.',
-            imageUrl: '/assets/supplies/watering-can.png'
+            imageUrl: '/src/lib/assets/images/supplies/watering-can.png'
           }
         ],
         skipDuplicates: true

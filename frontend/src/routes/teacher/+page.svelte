@@ -281,6 +281,7 @@
       }
 
       supplyRequestsData = await res.json();
+      console.log(supplyRequestsData);
       hasLoadedSuppliesOnce = true;
     } catch (e) {
       console.error('Failed to refresh supply requests:', e);
