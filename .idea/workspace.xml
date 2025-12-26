@@ -6,12 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="2f55ad1e-a7d1-415c-8376-e78240547a5e" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/lib/config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/lib/config.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/lib/types/teacher.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/lib/types/teacher.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/routes/+page.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/routes/+page.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/routes/teacher/+page.svelte" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/routes/teacher/+page.svelte" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/routes/teacher/+page.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/routes/teacher/+page.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

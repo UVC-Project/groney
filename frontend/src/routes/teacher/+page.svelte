@@ -1559,8 +1559,6 @@
         {/each}
       </div>
     {:else if currentClassData && activeTab === 'submissions'}
-      <!-- (your submissions tab stays unchanged) -->
-      <!-- ... -->
       <div class="space-y-6">
         <!-- Header with View Toggle -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1784,8 +1782,6 @@
       </div>
 
     {:else if currentClassData && activeTab === 'map'}
-      <!-- (your map tab stays unchanged) -->
-      <!-- ... -->
       <div class="space-y-6">
         <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
