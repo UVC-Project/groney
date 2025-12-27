@@ -6,6 +6,7 @@
     { href: '/', label: 'Home', icon: '🏡' },
     { href: '/map', label: 'Map', icon: '🧭' },
     { href: '/shop', label: 'Shop', icon: '🛒' },
+    { href: '/supplies', label: 'Supplies', icon: '🧤' },
     { href: '/wardrobe', label: 'Wardrobe', icon: '👔' },
     { href: '/wiki', label: 'Wiki', icon: '📚' },
   ];

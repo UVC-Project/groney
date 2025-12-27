@@ -1,6 +1,6 @@
 import type { PageLoad } from './$types';
 
-const API_URL = 'http://localhost:3005';
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 export const load: PageLoad = async ({ fetch }) => {
     const userId = 'user-1';
@@ -12,30 +12,22 @@ export const load: PageLoad = async ({ fetch }) => {
             fetch(`${API_URL}/api/mascot/${classId}`)
         ]);
 
-        if (itemsRes.ok && mascotRes.ok) {
-            const items = await itemsRes.json();
-            const mascot = await mascotRes.json();
+        const items = itemsRes.ok ? await itemsRes.json() : [];
+        const mascot = mascotRes.ok ? await mascotRes.json() : null;
 
-            return {
-                coins: mascot.coins,
-                items,
-                userId,
-                classId
-            };
-        } else {
-            console.error('Failed to load shop data', {
-                itemsStatus: itemsRes.status,
-                mascotStatus: mascotRes.status
-            });
-        }
+        return {
+            coins: mascot?.coins ?? 0,
+            items,
+            userId,
+            classId
+        };
     } catch (err) {
         console.error('Error loading shop data', err);
+        return {
+            coins: 0,
+            items: [],
+            userId,
+            classId
+        };
     }
-
-    return {
-        coins: 0,
-        items: [],
-        userId,
-        classId
-    };
 };

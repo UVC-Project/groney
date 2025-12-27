@@ -104,5 +104,35 @@ export interface TeacherDashboardData {
 	sectors: Sector[];
 	missions: Mission[];
 	submissions: Submission[];
+	supplyRequests: TeacherSupplyRequest[];
 	error?: string;
+}
+
+export type SupplyRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface Supply {
+	id: string;
+	name: string;
+	description: string;
+	imageUrl: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface TeacherSupplyRequest {
+	id: string;
+	supplyId: string;
+	userId: string;
+	classId: string;
+	status: SupplyRequestStatus;
+	createdAt: string;
+	updatedAt: string;
+
+	supply: Supply;
+	user: {
+		id: string;
+		username: string;
+		firstName: string;
+		lastName: string;
+	};
 }

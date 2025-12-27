@@ -1,38 +1,39 @@
+<!-- src/routes/teacher/+page.svelte -->
 <style>
-  @keyframes slide-up {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
+    @keyframes slide-up {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
     }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
 
-  .animate-slide-up {
-    animation: slide-up 0.3s ease-out;
-  }
-
-  /* Respect user's motion preferences */
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
+    .animate-slide-up {
+        animation: slide-up 0.3s ease-out;
     }
-  }
 
-  /* Ensure minimum touch target size on mobile */
-  @media (max-width: 768px) {
-    button,
-    select {
-      min-height: 48px;
+    /* Respect user's motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
     }
-  }
+
+    /* Ensure minimum touch target size on mobile */
+    @media (max-width: 768px) {
+        button,
+        select {
+            min-height: 48px;
+        }
+    }
 </style>
 
 <script lang="ts">
@@ -41,24 +42,62 @@
   import LoadingSkeleton from '$lib/components/LoadingSkeleton.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import MapBuilder from '$lib/components/MapBuilder.svelte';
-  import { API_BASE_URL } from '$lib/config';
+  import { API_BASE_URL, SUPPLY_API_URL } from '$lib/config';
   import { getAuthHeaders } from '$lib/auth/context';
   import { auth, user } from '$lib/stores/auth';
   import { invalidateAll, goto } from '$app/navigation';
   import { get } from 'svelte/store';
 
+  // -----------------------------
+  // Supply-service DTO types
+  // -----------------------------
+  type SupplyRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+  type SupplyDTO = {
+    id: string;
+    name: string;
+    description?: string;
+    imageUrl: string;
+  };
+
+  type SupplyUserDTO = {
+    id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+  };
+
+  type SupplyRequestDTO = {
+    id: string;
+    supplyId: string;
+    userId: string;
+    classId: string;
+    status: SupplyRequestStatus;
+    createdAt: string;
+    updatedAt: string;
+    supply: SupplyDTO;
+    user: SupplyUserDTO;
+  };
+
   let { data }: { data: PageData } = $props();
-  
+
   // Reactive data from load function - updates when invalidateAll() is called
   let currentClassData = $derived(data.currentClass || null);
   let allClassesData = $derived(data.allClasses || []);
   let sectorsData = $derived(data.sectors || []);
   let loadError = $derived(data.error);
-  
+
   // Local state for data that can be modified optimistically
   let missionsData = $state<Mission[]>(data.missions || []);
   let submissionsData = $state<Submission[]>(data.submissions || []);
-  
+
+  // Supply requests local state (loaded from supply-service)
+  let supplyRequestsData = $state<SupplyRequestDTO[]>([]);
+  let supplyFilter = $state<SupplyRequestStatus>('PENDING');
+  let isRefreshingSupplies = $state(false);
+  let updatingSupplyRequestId = $state<string | null>(null);
+  let hasLoadedSuppliesOnce = $state(false);
+
   // Sync local state when data changes from server
   $effect(() => {
     missionsData = data.missions || [];
@@ -67,7 +106,7 @@
     submissionsData = data.submissions || [];
   });
 
-  let activeTab = $state<'overview' | 'missions' | 'submissions' | 'map'>('overview');
+  let activeTab = $state<'overview' | 'missions' | 'submissions' | 'map' | 'supplies'>('overview');
   let isCreateClassDialogOpen = $state(false);
   let isCreateMissionDialogOpen = $state(false);
   let isCreateSectorDialogOpen = $state(false);
@@ -81,16 +120,16 @@
   let reviewingSubmissionId = $state<string | null>(null);
   let missionFormErrors = $state<Record<string, string>>({});
   let sectorFormErrors = $state<Record<string, string>>({});
-  
+
   // Map builder state
   let isMapEditMode = $state(false);
   let isSavingMap = $state(false);
-  
+
   // Sector edit dialog state
   let editingSector = $state<{ id: string; name: string; type: string } | null>(null);
   let editingSectorName = $state<string>('');
   let editSectorInputRef = $state<HTMLInputElement | null>(null);
-  
+
   // Toast notification state
   let toastMessage = $state<string>('');
   let toastType = $state<'success' | 'error'>('success');
@@ -130,12 +169,14 @@
     { id: 'missions' as const, label: 'Missions', icon: '🎯' },
     { id: 'submissions' as const, label: 'Submissions', icon: '📝' },
     { id: 'map' as const, label: 'Map', icon: '🗺️' },
+    // ✅ after Map
+    { id: 'supplies' as const, label: 'Supplies', icon: '🧤' },
   ];
 
   // Computed values
   let hasMultipleClasses = $derived(allClassesData.length > 1);
   let currentClassId = $derived(currentClassData?.id || '');
-  
+
   // Helper function to get sector display properties
   function getSectorDisplay(type: string) {
     const displays: Record<string, { icon: string; color: string }> = {
@@ -157,7 +198,7 @@
     toastMessage = message;
     toastType = type;
     toastVisible = true;
-    
+
     setTimeout(() => {
       toastVisible = false;
     }, 3000);
@@ -194,7 +235,7 @@
       return mapped;
     })
   );
-  
+
   // Debug: log when sectors data changes
   $effect(() => {
     console.log('📍 Sectors data updated:', sectorsData.length, 'sectors');
@@ -215,6 +256,86 @@
     };
     return colors[type?.toUpperCase()] || '#64748b';
   }
+
+  // -----------------------------
+  // Supply requests handlers
+  // -----------------------------
+  async function refreshSupplyRequests() {
+    if (!currentClassId) return;
+    isRefreshingSupplies = true;
+
+    try {
+      const res = await fetch(
+        `${SUPPLY_API_URL}/api/teacher/supply-requests?classId=${currentClassId}&status=${supplyFilter}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+          },
+        }
+      );
+
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        throw new Error(msg?.message || `Failed to fetch supply requests (${res.status})`);
+      }
+
+      supplyRequestsData = await res.json();
+      console.log(supplyRequestsData);
+      hasLoadedSuppliesOnce = true;
+    } catch (e) {
+      console.error('Failed to refresh supply requests:', e);
+      showToast('Failed to load supply requests', 'error');
+    } finally {
+      isRefreshingSupplies = false;
+    }
+  }
+
+  async function updateSupplyRequestStatus(id: string, status: SupplyRequestStatus) {
+    if (updatingSupplyRequestId) return;
+    updatingSupplyRequestId = id;
+
+    const original = [...supplyRequestsData];
+    supplyRequestsData = supplyRequestsData.map((r) => (r.id === id ? { ...r, status } : r));
+
+    try {
+      const res = await fetch(`${SUPPLY_API_URL}/api/teacher/supply-requests/${id}/status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        throw new Error(msg?.message || `Failed to update request (${res.status})`);
+      }
+
+      // If viewing PENDING, remove resolved items
+      if (supplyFilter === 'PENDING' && (status === 'APPROVED' || status === 'REJECTED')) {
+        supplyRequestsData = supplyRequestsData.filter((r) => r.id !== id);
+      }
+
+      showToast(status === 'APPROVED' ? 'Request approved ✅' : 'Request rejected ❌', 'success');
+    } catch (e) {
+      console.error('Failed to update supply request:', e);
+      supplyRequestsData = original;
+      showToast('Failed to update request', 'error');
+    } finally {
+      updatingSupplyRequestId = null;
+    }
+  }
+
+  // Auto-load supplies the first time you open the tab (or if class changes)
+  $effect(() => {
+    if (activeTab === 'supplies' && currentClassId) {
+      if (!hasLoadedSuppliesOnce) {
+        refreshSupplyRequests();
+      }
+    }
+  });
 
   // Map builder handlers
   async function handleSectorMove(sectorId: string, x: number, y: number) {
@@ -334,7 +455,7 @@
       console.log('Created sector:', newSector);
 
       showToast(`${name} added to map! 🎉`, 'success');
-      
+
       // Force page data refresh by invalidating all load functions
       // Use a small delay to ensure the backend has committed the transaction
       setTimeout(async () => {
@@ -364,7 +485,7 @@
 
       const sector = sectorsData.find(s => s.id === sectorId);
       showToast(`${sector?.name || 'Sector'} placed on map! 🎉`, 'success');
-      
+
       await invalidateAll();
     } catch (error) {
       console.error('Failed to place sector:', error);
@@ -424,7 +545,7 @@
   function handleSectorEdit(sector: { id: string; name: string; type: string }) {
     editingSector = sector;
     editingSectorName = sector.name;
-    
+
     // Focus the input after the dialog opens
     setTimeout(() => {
       editSectorInputRef?.focus();
@@ -435,7 +556,7 @@
   // Handler for saving sector name changes
   async function handleSectorEditSubmit() {
     if (!editingSector || !editingSectorName.trim()) return;
-    
+
     await handleSectorRename(editingSector.id, editingSectorName.trim());
     closeSectorEditDialog();
   }
@@ -443,7 +564,7 @@
   // Handler for removing sector from map via edit dialog
   async function handleSectorEditRemove() {
     if (!editingSector) return;
-    
+
     const confirmed = confirm(`Remove "${editingSector.name}" from the map?\n\nThe sector will be moved back to the palette and can be placed again later.`);
     if (confirmed) {
       await handleSectorRemoveFromMap(editingSector.id);
@@ -454,7 +575,7 @@
   // Handler for deleting sector via edit dialog
   async function handleSectorEditDelete() {
     if (!editingSector) return;
-    
+
     const confirmed = confirm(`Permanently delete "${editingSector.name}"?\n\nThis will also delete all missions in this sector. This action cannot be undone.`);
     if (confirmed) {
       await handleDeleteSector(editingSector.id);
@@ -508,7 +629,7 @@
 
   async function handleCreateClass(event: Event) {
     event.preventDefault();
-    
+
     if (!classForm.className || !classForm.schoolName) {
       showToast('Please fill in all required fields', 'error');
       return;
@@ -540,21 +661,21 @@
 
       // Initialize the class with sectors and missions
       await initializeClass(newClass.id);
-      
+
       // Automatically switch to the newly created class
       await switchToNewClass(newClass.id);
-      
+
       // Show success toast
       showToast(`Class "${newClass.name}" created successfully! 🎉`, 'success');
-      
+
       // Reset form
       classForm = {
         className: '',
         schoolName: '',
       };
-      
+
       closeCreateClassDialog();
-      
+
       // Refresh data without full page reload
       await invalidateAll();
     } catch (error) {
@@ -623,6 +744,10 @@
       // Save selected class to localStorage for persistence
       localStorage.setItem('teacher_selected_class_id', classId);
 
+      // Reset supplies cache when switching class
+      supplyRequestsData = [];
+      hasLoadedSuppliesOnce = false;
+
       // Refresh data without full page reload
       await invalidateAll();
     } catch (error) {
@@ -654,6 +779,10 @@
 
       // Save selected class to localStorage for persistence
       localStorage.setItem('teacher_selected_class_id', classId);
+
+      // Reset supplies cache when switching class
+      supplyRequestsData = [];
+      hasLoadedSuppliesOnce = false;
     } catch (error) {
       console.error('❌ Failed to switch to new class:', error);
       // Don't show error toast here as it would interfere with the success message
@@ -709,7 +838,7 @@
 
   async function handleCreateMission(event: Event) {
     event.preventDefault();
-    
+
     // Validate form
     if (!validateMissionForm()) {
       showToast('Please fix the form errors', 'error');
@@ -735,15 +864,15 @@
       }
 
       const newMission = await response.json();
-      
+
       // Add new mission to local state
       missionsData = [...missionsData, newMission];
-      
+
       console.log('✅ Created mission:', newMission);
-      
+
       // Show success toast
       showToast('Mission created successfully! 🎯', 'success');
-      
+
       closeCreateMissionDialog();
     } catch (error) {
       console.error('❌ Failed to create mission:', error);
@@ -787,7 +916,7 @@
 
   async function handleCreateSector(event: Event) {
     event.preventDefault();
-    
+
     // Validate form
     if (!validateSectorForm()) {
       showToast('Please fix the form errors', 'error');
@@ -799,7 +928,7 @@
     try {
       // Get current class ID from localStorage or current class data
       const classId = localStorage.getItem('teacher_selected_class_id') || currentClassData?.id;
-      
+
       // Call API endpoint with authentication and classId
       const response = await fetch(`${API_BASE_URL}/api/teacher/sectors${classId ? `?classId=${classId}` : ''}`, {
         method: 'POST',
@@ -816,14 +945,14 @@
       }
 
       const newSector = await response.json();
-      
+
       console.log('✅ Created sector:', newSector);
-      
+
       // Show success toast
       showToast('Sector created successfully! 🌱', 'success');
-      
+
       closeCreateSectorDialog();
-      
+
       // Refresh data to show new sector
       await invalidateAll();
     } catch (error) {
@@ -909,7 +1038,7 @@
 
       // Show success toast
       showToast('Submission approved successfully! 🎉', 'success');
-      
+
       // TODO: Refresh mascot stats (pending backend implementation)
     } catch (error) {
       console.error('❌ Failed to approve submission:', error);
@@ -1205,7 +1334,7 @@
               </button>
             </div>
           </div>
-          
+
           <div class="p-4 sm:p-6">
             <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
               <div class="flex items-center gap-2 px-4 py-2.5 bg-blue-50 rounded-xl border border-blue-200 flex-1 sm:flex-initial">
@@ -1373,7 +1502,7 @@
                         </span>
                         <span class="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-md text-xs font-semibold">
                           <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68-.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd" />
                           </svg>
                           {mission.coinReward}
                         </span>
@@ -1438,7 +1567,6 @@
             <h2 class="text-2xl font-bold text-slate-800">Pending Submissions</h2>
             <p class="text-sm text-slate-600 mt-1">Review and approve student mission submissions</p>
           </div>
-          
           <!-- View Toggle -->
           <div class="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
             <button
@@ -1477,84 +1605,84 @@
           {#if submissionsView === 'grid'}
             <!-- Grid View -->
             <div class="grid gap-6 lg:grid-cols-2">
-            {#each submissionsData as submission}
-              <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
-                <!-- Submission Photo -->
-                <div class="relative aspect-video bg-slate-100">
-                  <img
-                    src={submission.photoUrl}
-                    alt="{submission.mission.title} by {submission.student.firstName}"
-                    class="w-full h-full object-cover"
-                  />
-                  <div class="absolute top-3 right-3 px-3 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
-                    Pending Review
+              {#each submissionsData as submission}
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
+                  <!-- Submission Photo -->
+                  <div class="relative aspect-video bg-slate-100">
+                    <img
+                      src={submission.photoUrl}
+                      alt="{submission.mission.title} by {submission.student.firstName}"
+                      class="w-full h-full object-cover"
+                    />
+                    <div class="absolute top-3 right-3 px-3 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
+                      Pending Review
+                    </div>
                   </div>
-                </div>
 
-                <!-- Submission Details -->
-                <div class="p-4 sm:p-5">
-                  <!-- Student Info -->
-                  <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                      {submission.student.firstName[0]}{submission.student.lastName[0]}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <p class="font-semibold text-slate-800 truncate">
-                        {submission.student.firstName} {submission.student.lastName}
-                      </p>
-                      <p class="text-sm text-slate-500 truncate">@{submission.student.username}</p>
-                    </div>
-                    <span class="text-xs text-slate-500">
+                  <!-- Submission Details -->
+                  <div class="p-4 sm:p-5">
+                    <!-- Student Info -->
+                    <div class="flex items-center gap-3 mb-4">
+                      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                        {submission.student.firstName[0]}{submission.student.lastName[0]}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-slate-800 truncate">
+                          {submission.student.firstName} {submission.student.lastName}
+                        </p>
+                        <p class="text-sm text-slate-500 truncate">@{submission.student.username}</p>
+                      </div>
+                      <span class="text-xs text-slate-500">
                       {new Date(submission.submittedAt).toLocaleDateString()}
                     </span>
-                  </div>
+                    </div>
 
-                  <!-- Mission Info -->
-                  <div class="mb-4">
-                    <h3 class="font-semibold text-slate-800 mb-1">{submission.mission.title}</h3>
-                    <p class="text-sm text-slate-600">{submission.mission.description}</p>
-                  </div>
+                    <!-- Mission Info -->
+                    <div class="mb-4">
+                      <h3 class="font-semibold text-slate-800 mb-1">{submission.mission.title}</h3>
+                      <p class="text-sm text-slate-600">{submission.mission.description}</p>
+                    </div>
 
-                  <!-- Action Buttons -->
-                  <div class="flex gap-3">
-                    <button
-                      onclick={() => handleApproveSubmission(submission.id)}
-                      disabled={reviewingSubmissionId === submission.id}
-                      class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-all min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {#if reviewingSubmissionId === submission.id}
-                        <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      {:else}
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                      {/if}
-                      <span>Approve</span>
-                    </button>
-                    <button
-                      onclick={() => handleRejectSubmission(submission.id)}
-                      disabled={reviewingSubmissionId === submission.id}
-                      class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-all min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {#if reviewingSubmissionId === submission.id}
-                        <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      {:else}
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      {/if}
-                      <span>Reject</span>
-                    </button>
+                    <!-- Action Buttons -->
+                    <div class="flex gap-3">
+                      <button
+                        onclick={() => handleApproveSubmission(submission.id)}
+                        disabled={reviewingSubmissionId === submission.id}
+                        class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-all min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {#if reviewingSubmissionId === submission.id}
+                          <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        {:else}
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                        {/if}
+                        <span>Approve</span>
+                      </button>
+                      <button
+                        onclick={() => handleRejectSubmission(submission.id)}
+                        disabled={reviewingSubmissionId === submission.id}
+                        class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-all min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {#if reviewingSubmissionId === submission.id}
+                          <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        {:else}
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        {/if}
+                        <span>Reject</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            {/each}
+              {/each}
             </div>
           {:else}
             <!-- List View -->
@@ -1653,6 +1781,7 @@
           </div>
         {/if}
       </div>
+
     {:else if currentClassData && activeTab === 'map'}
       <div class="space-y-6">
         <!-- Header -->
@@ -1767,6 +1896,136 @@
                 </div>
               {/each}
             </div>
+          </div>
+        {/if}
+      </div>
+
+    {:else if currentClassData && activeTab === 'supplies'}
+      <!-- ✅ Supplies tab -->
+      <div class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-800">Supply Requests</h2>
+            <p class="text-sm text-slate-600 mt-1">Approve or reject student supply requests</p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <select
+              bind:value={supplyFilter}
+              onchange={() => {
+                // when filter changes, fetch new list
+                refreshSupplyRequests();
+              }}
+              class="px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium"
+              aria-label="Filter supply requests"
+            >
+              <option value="PENDING">Pending</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+
+            <button
+              onclick={refreshSupplyRequests}
+              disabled={isRefreshingSupplies}
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {#if isRefreshingSupplies}
+                <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Refreshing...
+              {:else}
+                🔄 Refresh
+              {/if}
+            </button>
+          </div>
+        </div>
+
+        {#if supplyRequestsData.length === 0}
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-12 text-center">
+            <div class="text-6xl mb-4">🧤</div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">No Requests</h3>
+            <p class="text-slate-600">No {supplyFilter.toLowerCase()} supply requests right now.</p>
+            <p class="text-sm text-slate-500 mt-2">
+              {#if !hasLoadedSuppliesOnce}
+                Click “Refresh” to load requests.
+              {:else}
+                New requests will appear here.
+              {/if}
+            </p>
+          </div>
+        {:else}
+          <div class="grid gap-4 lg:grid-cols-2">
+            {#each supplyRequestsData as req (req.id)}
+              <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
+                <div class="p-5 flex gap-4">
+                  <img
+                    src={req.supply.imageUrl}
+                    alt={req.supply.name}
+                    class="w-16 h-16 rounded-xl object-cover bg-slate-100 border border-slate-200 flex-shrink-0"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <h3 class="font-bold text-slate-800 truncate">{req.supply.name}</h3>
+                        <p class="text-sm text-slate-600 line-clamp-2">{req.supply.description || ''}</p>
+                      </div>
+                      <span
+                        class="px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0"
+                        class:bg-amber-100={req.status === 'PENDING'}
+                        class:text-amber-800={req.status === 'PENDING'}
+                        class:bg-emerald-100={req.status === 'APPROVED'}
+                        class:text-emerald-800={req.status === 'APPROVED'}
+                        class:bg-red-100={req.status === 'REJECTED'}
+                        class:text-red-800={req.status === 'REJECTED'}
+                      >
+                        {req.status}
+                      </span>
+                    </div>
+
+                    <div class="mt-3 flex items-center justify-between gap-3">
+                      <div class="text-sm text-slate-600">
+                        <span class="font-semibold text-slate-800">
+                          {req.user.firstName} {req.user.lastName}
+                        </span>
+                        <span class="text-slate-500"> (@{req.user.username})</span>
+                        <div class="text-xs text-slate-500 mt-1">
+                          Requested: {new Date(req.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+
+                      {#if supplyFilter === 'PENDING'}
+                        <div class="flex gap-2">
+                          <button
+                            onclick={() => updateSupplyRequestStatus(req.id, 'APPROVED')}
+                            disabled={updatingSupplyRequestId === req.id}
+                            class="px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {#if updatingSupplyRequestId === req.id}
+                              ...
+                            {:else}
+                              ✅ Approve
+                            {/if}
+                          </button>
+                          <button
+                            onclick={() => updateSupplyRequestStatus(req.id, 'REJECTED')}
+                            disabled={updatingSupplyRequestId === req.id}
+                            class="px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {#if updatingSupplyRequestId === req.id}
+                              ...
+                            {:else}
+                              ❌ Reject
+                            {/if}
+                          </button>
+                        </div>
+                      {/if}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {/each}
           </div>
         {/if}
       </div>
@@ -1940,7 +2199,6 @@
     </div>
   </div>
 {/if}
-
 
 <!-- Create Mission Dialog -->
 {#if isCreateMissionDialogOpen}

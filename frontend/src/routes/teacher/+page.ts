@@ -1,7 +1,8 @@
+// src/routes/teacher/+page.ts
 import { redirect } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
 import type { TeacherDashboardData } from '$lib/types/teacher';
-import { API_BASE_URL } from '$lib/config';
+import { API_BASE_URL, SUPPLY_API_URL } from '$lib/config';
 import { browser } from '$app/environment';
 
 // Get auth data from localStorage (browser only)
@@ -56,13 +57,23 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 	const storedClassId = getSelectedClassId();
 	const selectedClassId = urlClassId || storedClassId;
 
-	// Helper function to make authenticated requests
+	// Helper function to make authenticated requests (teacher-service)
 	const authenticatedFetch = (endpoint: string) => {
 		return fetch(`${API_BASE_URL}${endpoint}`, {
 			headers: {
 				'Content-Type': 'application/json',
-				...authHeaders,
-			},
+				...authHeaders
+			}
+		});
+	};
+
+	// Helper function to call supply-service directly
+	const supplyFetch = (endpoint: string) => {
+		return fetch(`${SUPPLY_API_URL}${endpoint}`, {
+			headers: {
+				'Content-Type': 'application/json',
+				...authHeaders
+			}
 		});
 	};
 
@@ -74,15 +85,27 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			? `/api/teacher/class?classId=${selectedClassId}`
 			: '/api/teacher/class';
 
+		// Supply requests endpoint (only when we have a classId)
+		const supplyRequestsPromise = selectedClassId
+			? supplyFetch(`/api/teacher/supply-requests?classId=${selectedClassId}&status=PENDING`)
+			: Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
+
 		// Fetch all data in parallel for better performance
-		const [classResponse, allClassesResponse, sectorsResponse, missionsResponse, submissionsResponse] =
-			await Promise.all([
-				authenticatedFetch(classEndpoint),
-				authenticatedFetch('/api/teacher/classes'),
-				authenticatedFetch(`/api/teacher/sectors${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
-				authenticatedFetch(`/api/teacher/missions${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
-				authenticatedFetch(`/api/teacher/submissions${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
-			]);
+		const [
+			classResponse,
+			allClassesResponse,
+			sectorsResponse,
+			missionsResponse,
+			submissionsResponse,
+			supplyRequestsResponse
+		] = await Promise.all([
+			authenticatedFetch(classEndpoint),
+			authenticatedFetch('/api/teacher/classes'),
+			authenticatedFetch(`/api/teacher/sectors${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
+			authenticatedFetch(`/api/teacher/missions${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
+			authenticatedFetch(`/api/teacher/submissions${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
+			supplyRequestsPromise
+		]);
 
 		console.log('📊 API Response Status:', {
 			class: classResponse.status,
@@ -90,6 +113,7 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectors: sectorsResponse.status,
 			missions: missionsResponse.status,
 			submissions: submissionsResponse.status,
+			supplyRequests: supplyRequestsResponse.status
 		});
 
 		// Handle 404 for class (teacher hasn't created a class yet) - this is not an error
@@ -109,12 +133,17 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 		if (!submissionsResponse.ok && submissionsResponse.status !== 404) {
 			throw new Error(`Failed to fetch submissions: ${submissionsResponse.status}`);
 		}
+		// Supply requests is non-critical; handle gracefully (don’t fail dashboard)
+		if (!supplyRequestsResponse.ok && supplyRequestsResponse.status !== 404) {
+			console.warn(`⚠️ Failed to fetch supply requests: ${supplyRequestsResponse.status}`);
+		}
 
 		// Parse all responses (handle 404s gracefully)
 		const allClasses = allClassesResponse.ok ? await allClassesResponse.json() : [];
 		const sectors = sectorsResponse.ok ? await sectorsResponse.json() : [];
 		const missions = missionsResponse.ok ? await missionsResponse.json() : [];
 		const submissions = submissionsResponse.ok ? await submissionsResponse.json() : [];
+		const supplyRequests = supplyRequestsResponse.ok ? await supplyRequestsResponse.json() : [];
 
 		console.log('✅ Loaded data:', {
 			currentClass: currentClass ? 'Found' : 'None',
@@ -122,6 +151,7 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectors: sectors.length,
 			missions: missions.length,
 			submissions: submissions.length,
+			supplyRequests: supplyRequests.length
 		});
 
 		return {
@@ -130,6 +160,7 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectors,
 			missions,
 			submissions,
+			supplyRequests
 		};
 	} catch (error) {
 		console.error('❌ Error loading teacher dashboard data:', error);
@@ -142,7 +173,8 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectors: [],
 			missions: [],
 			submissions: [],
-			error: error instanceof Error ? error.message : 'Failed to load dashboard data',
+			supplyRequests: [],
+			error: error instanceof Error ? error.message : 'Failed to load dashboard data'
 		};
 	}
 };

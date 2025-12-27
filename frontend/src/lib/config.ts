@@ -45,3 +45,7 @@ export const CONFIG = {
 		refreshTokenKey: 'groney_refresh_token',
 	},
 };
+
+export const SUPPLY_API_URL =
+	import.meta.env.VITE_SUPPLY_API_URL ?? 'http://localhost:3007';
+
