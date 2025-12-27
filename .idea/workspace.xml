@@ -5,8 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2f55ad1e-a7d1-415c-8376-e78240547a5e" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/services/shop-service/src/_tests_/shop.unit.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/services/supply-service/src/_tests_/supplies.unit.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/services/shop-service/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/backend/services/shop-service/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/services/supply-service/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/backend/services/supply-service/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
