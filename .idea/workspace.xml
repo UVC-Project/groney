@@ -5,8 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2f55ad1e-a7d1-415c-8376-e78240547a5e" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/backend/services/shop-service/src/_tests_/shop.unit.test.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/routes/teacher/+page.svelte" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/routes/teacher/+page.svelte" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,14 +24,15 @@
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Shell Script.setup.sh.executor&quot;: &quot;Run&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;shop-sprint2and3&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\Iva\\PhpstormProjects\\groney\\node_modules\\typescript\\lib&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Shell Script.setup.sh.executor": "Run",
+    "git-widget-placeholder": "shop-sprint2and3",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "prettierjs.PrettierConfiguration.Package": "C:\\Users\\Iva\\PhpstormProjects\\groney\\node_modules\\prettier",
+    "ts.external.directory.path": "C:\\Users\\Iva\\PhpstormProjects\\groney\\node_modules\\typescript\\lib"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\Iva\PhpstormProjects\groney\frontend\src\lib\assets\images\shop" />
