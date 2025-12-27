@@ -7,17 +7,7 @@ const SHOP = 'http://localhost:3005';
 export const load: PageLoad = async ({ fetch }) => {
   const userId = browser ? (localStorage.getItem('userId') ?? '') : '';
 
-  // If SSR or userId not available yet, render empty – the browser load will rerun with userId.
-  if (!userId) {
-    return {
-      userId: null,
-      classId: null,
-      coins: 0,
-      equippedHat: null,
-      equippedAccessory: null,
-      items: []
-    };
-  }
+  if (!userId) return { items: [], classId: null };
 
   try {
     const [itemsRes, mascotRes] = await Promise.all([
@@ -29,22 +19,11 @@ export const load: PageLoad = async ({ fetch }) => {
     const mascot = mascotRes.ok ? await mascotRes.json() : null;
 
     return {
-      userId,
-      classId: mascot?.classId ?? null,
-      coins: mascot?.coins ?? 0,
-      equippedHat: mascot?.equippedHat ?? null,
-      equippedAccessory: mascot?.equippedAccessory ?? null,
-      items
+      items,
+      classId: mascot?.classId ?? null
     };
   } catch (err) {
     console.error('Error loading wardrobe data', err);
-    return {
-      userId,
-      classId: null,
-      coins: 0,
-      equippedHat: null,
-      equippedAccessory: null,
-      items: []
-    };
+    return { items: [], classId: null };
   }
 };

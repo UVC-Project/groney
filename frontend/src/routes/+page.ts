@@ -1,61 +1,26 @@
 import type { PageLoad } from './$types';
 import { browser } from '$app/environment';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+const SHOP_SERVICE_URL = 'http://localhost:3005';
 
 export const load: PageLoad = async ({ fetch }) => {
   if (!browser) {
-    return {
-      coins: 0,
-      equippedHat: null,
-      equippedAccessory: null
-    };
+    return { coins: 0, equippedHat: null, equippedAccessory: null };
   }
 
-  const raw = localStorage.getItem('auth');
-
-  if (!raw) {
-    console.warn('No auth in localStorage');
-    return {
-      coins: 0,
-      equippedHat: null,
-      equippedAccessory: null
-    };
-  }
-
-  let auth: any;
-  try {
-    auth = JSON.parse(raw);
-  } catch {
-    console.warn('Invalid auth JSON in localStorage');
-    return {
-      coins: 0,
-      equippedHat: null,
-      equippedAccessory: null
-    };
-  }
-
-  const classId = auth?.classes?.[0]?.id;
-
-  if (!classId) {
-    console.warn('No classId found for user');
-    return {
-      coins: 0,
-      equippedHat: null,
-      equippedAccessory: null
-    };
+  const userId = localStorage.getItem('userId') ?? '';
+  if (!userId) {
+    return { coins: 0, equippedHat: null, equippedAccessory: null };
   }
 
   try {
-    const res = await fetch(`${API_BASE}/api/mascot/${encodeURIComponent(classId)}`);
+    const res = await fetch(
+      `${SHOP_SERVICE_URL}/api/mascot/by-user/${encodeURIComponent(userId)}?t=${Date.now()}`,
+      { cache: 'no-store' }
+    );
 
     if (!res.ok) {
-      console.error('Failed to load mascot for home', res.status);
-      return {
-        coins: 0,
-        equippedHat: null,
-        equippedAccessory: null
-      };
+      return { coins: 0, equippedHat: null, equippedAccessory: null };
     }
 
     const mascot = await res.json();
@@ -67,10 +32,6 @@ export const load: PageLoad = async ({ fetch }) => {
     };
   } catch (err) {
     console.error('Error loading mascot for home', err);
-    return {
-      coins: 0,
-      equippedHat: null,
-      equippedAccessory: null
-    };
+    return { coins: 0, equippedHat: null, equippedAccessory: null };
   }
 };
