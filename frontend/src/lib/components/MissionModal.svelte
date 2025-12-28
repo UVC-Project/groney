@@ -1,22 +1,19 @@
 <script lang="ts">
   import type { Mission } from '$lib/types/index.js';
-  import { createEventDispatcher } from 'svelte';
 
-  export let mission: Mission;
+  interface Props {
+    mission: Mission;
+    onclose?: () => void;
+    onaccept?: () => void;
+  }
 
-  const dispatch = createEventDispatcher<{
-    close: void;
-    accept: void;
-  }>();
-
-  const close = () => dispatch('close');
-  const accept = () => dispatch('accept');
+  let { mission, onclose = () => {}, onaccept = () => {} }: Props = $props();
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="backdrop" on:click={close}>
-  <div class="modal" on:click|stopPropagation>
+<div class="backdrop" onclick={onclose}>
+  <div class="modal" onclick={(e) => e.stopPropagation()}>
     <h2>{mission.title}</h2>
     <p>{mission.description}</p>
 
@@ -24,8 +21,8 @@
     <p>Category: {mission.category}</p>
 
     <div class="actions">
-      <button type="button" on:click={close}>Cancel</button>
-      <button type="button" on:click={accept}>Accept mission</button>
+      <button type="button" onclick={onclose}>Cancel</button>
+      <button type="button" onclick={onaccept}>Accept mission</button>
     </div>
   </div>
 </div>

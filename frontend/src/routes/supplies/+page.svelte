@@ -13,7 +13,7 @@
     imageUrl: string | null; // kept for compatibility, but we won't use it for rendering
   };
 
-  export let data: { supplies: Supply[] };
+  let { data }: { data: { supplies: Supply[] } } = $props();
 
   const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
@@ -23,8 +23,8 @@
     classes?: { id: string }[];
   };
 
-  let userId = '';
-  let classId = '';
+  let userId = $state('');
+  let classId = $state('');
 
   onMount(() => {
     try {
@@ -39,8 +39,8 @@
     }
   });
 
-  let bannerMsg: string | null = null;
-  let bannerType: 'error' | 'success' = 'success';
+  let bannerMsg = $state<string | null>(null);
+  let bannerType = $state<'error' | 'success'>('success');
 
   function showBanner(msg: string, type: 'error' | 'success') {
     bannerMsg = msg;
@@ -159,7 +159,7 @@
             <button
               type="button"
               class="text-xs font-semibold rounded-full px-4 py-1 bg-green-500 text-white hover:bg-green-600 transition-colors"
-              on:click={() => onRequestClick(supply)}
+              onclick={() => onRequestClick(supply)}
             >
               Request
             </button>

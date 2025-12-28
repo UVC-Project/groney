@@ -1,31 +1,45 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import StudentMap from '$lib/components/StudentMap.svelte';
-	import MissionModal from '$lib/components/MissionModal.svelte';
 	import { auth } from '$lib/stores/auth';
 	import { API_BASE_URL } from '$lib/config';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
+	import { get } from 'svelte/store';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
-	let { sectors, mapWidth, mapHeight } = data;
+	let sectors = $state(data.sectors);
+	let mapWidth = $state(data.mapWidth);
+	let mapHeight = $state(data.mapHeight);
 
 	// Selected mission for the modal
-	let selectedMission: any = null;
-	let selectedSector: any = null;
-	let isAccepting = false;
-	let errorMessage = '';
-	let successMessage = '';
+	let selectedMission = $state<any>(null);
+	let selectedSector = $state<any>(null);
+	let isAccepting = $state(false);
+	let errorMessage = $state('');
+	let successMessage = $state('');
+
+	// Auth state
+	let authState = $state(get(auth));
+	
+	$effect(() => {
+		const unsubscribe = auth.subscribe(value => {
+			authState = value;
+		});
+		return unsubscribe;
+	});
 
 	// Redirect to login if not authenticated
-	$: if (browser && !$auth.user) {
-		goto('/login');
-	}
+	$effect(() => {
+		if (browser && !authState.user) {
+			goto('/login');
+		}
+	});
 
-	function handleMissionClick(event: CustomEvent<{ mission: any; sector: any }>) {
-		selectedMission = event.detail.mission;
-		selectedSector = event.detail.sector;
+	function handleMissionClick(mission: any, sector: any) {
+		selectedMission = mission;
+		selectedSector = sector;
 		errorMessage = '';
 		successMessage = '';
 	}
@@ -37,13 +51,13 @@
 	}
 
 	async function acceptMission() {
-		if (!selectedMission || !$auth.user) return;
+		if (!selectedMission || !authState.user) return;
 
 		isAccepting = true;
 		errorMessage = '';
 
 		try {
-			const classId = $auth.classes?.[0]?.id;
+			const classId = authState.classes?.[0]?.id;
 			if (!classId) {
 				throw new Error('No class found');
 			}
@@ -52,12 +66,12 @@
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'x-user-id': $auth.user.id,
-					'x-user-role': $auth.user.role,
-					...($auth.token ? { Authorization: `Bearer ${$auth.token}` } : {}),
+					'x-user-id': authState.user.id,
+					'x-user-role': authState.user.role,
+					...(authState.token ? { Authorization: `Bearer ${authState.token}` } : {}),
 				},
 				body: JSON.stringify({
-					userId: $auth.user.id,
+					userId: authState.user.id,
 					classId,
 				}),
 			});
@@ -86,7 +100,7 @@
 		{sectors}
 		{mapWidth}
 		{mapHeight}
-		on:missionClick={handleMissionClick}
+		onMissionClick={(mission, sector) => handleMissionClick(mission, sector)}
 	/>
 </div>
 

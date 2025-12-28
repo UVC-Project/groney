@@ -5,15 +5,15 @@
   import type { PageData } from './$types';
   import { goto } from '$app/navigation';
 
-  export let data: PageData;
-
-  let showLogoutModal = false;
-
-  // Coins come from mascot via +page.ts
-  const coins = data.coins;
-
   // Default Groeny gif
   import DefaultGif from '$lib/assets/images/groney-gif/normal.gif';
+
+  let { data }: { data: PageData } = $props();
+
+  let showLogoutModal = $state(false);
+
+  // Coins come from mascot via +page.ts
+  let coins = $derived(data.coins);
 
   // DB-based item IDs → gifs
   const groenyGifMap: Record<string, string> = {
@@ -24,14 +24,15 @@
   };
 
   // Read equipped items from mascot
-  const equippedHat = data.equippedHat;
-  const equippedAccessory = data.equippedAccessory;
+  let equippedHat = $derived(data.equippedHat);
+  let equippedAccessory = $derived(data.equippedAccessory);
 
   // Priority: hat → accessory → default
-  $: groenySrc =
+  let groenySrc = $derived(
     (equippedHat && groenyGifMap[equippedHat]) ||
     (equippedAccessory && groenyGifMap[equippedAccessory]) ||
-    DefaultGif;
+    DefaultGif
+  );
 
   function logout() {
     showLogoutModal = false;
@@ -50,7 +51,7 @@
       <BackgroundPicker />
       <button
         class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white hover:bg-gray-300 text-sm font-medium text-gray-800 shadow-lg"
-        on:click={() => showLogoutModal = true}
+        onclick={() => showLogoutModal = true}
       >
         Logout
       </button>
@@ -115,6 +116,6 @@
     </div>
   </div>
 
-  <LogoutModal open={showLogoutModal} onCancel={() => showLogoutModal = false} onConfirm={logout}/>
+  <LogoutModal open={showLogoutModal} onCancel={() => { showLogoutModal = false; }} onConfirm={logout}/>
   <ScrollToTopButton />
 </div>

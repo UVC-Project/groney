@@ -7,7 +7,7 @@
   import BowTieImg from '$lib/assets/images/shop/bow-tie.png';
   import SunglassesImg from '$lib/assets/images/shop/sunglasses.png';
 
-  export let data: PageData;
+  let { data }: { data: PageData } = $props();
 
   // IDs provided by +page.ts
   const userId = data.userId;
@@ -32,11 +32,11 @@
 
   const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
-  let coins = data.coins;
-  let items = [...data.items];
+  let coins = $state(data.coins);
+  let items = $state([...data.items]);
 
-  let bannerMsg: string | null = null;
-  let bannerType: 'error' | 'success' = 'error';
+  let bannerMsg = $state<string | null>(null);
+  let bannerType = $state<'error' | 'success'>('error');
 
   function showBanner(msg: string, type: 'error' | 'success' = 'error') {
     bannerMsg = msg;
@@ -173,7 +173,7 @@
             <span class="text-xs font-semibold text-emerald-600">Owned</span>
             <button
               class="text-xs font-semibold rounded-full px-4 py-1 bg-emerald-400 text-white"
-              on:click={() => onApplyClick(item.id)}
+              onclick={() => onApplyClick(item.id)}
             >
               Apply
             </button>
@@ -181,7 +181,7 @@
             <span class="text-sm text-gray-700">🪙 {item.price}</span>
             <button
               class="text-xs font-semibold rounded-full px-4 py-1 bg-blue-400 text-white disabled:opacity-60"
-              on:click={() => onBuyClick(item.id)}
+              onclick={() => onBuyClick(item.id)}
               disabled={coins < item.price}
             >
               Buy
