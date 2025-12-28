@@ -7,6 +7,10 @@ RUN npm install
 
 COPY . .
 
+# Clear any stale SvelteKit cache
+RUN rm -rf .svelte-kit
+
 EXPOSE 5173
 
-CMD ["npm", "run", "dev", "--", "--host"]
+# Sync SvelteKit types before starting dev server
+CMD ["sh", "-c", "npx svelte-kit sync && npm run dev -- --host"]

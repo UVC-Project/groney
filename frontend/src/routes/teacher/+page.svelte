@@ -81,6 +81,16 @@
 
   let { data }: { data: PageData } = $props();
 
+  // User state from store
+  let userData = $state(get(user));
+  
+  $effect(() => {
+    const unsubscribe = user.subscribe(value => {
+      userData = value;
+    });
+    return unsubscribe;
+  });
+
   // Reactive data from load function - updates when invalidateAll() is called
   let currentClassData = $derived(data.currentClass || null);
   let allClassesData = $derived(data.allClasses || []);
@@ -1108,7 +1118,7 @@
               Teacher Dashboard
             </h1>
             <p class="text-xs sm:text-sm text-slate-500 hidden sm:block">
-              Welcome, {$user?.firstName || 'Teacher'}!
+              Welcome, {userData?.firstName || 'Teacher'}!
             </p>
           </div>
         </div>

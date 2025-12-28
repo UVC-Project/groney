@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth';
 	import { API_BASE_URL } from '$lib/config';
 
 	// Get registration type from URL params
-	let registrationType = $derived($page.url.searchParams.get('type') || 'student');
+	let registrationType = $derived(page.url.searchParams.get('type') || 'student');
 
 	// Form state
 	let firstName = $state('');

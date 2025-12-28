@@ -1,11 +1,11 @@
 <script lang="ts">
   import PageWrapper from '$lib/components/PageWrapper.svelte';
 
-  let openGroeny = false;
-  let openHowToPlay = false;
-  let openStats = false;
-  let coins = false;
-  let leaderBoard = false;
+  let openGroeny = $state(false);
+  let openHowToPlay = $state(false);
+  let openStats = $state(false);
+  let coins = $state(false);
+  let leaderBoard = $state(false);
 </script>
 
 <PageWrapper title="Wiki & Help">
@@ -16,7 +16,7 @@
 
 <!-- Getting started -->
     <div class="border-l-4 border-grass-green pl-4">
-      <button class="w-full flex items-center justify-between gap-2 py-2" on:click={() => (openGroeny = !openGroeny)}>
+      <button class="w-full flex items-center justify-between gap-2 py-2" onclick={() => (openGroeny = !openGroeny)}>
         <h3 class="font-bold text-lg text-gray-800">Getting Started</h3>
         <span class={`text-sm transition-transform duration-200 ${openGroeny ? 'rotate-90' : 'rotate-0'}`}>▶️</span>
       </button>
@@ -31,7 +31,7 @@
 
 <!-- How to care -->
     <div class="border-l-4 border-sky-blue pl-4">
-      <button class="w-full flex items-center justify-between gap-2 py-2" on:click={() => (openHowToPlay = !openHowToPlay)}>
+      <button class="w-full flex items-center justify-between gap-2 py-2" onclick={() => (openHowToPlay = !openHowToPlay)}>
         <h3 class="font-bold text-lg text-gray-800">How to Care for Groeny</h3>
         <span class={`text-sm transition-transform duration-200 ${openHowToPlay ? 'rotate-90' : 'rotate-0'}`}>▶️</span>
       </button>
@@ -47,7 +47,7 @@
 <!-- Caompleting Missions -->
     <div class="border-l-4 border-sunshine-yellow pl-4">
       <button
-        class="w-full flex items-center justify-between gap-2 py-2" on:click={() => (openStats = !openStats)}>
+        class="w-full flex items-center justify-between gap-2 py-2" onclick={() => (openStats = !openStats)}>
         <h3 class="font-bold text-lg text-gray-800">Completing Missions</h3>
         <span class={`text-sm transition-transform duration-200 ${openStats ? 'rotate-90' : 'rotate-0'}`}>▶️</span>
       </button>
@@ -63,7 +63,7 @@
 <!-- Earning coins & Xp -->
     <div class="border-l-4 border-red-500 pl-4">
       <button
-        class="w-full flex items-center justify-between gap-2 py-2" on:click={() => (coins = !coins)}>
+        class="w-full flex items-center justify-between gap-2 py-2" onclick={() => (coins = !coins)}>
         <h3 class="font-bold text-lg text-gray-800">Earning Coins & XP</h3>
         <span class={`text-sm transition-transform duration-200 ${coins ? 'rotate-90' : 'rotate-0'}`}>▶️</span>
       </button>
@@ -80,7 +80,7 @@
   <!-- Class Leaderboard -->
     <div class="border-l-4 border-orange-500 pl-4">
       <button
-        class="w-full flex items-center justify-between gap-2 py-2" on:click={() => (leaderBoard = !leaderBoard)}>
+        class="w-full flex items-center justify-between gap-2 py-2" onclick={() => (leaderBoard = !leaderBoard)}>
         <h3 class="font-bold text-lg text-gray-800">Class Leaderboard</h3>
         <span class={`text-sm transition-transform duration-200 ${leaderBoard ? 'rotate-90' : 'rotate-0'}`}>▶️</span>
       </button>

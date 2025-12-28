@@ -3,6 +3,8 @@ import { browser } from '$app/environment';
 
 const SHOP_SERVICE_URL = 'http://localhost:3005';
 
+export const ssr = false;
+
 export const load: PageLoad = async ({ fetch }) => {
   if (!browser) {
     return { coins: 0, equippedHat: null, equippedAccessory: null };

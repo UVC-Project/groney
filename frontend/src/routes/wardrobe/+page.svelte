@@ -5,16 +5,16 @@
 
   import DefaultGif from '$lib/assets/images/groney-gif/normal.gif';
 
-  export let data: PageData;
+  let { data }: { data: PageData } = $props();
 
   const STORAGE_KEY = 'wardrobe:selectedItemId';
 
   type Item = PageData['items'][number];
 
   const allItems: Item[] = data.items ?? [];
-  $: ownedItems = allItems.filter((item) => item.owned);
+  let ownedItems = $derived(allItems.filter((item) => item.owned));
 
-  let selectedItem: Item | null = null;
+  let selectedItem = $state<Item | null>(null);
 
   // ✅ New DB IDs
   const groenyGifMap: Record<string, string> = {
@@ -35,10 +35,11 @@
     return imageMap[item.id] ?? (item as any).imageUrl ?? null;
   }
 
-  $: groenySrc =
+  let groenySrc = $derived(
     selectedItem && groenyGifMap[selectedItem.id]
       ? groenyGifMap[selectedItem.id]
-      : DefaultGif;
+      : DefaultGif
+  );
 
   // --- API
   const SHOP = 'http://localhost:3005';
@@ -124,7 +125,7 @@
         <div class="flex justify-center mb-10">
           <button
             type="button"
-            on:click={clearSelection}
+            onclick={clearSelection}
             class="px-4 py-2 rounded-full border bg-white hover:bg-red-600 hover:text-white text-sm font-semibold text-gray-800 shadow"
           >
             Remove item
@@ -151,7 +152,7 @@
       {#each ownedItems as item}
         <button
           type="button"
-          on:click={() => selectItem(item)}
+          onclick={() => selectItem(item)}
           class={`relative bg-white rounded-[28px] shadow-md border-2 hover:shadow-lg transition p-4 flex flex-col items-center ${
             selectedItem?.id === item.id ? 'border-yellow-400' : 'border-gray-200'
           }`}

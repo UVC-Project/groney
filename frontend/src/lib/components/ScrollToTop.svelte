@@ -1,7 +1,7 @@
-<script>
+<script lang="ts">
   import { onMount } from "svelte";
 
-  let visible = false;
+  let visible = $state(false);
 
   onMount(() => {
     function handleScroll() {
@@ -39,4 +39,4 @@
   class="fixed bottom-20 right-6 w-12 h-12 rounded-full bg-white flex items-center justify-center hover:bg-green-500 cursor-pointer fade"
   class:hidden-state={!visible}
   class:visible-state={visible}
-  on:click={scrollToTop}>👆🏻</button>
+  onclick={scrollToTop}>👆🏻</button>
