@@ -55,7 +55,7 @@
     <p
       class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white text-sm font-medium text-gray-800 shadow-lg"
     >
-      Welcome,!
+      Welcome, !
     </p>
     <div class="flex items-center gap-4">
       <BackgroundPicker />
