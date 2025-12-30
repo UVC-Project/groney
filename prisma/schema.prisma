@@ -203,6 +203,8 @@ model Mission {
   cleanlinessBoost Int     @default(0)
   requiresPhoto   Boolean  @default(true)
   requiresQR      Boolean  @default(false)
+  cooldownHours   Int      @default(24)  // Hours before same student can redo mission
+  maxCompletions  Int?     // Optional: max times a student can complete this mission (null = unlimited)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   coordinates_x   Float    @default(50.0)

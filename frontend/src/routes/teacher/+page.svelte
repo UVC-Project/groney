@@ -172,6 +172,9 @@
     hungerBoost: 0,
     happinessBoost: 0,
     cleanlinessBoost: 0,
+    cooldownHours: 24,
+    maxCompletions: null as number | null,
+    category: 'THIRST' as 'THIRST' | 'HUNGER' | 'HAPPINESS' | 'CLEANLINESS',
   });
 
   // Decay rates state (for settings tab)
@@ -921,6 +924,9 @@
       hungerBoost: 0,
       happinessBoost: 0,
       cleanlinessBoost: 0,
+      cooldownHours: 24,
+      maxCompletions: null,
+      category: 'THIRST',
     };
     // Clear errors
     missionFormErrors = {};
@@ -2681,6 +2687,62 @@
                 max="50"
                 class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               />
+            </div>
+          </div>
+        </div>
+
+        <!-- Mission Category -->
+        <div>
+          <label for="mission-category" class="block text-sm font-semibold text-slate-700 mb-2">
+            Category
+          </label>
+          <select
+            id="mission-category"
+            bind:value={missionForm.category}
+            class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+          >
+            <option value="THIRST">💧 Thirst</option>
+            <option value="HUNGER">🍎 Hunger</option>
+            <option value="HAPPINESS">😊 Happiness</option>
+            <option value="CLEANLINESS">✨ Cleanliness</option>
+          </select>
+          <p class="text-xs text-slate-500 mt-1">Primary stat this mission affects</p>
+        </div>
+
+        <!-- Cooldown Settings -->
+        <div>
+          <div class="block text-sm font-semibold text-slate-700 mb-3">
+            Cooldown Settings
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="mission-cooldown" class="block text-xs font-medium text-slate-600 mb-1">
+                ⏱️ Cooldown (hours)
+              </label>
+              <input
+                type="number"
+                id="mission-cooldown"
+                bind:value={missionForm.cooldownHours}
+                min="0"
+                max="168"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              />
+              <p class="text-xs text-slate-500 mt-1">Time before student can redo</p>
+            </div>
+            <div>
+              <label for="mission-max-completions" class="block text-xs font-medium text-slate-600 mb-1">
+                🔢 Max Completions
+              </label>
+              <input
+                type="number"
+                id="mission-max-completions"
+                bind:value={missionForm.maxCompletions}
+                min="1"
+                max="100"
+                placeholder="Unlimited"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              />
+              <p class="text-xs text-slate-500 mt-1">Leave empty for unlimited</p>
             </div>
           </div>
         </div>
