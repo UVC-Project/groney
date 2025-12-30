@@ -40,12 +40,6 @@
 
     if (browser) goto('/auth');
   }
-
-  $: if ($user === null) {
-    if (browser) {
-      goto('/auth');
-    }
-  }
 </script>
 
 <div class="container mx-auto px-4 py-10">
