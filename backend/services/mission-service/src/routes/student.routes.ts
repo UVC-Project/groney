@@ -158,6 +158,15 @@ router.post('/missions/:missionId/accept', requireStudent, async (req: Request, 
 			return res.status(403).json({ error: 'Forbidden', message: 'Mission does not belong to this class' });
 		}
 
+		if (mission.status !== 'AVAILABLE') {
+			throw new Error('MISSION_TAKEN');
+		}
+
+		await prisma.mission.update({
+			where: { id: missionId },
+			data: { status: 'IN_PROGRESS' }
+		});
+
 		// Check if user already has a pending submission for this mission
 		const existingSubmission = await prisma.submission.findFirst({
 			where: {
