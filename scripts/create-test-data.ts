@@ -232,6 +232,84 @@ async function createTestData() {
       console.log(`   ✅ Submission from ${students[i].username} for "${missions[i].title}"`);
     }
 
+    console.log('\n🛒 Seeding shop items...');
+    try {
+      const result = await prisma.shopItem.createMany({
+        data: [
+          {
+            id: 'hat-red-cap',
+            name: 'Red Cap',
+            description: 'A stylish red cap for Groeny.',
+            type: 'HAT',
+            price: 50,
+            imageUrl: '/assets/shop/red-cap.png'
+          },
+          {
+            id: 'hat-blue-cap',
+            name: 'Blue Cap',
+            description: 'A cool blue cap for Groeny.',
+            type: 'HAT',
+            price: 50,
+            imageUrl: '/assets/shop/blue-cap.png'
+          },
+          {
+            id: 'acc-bow-tie',
+            name: 'Bow Tie',
+            description: 'A fancy bow tie accessory.',
+            type: 'ACCESSORY',
+            price: 75,
+            imageUrl: '/assets/shop/bow-tie.png'
+          },
+          {
+            id: 'acc-sunglasses',
+            name: 'Sunglasses',
+            description: 'Looks cool in the sun.',
+            type: 'ACCESSORY',
+            price: 90,
+            imageUrl: '/assets/shop/sunglasses.png'
+          }
+        ],
+        skipDuplicates: true
+      });
+
+      console.log(`   ✅ Shop items seeded. Inserted: ${result.count}`);
+    } catch (e) {
+      console.error('   ❌ Shop seeding failed:', e);
+    }
+
+    console.log('\n🧤 Seeding schoolyard supplies...');
+    try {
+      const result = await prisma.supply.createMany({
+        data: [
+          {
+            id: 'gloves',
+            name: 'Gloves',
+            description: 'Protect hands while working in the garden.',
+            imageUrl: '/src/lib/assets/images/supplies/gloves.png'
+          },
+          {
+            id: 'seeds',
+            name: 'Seeds',
+            description: 'Seeds for planting new flowers or vegetables.',
+            imageUrl: '/src/lib/assets/images/supplies/seeds.png'
+          },
+          {
+            id: 'watering-can',
+            name: 'Watering can',
+            description: 'For watering plants.',
+            imageUrl: '/src/lib/assets/images/supplies/watering-can.png'
+          }
+        ],
+        skipDuplicates: true
+      });
+
+      console.log(`   ✅ Supplies seeded. Inserted: ${result.count}`);
+    } catch (e) {
+      console.error('   ❌ Supplies seeding failed:', e);
+    }
+
+
+
     // Summary
     console.log('\n' + '='.repeat(50));
     console.log('✨ Test data created successfully!\n');

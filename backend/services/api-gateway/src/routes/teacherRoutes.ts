@@ -240,4 +240,32 @@ router.use(
 	})
 );
 
+// Supply Service routes - Teacher view (approve / reject requests)
+router.use(
+	'/supply-requests',
+	createProxyMiddleware({
+		target: process.env.SUPPLY_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/teacher/supply-requests': '/api/teacher/supply-requests',
+		},
+		onProxyReq: (proxyReq, req) => {
+			if (req.headers['x-user-id']) {
+				proxyReq.setHeader('x-user-id', req.headers['x-user-id'] as string);
+			}
+			if (req.headers['x-user-role']) {
+				proxyReq.setHeader('x-user-role', req.headers['x-user-role'] as string);
+			}
+
+			// Forward JSON body if present
+			if (req.body && Object.keys(req.body).length > 0) {
+				const bodyData = JSON.stringify(req.body);
+				proxyReq.setHeader('Content-Type', 'application/json');
+				proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+				proxyReq.write(bodyData);
+			}
+		},
+	})
+);
+
 export default router;

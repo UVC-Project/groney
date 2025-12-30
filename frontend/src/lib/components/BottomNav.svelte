@@ -1,11 +1,13 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { isTeacher } from '$lib/stores/auth';
+  import { get } from 'svelte/store';
 
   const studentNavItems = [
     { href: '/', label: 'Home', icon: '🏡' },
     { href: '/map', label: 'Map', icon: '🧭' },
     { href: '/shop', label: 'Shop', icon: '🛒' },
+    { href: '/supplies', label: 'Supplies', icon: '🧤' },
     { href: '/wardrobe', label: 'Wardrobe', icon: '👔' },
     { href: '/wiki', label: 'Wiki', icon: '📚' },
   ];
@@ -17,8 +19,17 @@
     { href: '/wiki', label: 'Wiki', icon: '📚' },
   ];
 
-  $: currentPath = $page.url.pathname;
-  $: navItems = $isTeacher ? teacherNavItems : studentNavItems;
+  let currentPath = $derived(page.url.pathname);
+  let isTeacherValue = $state(false);
+  
+  $effect(() => {
+    const unsubscribe = isTeacher.subscribe(value => {
+      isTeacherValue = value;
+    });
+    return unsubscribe;
+  });
+  
+  let navItems = $derived(isTeacherValue ? teacherNavItems : studentNavItems);
 </script>
 
 <nav

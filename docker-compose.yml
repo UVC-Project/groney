@@ -50,6 +50,7 @@ services:
       SUBMISSION_SERVICE_URL: http://submission-service:3004
       SHOP_SERVICE_URL: http://shop-service:3005
       CALCULATION_SERVICE_URL: http://calculation-service:3006
+      SUPPLY_SERVICE_URL: http://supply-service:3007
       REDIS_URL: redis://redis:6379
     depends_on:
       redis:
@@ -188,6 +189,27 @@ services:
       - ./backend/services/calculation-service:/app
       - ./prisma:/app/prisma:ro
       - /app/node_modules
+
+  # Supply Service
+  supply-service:
+    build:
+      context: ./backend/services/supply-service
+      dockerfile: Dockerfile
+    container_name: groney-supply-service
+    ports:
+      - "3007:3007"
+    environment:
+      NODE_ENV: development
+      PORT: 3007
+      DATABASE_URL: postgresql://groney_user:groney_password@postgres:5432/groney
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/services/supply-service:/app
+      - ./prisma:/app/prisma:ro
+      - /app/node_modules
+
 
   # MinIO for object storage (S3-compatible)
   minio:

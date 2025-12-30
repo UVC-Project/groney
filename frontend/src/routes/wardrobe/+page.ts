@@ -1,23 +1,29 @@
 import type { PageLoad } from './$types';
+import { browser } from '$app/environment';
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3005';
+const GATEWAY = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+const SHOP = 'http://localhost:3005';
 
 export const load: PageLoad = async ({ fetch }) => {
-  const userId = 'user-1';
+  const userId = browser ? (localStorage.getItem('userId') ?? '') : '';
+
+  if (!userId) return { items: [], classId: null };
 
   try {
-    const res = await fetch(`${API_URL}/api/shop/items?userId=${userId}`);
+    const [itemsRes, mascotRes] = await Promise.all([
+      fetch(`${GATEWAY}/api/shop/items?userId=${encodeURIComponent(userId)}`),
+      fetch(`${SHOP}/api/mascot/by-user/${encodeURIComponent(userId)}`)
+    ]);
 
-    if (!res.ok) {
-      console.error('Failed to load wardrobe items', res.status);
-      return { items: [] };
-    }
+    const items = itemsRes.ok ? await itemsRes.json() : [];
+    const mascot = mascotRes.ok ? await mascotRes.json() : null;
 
-    const items = await res.json();
-
-    return { items };
+    return {
+      items,
+      classId: mascot?.classId ?? null
+    };
   } catch (err) {
-    console.error('Error loading wardrobe items', err);
-    return { items: [] };
+    console.error('Error loading wardrobe data', err);
+    return { items: [], classId: null };
   }
 };

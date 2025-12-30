@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-
 	interface Mission {
 		id: string;
 		title: string;
@@ -33,11 +31,6 @@
 	}
 
 	let { sectors = [], mapWidth = 20, mapHeight = 16, onSectorClick, onMissionClick }: Props = $props();
-
-	const dispatch = createEventDispatcher<{
-		sectorClick: { sector: Sector };
-		missionClick: { mission: Mission; sector: Sector };
-	}>();
 
 	// Only show placed sectors
 	let placedSectors = $derived(sectors.filter((s) => s.gridX >= 0 && s.gridY >= 0));
@@ -81,12 +74,10 @@
 	function handleSectorClick(sector: Sector) {
 		selectedSector = sector;
 		onSectorClick?.(sector);
-		dispatch('sectorClick', { sector });
 	}
 
 	function handleMissionClick(mission: Mission, sector: Sector) {
 		onMissionClick?.(mission, sector);
-		dispatch('missionClick', { mission, sector });
 	}
 
 	function closeSectorPanel() {

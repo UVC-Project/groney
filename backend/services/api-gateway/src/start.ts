@@ -8,6 +8,8 @@ import authRoutes from './routes/authRoutes';
 import { noAuthMiddleware } from './middleware/noAuthMiddleware';
 import mapRoutes from './routes/mapRoutes';
 import studentRoutes from './routes/studentRoutes';
+import supplyRoutes from './routes/supplyRoutes';
+
 
 config();
 
@@ -38,6 +40,9 @@ app.use(express.json());
 
 // Shop endpoints (local routes that need body parsing)
 app.use('/api', shopRoutes);
+
+// Supply endpoints (student requests + teacher approvals)
+app.use('/api', supplyRoutes);
 
 app.get('/', (_req, res) => {
   res.json({
