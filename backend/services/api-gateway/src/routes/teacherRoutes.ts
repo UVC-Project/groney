@@ -8,6 +8,7 @@ const router = Router();
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
 const MISSION_SERVICE_URL = process.env.MISSION_SERVICE_URL || 'http://localhost:3003';
 const SUBMISSION_SERVICE_URL = process.env.SUBMISSION_SERVICE_URL || 'http://localhost:3004';
+const MASCOT_ENGINE_URL = process.env.MASCOT_ENGINE_URL || 'http://localhost:3002';
 
 // Apply authentication middleware to all teacher routes
 router.use(requireAuth);
@@ -256,6 +257,33 @@ router.use(
 			}
 
 			// Forward JSON body if present
+			if (req.body && Object.keys(req.body).length > 0) {
+				const bodyData = JSON.stringify(req.body);
+				proxyReq.setHeader('Content-Type', 'application/json');
+				proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+				proxyReq.write(bodyData);
+			}
+		},
+	})
+);
+
+// Mascot Engine routes - Decay rate customization
+router.use(
+	'/mascot',
+	createProxyMiddleware({
+		target: MASCOT_ENGINE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/teacher/mascot': '/api/mascot',
+		},
+		onProxyReq: (proxyReq, req) => {
+			if (req.headers['x-user-id']) {
+				proxyReq.setHeader('x-user-id', req.headers['x-user-id'] as string);
+			}
+			if (req.headers['x-user-role']) {
+				proxyReq.setHeader('x-user-role', req.headers['x-user-role'] as string);
+			}
+			// Forward JSON body for PATCH requests
 			if (req.body && Object.keys(req.body).length > 0) {
 				const bodyData = JSON.stringify(req.body);
 				proxyReq.setHeader('Content-Type', 'application/json');

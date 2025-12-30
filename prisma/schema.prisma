@@ -87,6 +87,13 @@ model Mascot {
   equippedHat     String?
   equippedAccessory String?
   lastDecayAt     DateTime @default(now())
+  
+  // Decay rates per hour (teacher-customizable)
+  thirstDecayRate     Float @default(1.0)
+  hungerDecayRate     Float @default(2.0)
+  happinessDecayRate  Float @default(3.0)
+  cleanlinessDecayRate Float @default(2.0)
+  
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

@@ -194,21 +194,35 @@ router.post('/submissions/:id/review', requireTeacher, async (req: Request, res:
 					const newHunger = Math.min(100, mascot.hunger + submission.mission.hungerBoost);
 					const newHappiness = Math.min(100, mascot.happiness + submission.mission.happinessBoost);
 					const newCleanliness = Math.min(100, mascot.cleanliness + submission.mission.cleanlinessBoost);
+					const newXp = mascot.xp + submission.mission.xpReward;
+
+					// Calculate new level based on XP thresholds
+					const XP_THRESHOLDS = [0, 100, 250, 500, 1000, 2000, 3500, 5500, 8000, 11000, 15000];
+					let newLevel = 1;
+					for (let level = 10; level >= 1; level--) {
+						if (newXp >= XP_THRESHOLDS[level - 1]) {
+							newLevel = level;
+							break;
+						}
+					}
+
+					const leveledUp = newLevel > mascot.level;
 
 					// Update mascot
 					await tx.mascot.update({
 						where: { id: mascot.id },
 						data: {
-							xp: mascot.xp + submission.mission.xpReward,
+							xp: newXp,
 							coins: mascot.coins + submission.mission.coinReward,
 							thirst: newThirst,
 							hunger: newHunger,
 							happiness: newHappiness,
 							cleanliness: newCleanliness,
+							level: newLevel,
 						},
 					});
 
-					// Create activity feed entry
+					// Create activity feed entry for mission completion
 					await tx.activity.create({
 						data: {
 							classId: submission.classId,
@@ -218,6 +232,18 @@ router.post('/submissions/:id/review', requireTeacher, async (req: Request, res:
 							imageUrl: submission.photoUrl,
 						},
 					});
+
+					// Create activity feed entry for level up
+					if (leveledUp) {
+						await tx.activity.create({
+							data: {
+								classId: submission.classId,
+								userId: submission.userId,
+								type: 'LEVEL_UP',
+								content: `Groeny reached level ${newLevel}! 🎉`,
+							},
+						});
+					}
 				}
 			}
 
