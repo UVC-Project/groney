@@ -10,8 +10,8 @@
 // ============================================
 // 🧪 DEBUG MODE - Set to true for fast testing
 // ============================================
-export const DEBUG_MODE = true;  // Set to false for production
-export const DEBUG_DECAY_MULTIPLIER = 1;  // 1 minute = 1 hour of decay in debug mode
+export const DEBUG_MODE = false;  // Set to false for production
+export const DEBUG_DECAY_MULTIPLIER = 60;  // 1 minute = 1 hour of decay in debug mode
 
 // XP thresholds for each level (index = level, value = total XP needed)
 export const XP_THRESHOLDS = [
@@ -135,7 +135,13 @@ export function calculateSchoolHoursBetween(startDate: Date, endDate: Date): num
     return minutesElapsed * (DEBUG_DECAY_MULTIPLIER / 60);  // Convert to equivalent hours
   }
   
-  let schoolHours = 0;
+  // If less than 1 minute has passed, no decay
+  const msElapsed = endDate.getTime() - startDate.getTime();
+  if (msElapsed < 60 * 1000) {
+    return 0;
+  }
+  
+  let schoolMinutes = 0;
   const current = new Date(startDate);
   
   // Cap at 7 days to prevent excessive calculation
@@ -143,15 +149,31 @@ export function calculateSchoolHoursBetween(startDate: Date, endDate: Date): num
   maxEnd.setDate(maxEnd.getDate() + 7);
   const effectiveEnd = endDate < maxEnd ? endDate : maxEnd;
   
-  // Iterate hour by hour
+  // Iterate minute by minute for more accurate calculation
+  // But optimize by checking hour boundaries
   while (current < effectiveEnd) {
     if (isSchoolHours(current)) {
-      schoolHours++;
+      // Calculate how many minutes until the end of this hour or until effectiveEnd
+      const endOfHour = new Date(current);
+      endOfHour.setMinutes(59, 59, 999);
+      
+      const minutesInThisHour = Math.min(
+        Math.floor((effectiveEnd.getTime() - current.getTime()) / (1000 * 60)),
+        Math.floor((endOfHour.getTime() - current.getTime()) / (1000 * 60)) + 1
+      );
+      
+      schoolMinutes += Math.max(0, minutesInThisHour);
+      
+      // Jump to next hour
+      current.setHours(current.getHours() + 1, 0, 0, 0);
+    } else {
+      // Not school hours, jump to next hour
+      current.setHours(current.getHours() + 1, 0, 0, 0);
     }
-    current.setHours(current.getHours() + 1);
   }
   
-  return schoolHours;
+  // Convert minutes to hours
+  return schoolMinutes / 60;
 }
 
 
