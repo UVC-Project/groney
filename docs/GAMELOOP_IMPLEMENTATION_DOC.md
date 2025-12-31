@@ -12,14 +12,27 @@ This PR implements the core gameloop functionality for Groeny, the schoolyard ma
 - Stats decay only during school hours (8am-4pm, Monday-Friday)
 - Uses "lazy evaluation" - decay is calculated when mascot data is fetched, not via background jobs
 - Each stat has a configurable decay rate (points per hour)
+- Decay is **continuous/fractional** - 30 min = 0.5 hours of decay, not rounded to full hours
+- Minimum threshold: < 1 minute = no decay (prevents micro-updates)
+
+**Decay Formula:**
+```
+newStat = oldStat - (schoolHoursElapsed × decayRate)
+```
 
 **Default decay rates:**
-| Stat | Rate | Reasoning |
-|------|------|-----------|
-| Thirst | 1.0/hr | Plants don't need constant watering |
-| Hunger | 2.0/hr | Medium - feeding animals, garden care |
-| Happiness | 3.0/hr | Fastest - needs constant attention |
-| Cleanliness | 2.0/hr | Medium - keeping schoolyard clean |
+| Stat | Rate | Time for 1 point drop |
+|------|------|----------------------|
+| Thirst | 1.0/hr | 60 min |
+| Hunger | 2.0/hr | 30 min |
+| Happiness | 3.0/hr | 20 min |
+| Cleanliness | 2.0/hr | 30 min |
+
+**Example:** After 2 hours of school time:
+- Thirst: -2 points
+- Hunger: -4 points  
+- Happiness: -6 points
+- Cleanliness: -4 points
 
 **Implementation:** `backend/services/mascot-engine/src/gameloop.ts`
 
@@ -44,7 +57,12 @@ This PR implements the core gameloop functionality for Groeny, the schoolyard ma
 
 ### 3. Groeny Health States
 
-Based on average of all 4 stats:
+**Health Calculation:**
+```
+Health = (Thirst + Hunger + Happiness + Cleanliness) / 4
+```
+Simple average of all 4 stats, then mapped to visual state:
+
 | Health % | State | Visual |
 |----------|-------|--------|
 | 51-100% | Normal | 😊 Happy Groeny |
@@ -112,10 +130,57 @@ export const DEBUG_MODE = true;        // Enable fast decay
 export const DEBUG_DECAY_MULTIPLIER = 1000;  // 1 min = ~16 hours
 ```
 
-Debug features:
-- Bypasses school hours restriction
-- Accelerated decay for testing
-- Reset endpoints available
+**Debug vs Production:**
+| Aspect | Debug Mode | Production Mode |
+|--------|------------|-----------------|
+| School hours | Ignored (always decays) | Only 8am-4pm Mon-Fri |
+| Time calculation | `minutes × multiplier` | Actual school minutes |
+| Speed | Configurable via multiplier | Real-time |
+
+### Debug Endpoints & Curl Commands
+
+All debug endpoints require `DEBUG_MODE = true`. Replace `CLASS_ID` with your actual class ID.
+
+**Find your class ID:**
+```bash
+docker exec groney-postgres psql -U groney_user -d groney -c "SELECT id, name, \"classCode\" FROM classes;"
+```
+
+**Reset mascot stats to 100%:**
+```bash
+# Single class
+curl -X POST http://localhost:3002/api/debug/reset/CLASS_ID
+
+# All mascots
+curl -X POST http://localhost:3002/api/debug/reset-all
+```
+
+**Manage coins:**
+```bash
+# Add coins
+curl -X POST http://localhost:3002/api/debug/coins/CLASS_ID \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 100}'
+
+# Remove coins (negative amount)
+curl -X POST http://localhost:3002/api/debug/coins/CLASS_ID \
+  -H "Content-Type: application/json" \
+  -d '{"amount": -50}'
+
+# Reset coins to 0
+curl -X POST http://localhost:3002/api/debug/coins/CLASS_ID/reset
+```
+
+**Manage XP & Level:**
+```bash
+# Add XP (may trigger level up)
+curl -X POST http://localhost:3002/api/debug/xp/CLASS_ID \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 500}'
+
+# Reset XP to 0 and level to 1
+curl -X POST http://localhost:3002/api/debug/xp/CLASS_ID/reset
+```
 
 ---
 
