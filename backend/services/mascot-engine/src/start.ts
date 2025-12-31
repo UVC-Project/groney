@@ -401,6 +401,193 @@ app.post('/api/debug/reset-all', async (_req, res) => {
   }
 });
 
+/**
+ * POST /api/debug/coins/:classId
+ * DEBUG ONLY: Add coins to mascot
+ * Body: { amount: number }
+ */
+app.post('/api/debug/coins/:classId', async (req, res) => {
+  if (!DEBUG_MODE) {
+    return res.status(403).json({ error: 'Debug mode is disabled' });
+  }
+
+  const { classId } = req.params;
+  const { amount } = req.body;
+
+  if (typeof amount !== 'number') {
+    return res.status(400).json({ error: 'Amount must be a number' });
+  }
+
+  try {
+    const mascot = await prisma.mascot.findUnique({
+      where: { classId },
+    });
+
+    if (!mascot) {
+      return res.status(404).json({ error: 'Mascot not found' });
+    }
+
+    const newCoins = Math.max(0, mascot.coins + amount);
+
+    const updated = await prisma.mascot.update({
+      where: { id: mascot.id },
+      data: { coins: newCoins },
+    });
+
+    console.log(`💰 DEBUG COINS: Mascot ${classId} coins ${amount >= 0 ? '+' : ''}${amount} → ${newCoins}`);
+
+    res.json({
+      message: `Coins ${amount >= 0 ? 'added' : 'removed'}`,
+      previousCoins: mascot.coins,
+      addedAmount: amount,
+      newCoins: updated.coins,
+    });
+  } catch (error) {
+    console.error('Error modifying coins:', error);
+    res.status(500).json({ error: 'Failed to modify coins' });
+  }
+});
+
+/**
+ * POST /api/debug/coins/:classId/reset
+ * DEBUG ONLY: Reset coins to 0
+ */
+app.post('/api/debug/coins/:classId/reset', async (req, res) => {
+  if (!DEBUG_MODE) {
+    return res.status(403).json({ error: 'Debug mode is disabled' });
+  }
+
+  const { classId } = req.params;
+
+  try {
+    const mascot = await prisma.mascot.findUnique({
+      where: { classId },
+    });
+
+    if (!mascot) {
+      return res.status(404).json({ error: 'Mascot not found' });
+    }
+
+    const previousCoins = mascot.coins;
+
+    await prisma.mascot.update({
+      where: { id: mascot.id },
+      data: { coins: 0 },
+    });
+
+    console.log(`💰 DEBUG COINS RESET: Mascot ${classId} coins ${previousCoins} → 0`);
+
+    res.json({
+      message: 'Coins reset to 0',
+      previousCoins,
+      newCoins: 0,
+    });
+  } catch (error) {
+    console.error('Error resetting coins:', error);
+    res.status(500).json({ error: 'Failed to reset coins' });
+  }
+});
+
+/**
+ * POST /api/debug/xp/:classId
+ * DEBUG ONLY: Add XP to mascot (can trigger level up)
+ * Body: { amount: number }
+ */
+app.post('/api/debug/xp/:classId', async (req, res) => {
+  if (!DEBUG_MODE) {
+    return res.status(403).json({ error: 'Debug mode is disabled' });
+  }
+
+  const { classId } = req.params;
+  const { amount } = req.body;
+
+  if (typeof amount !== 'number') {
+    return res.status(400).json({ error: 'Amount must be a number' });
+  }
+
+  try {
+    const mascot = await prisma.mascot.findUnique({
+      where: { classId },
+    });
+
+    if (!mascot) {
+      return res.status(404).json({ error: 'Mascot not found' });
+    }
+
+    const newXp = Math.max(0, mascot.xp + amount);
+    const levelCheck = checkLevelUp(mascot.xp, newXp);
+
+    const updated = await prisma.mascot.update({
+      where: { id: mascot.id },
+      data: { 
+        xp: newXp,
+        level: levelCheck.newLevel,
+      },
+    });
+
+    console.log(`⭐ DEBUG XP: Mascot ${classId} XP ${amount >= 0 ? '+' : ''}${amount} → ${newXp} (Level ${levelCheck.newLevel})`);
+
+    res.json({
+      message: `XP ${amount >= 0 ? 'added' : 'removed'}`,
+      previousXp: mascot.xp,
+      addedAmount: amount,
+      newXp: updated.xp,
+      previousLevel: mascot.level,
+      newLevel: updated.level,
+      leveledUp: levelCheck.leveledUp,
+    });
+  } catch (error) {
+    console.error('Error modifying XP:', error);
+    res.status(500).json({ error: 'Failed to modify XP' });
+  }
+});
+
+/**
+ * POST /api/debug/xp/:classId/reset
+ * DEBUG ONLY: Reset XP to 0 and level to 1
+ */
+app.post('/api/debug/xp/:classId/reset', async (req, res) => {
+  if (!DEBUG_MODE) {
+    return res.status(403).json({ error: 'Debug mode is disabled' });
+  }
+
+  const { classId } = req.params;
+
+  try {
+    const mascot = await prisma.mascot.findUnique({
+      where: { classId },
+    });
+
+    if (!mascot) {
+      return res.status(404).json({ error: 'Mascot not found' });
+    }
+
+    const previousXp = mascot.xp;
+    const previousLevel = mascot.level;
+
+    await prisma.mascot.update({
+      where: { id: mascot.id },
+      data: { 
+        xp: 0,
+        level: 1,
+      },
+    });
+
+    console.log(`⭐ DEBUG XP RESET: Mascot ${classId} XP ${previousXp} → 0, Level ${previousLevel} → 1`);
+
+    res.json({
+      message: 'XP and level reset',
+      previousXp,
+      previousLevel,
+      newXp: 0,
+      newLevel: 1,
+    });
+  } catch (error) {
+    console.error('Error resetting XP:', error);
+    res.status(500).json({ error: 'Failed to reset XP' });
+  }
+});
+
 // 404 handler
 app.use((_req, res) => {
   res.status(404).json({

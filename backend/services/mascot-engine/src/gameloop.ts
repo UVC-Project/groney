@@ -10,8 +10,8 @@
 // ============================================
 // 🧪 DEBUG MODE - Set to true for fast testing
 // ============================================
-export const DEBUG_MODE = false;  // Set to false for production
-export const DEBUG_DECAY_MULTIPLIER = 60;  // 1 minute = 1 hour of decay in debug mode
+export const DEBUG_MODE = true;  // Set to false for production
+export const DEBUG_DECAY_MULTIPLIER = 1;  // 1 minute = 1 hour of decay in debug mode
 
 // XP thresholds for each level (index = level, value = total XP needed)
 export const XP_THRESHOLDS = [
