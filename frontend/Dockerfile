@@ -7,10 +7,7 @@ RUN npm install
 
 COPY . .
 
-# Clear any stale SvelteKit cache
-RUN rm -rf .svelte-kit
-
 EXPOSE 5173
 
-# Sync SvelteKit types before starting dev server
-CMD ["sh", "-c", "npx svelte-kit sync && npm run dev -- --host"]
+# Clear stale caches and reinstall on every start to avoid hydration issues
+CMD ["sh", "-c", "rm -rf .svelte-kit node_modules/.vite && npx svelte-kit sync && npm run dev -- --host"]
