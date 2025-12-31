@@ -9,7 +9,7 @@ const requireTeacher = (req: Request, res: Response, next: Function) => {
 	// TODO: Implement actual authentication middleware
 	// For now, we'll assume the user is authenticated and userId is in req.user
 	const userId = req.headers['x-user-id'] as string;
-	
+
 	if (!userId) {
 		return res.status(401).json({ error: 'Unauthorized', message: 'User not authenticated' });
 	}
@@ -26,7 +26,7 @@ async function getActiveClassId(userId: string, requestedClassId?: string): Prom
 		const hasAccess = await verifyTeacherOwnsClass(userId, requestedClassId);
 		return hasAccess ? requestedClassId : null;
 	}
-	
+
 	// Otherwise, get the most recent class the user is a member of
 	const membership = await prisma.classUser.findFirst({
 		where: { userId },
@@ -539,6 +539,60 @@ router.post('/initialize', requireTeacher, async (req: Request, res: Response) =
 	} catch (error) {
 		console.error('Error initializing class:', error);
 		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to initialize class' });
+	}
+});
+
+router.post('/submissions/:id/review', requireTeacher, async (req: Request, res: Response) => {
+	try {
+		const submissionId = req.params.id;
+		const { status } = req.body;
+
+		const submission = await prisma.submission.findUnique({
+			where: { id: submissionId },
+			include: { mission: true }
+		});
+
+		if (!submission) return res.status(404).json({ error: 'Not Found' });
+
+		if (status === 'completed') {
+			await prisma.$transaction([
+				prisma.submission.update({
+					where: { id: submissionId },
+					data: { status: 'COMPLETED' }
+				}),
+				prisma.mission.update({
+					where: { id: submission.missionId },
+					data: { status: 'COMPLETED' }
+				}),
+				prisma.mascot.update({
+					where: { classId: submission.classId },
+					data: {
+						xp: { increment: submission.mission.xpReward },
+						coins: { increment: submission.mission.coinReward },
+						thirst: { increment: submission.mission.thirstBoost || 0 },
+						hunger: { increment: submission.mission.hungerBoost || 0 },
+						happiness: { increment: submission.mission.happinessBoost || 0 },
+						cleanliness: { increment: submission.mission.cleanlinessBoost || 0 },
+					}
+				})
+			]);
+		} else if (status === 'rejected') {
+			await prisma.$transaction([
+				prisma.submission.update({
+					where: { id: submissionId },
+					data: { status: 'REJECTED' }
+				}),
+				prisma.mission.update({
+					where: { id: submission.missionId },
+					data: { status: 'AVAILABLE' }
+				})
+			]);
+		}
+
+		res.json({ success: true });
+	} catch (error) {
+		console.error('Error reviewing submission:', error);
+		res.status(500).json({ error: 'Internal Server Error' });
 	}
 });
 
