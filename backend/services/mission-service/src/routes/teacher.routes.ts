@@ -318,6 +318,9 @@ router.post('/missions', requireTeacher, async (req: Request, res: Response) => 
 			hungerBoost = 0,
 			happinessBoost = 0,
 			cleanlinessBoost = 0,
+			cooldownHours = 24,
+			maxCompletions = null,
+			category = 'THIRST',
 		} = req.body;
 
 		// Validation
@@ -359,6 +362,9 @@ router.post('/missions', requireTeacher, async (req: Request, res: Response) => 
 				hungerBoost,
 				happinessBoost,
 				cleanlinessBoost,
+				cooldownHours,
+				maxCompletions,
+				category,
 			},
 			include: {
 				sector: {

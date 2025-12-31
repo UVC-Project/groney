@@ -1,11 +1,26 @@
 import type { PageLoad } from './$types';
 import { browser } from '$app/environment';
+import { MASCOT_ENGINE_URL } from '$lib/config';
 
 const GATEWAY = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-const SHOP = 'http://localhost:3005';
+
+// Disable SSR since we need localStorage
+export const ssr = false;
 
 export const load: PageLoad = async ({ fetch }) => {
-    const userId = browser ? (localStorage.getItem('userId') ?? '') : '';
+    // Get userId from auth storage (same pattern as homepage)
+    let userId = '';
+    if (browser) {
+        try {
+            const authData = localStorage.getItem('auth');
+            if (authData) {
+                const parsed = JSON.parse(authData);
+                userId = parsed?.user?.id ?? '';
+            }
+        } catch {
+            userId = localStorage.getItem('userId') ?? '';
+        }
+    }
     console.log('[shop load] userId:', userId);
 
     const itemsRes = await fetch(
@@ -19,7 +34,8 @@ export const load: PageLoad = async ({ fetch }) => {
     let classId: string | null = null;
 
     if (userId) {
-        const mascotRes = await fetch(`${SHOP}/api/mascot/by-user/${encodeURIComponent(userId)}`);
+        // Fetch from mascot-engine to get accurate coin balance
+        const mascotRes = await fetch(`${MASCOT_ENGINE_URL}/api/mascot/by-user/${encodeURIComponent(userId)}`);
         console.log('[shop load] mascot status:', mascotRes.status);
 
         if (mascotRes.ok) {
