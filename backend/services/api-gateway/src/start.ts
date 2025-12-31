@@ -4,9 +4,8 @@ import morgan from 'morgan';
 import { config } from 'dotenv';
 import shopRoutes from './routes/shopRoutes';
 import teacherRoutes from './routes/teacherRoutes';
-import authRoutes from './routes/authRoutes';
-import { noAuthMiddleware } from './middleware/noAuthMiddleware';
 import mapRoutes from './routes/mapRoutes';
+import authRoutes from './routes/authRoutes';
 import studentRoutes from './routes/studentRoutes';
 import supplyRoutes from './routes/supplyRoutes';
 
@@ -16,17 +15,13 @@ config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
-
 app.use(cors());
 app.use(morgan('dev'));
 
 // Auth endpoints MUST come BEFORE express.json() to allow proxy to forward raw body
 app.use('/api/auth', authRoutes);
 
-app.use('/api/auth', noAuthMiddleware, authRoutes);
-
-// Teacher endpoints (protected with auth middleware)
+// Teacher endpoints (proxy routes - must come before body parser)
 app.use('/api/teacher', teacherRoutes);
 
 // Student endpoints (proxy routes - must come before body parser)

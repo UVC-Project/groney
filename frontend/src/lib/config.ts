@@ -26,9 +26,6 @@ export const API_ENDPOINTS = {
 		list: '/api/teacher/submissions',
 		review: (id: string) => `/api/submissions/${id}/review`,
 	},
-	auth: {
-		login: '/login',
-	}
 };
 
 // Helper to build full URL
@@ -43,6 +40,7 @@ export const CONFIG = {
 		timeout: 10000, // 10 seconds
 	},
 	auth: {
+		// For your colleague's auth implementation
 		tokenKey: 'groney_auth_token',
 		refreshTokenKey: 'groney_refresh_token',
 	},

@@ -2,10 +2,9 @@
   import ScrollToTopButton from '$lib/components/ScrollToTop.svelte';
   import LogoutModal from '$lib/components/LogoutModal.svelte';
   import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
-  import { user, clearUser } from '$lib/auth/user';
-  import { browser } from '$app/environment';
-  import { goto } from '$app/navigation';
   import type { PageData } from './$types';
+  import { goto } from '$app/navigation';
+
   // Default Groeny gif
   import DefaultGif from '$lib/assets/images/groney-gif/normal.gif';
 
@@ -37,8 +36,7 @@
 
   function logout() {
     showLogoutModal = false;
-
-    if (browser) goto('/auth');
+    goto('/login');
   }
 </script>
 

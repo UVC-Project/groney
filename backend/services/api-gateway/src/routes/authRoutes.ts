@@ -1,43 +1,56 @@
 import { Router } from 'express';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const router = Router();
 
-const BASE_URL = `http://localhost:3001`;
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
 
-async function forwardPost(path: string, body: any, res: any) {
-    try {
-        const response = await fetch(`${BASE_URL}${path}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
+// Login
+router.post(
+	'/login',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/login': '/api/auth/login',
+		},
+	})
+);
 
-        const json = await response.json().catch(() => ({}));
-        return res.status(response.status).json(json);
-    } catch (err) {
-        console.error('Gateway POST error (auth):', err);
-        return res.status(500).json({ message: 'Auth service unavailable' });
-    }
-}
+// Verify token
+router.get(
+	'/verify',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/verify': '/api/auth/verify',
+		},
+	})
+);
 
-router.post('/login', (req, res) => {
-    return forwardPost('/login', req.body, res);
-});
+// Register teacher
+router.post(
+	'/register/teacher',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/register/teacher': '/api/auth/register/teacher',
+		},
+	})
+);
 
-router.post('/register/teacher', (req, res) => {
-    return forwardPost('/register/teacher', req.body, res);
-});
-
-router.post('/register/student', (req, res) => {
-    return forwardPost('/register/student', req.body, res);
-});
-
-router.post('/password/forgot', (req, res) => {
-    return forwardPost('/password/forgot', req.body, res);
-});
-
-router.post('/password/reset', (req, res) => {
-    return forwardPost('/password/reset', req.body, res);
-});
+// Register student
+router.post(
+	'/register/student',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/register/student': '/api/auth/register/student',
+		},
+	})
+);
 
 export default router;
