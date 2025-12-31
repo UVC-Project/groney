@@ -81,11 +81,24 @@
 				throw new Error(data.message || 'Failed to accept mission');
 			}
 
+			const missionId = selectedMission.id;
+
+			sectors = sectors.map(s => {
+				if (s.id === selectedSector.id) {
+					return {
+						...s,
+						missions: s.missions.filter((m: any) => m.id !== missionId)
+					};
+				}
+				return s;
+			});
+
 			successMessage = 'Mission accepted! Go complete it and submit a photo.';
+			
 			setTimeout(() => {
 				closeModal();
-				successMessage = '';
-			}, 2000);
+				goto(`/missions/${missionId}/submit`);
+			}, 1000);
 		} catch (err) {
 			console.error('Accept mission error:', err);
 			errorMessage = err instanceof Error ? err.message : 'Could not accept mission. Try again later.';
