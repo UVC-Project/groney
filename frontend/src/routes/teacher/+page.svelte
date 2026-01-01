@@ -42,7 +42,7 @@
   import LoadingSkeleton from '$lib/components/LoadingSkeleton.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import MapBuilder from '$lib/components/MapBuilder.svelte';
-  import { API_BASE_URL, SUPPLY_API_URL } from '$lib/config';
+  import { API_BASE_URL, SUPPLY_API_URL, MASCOT_ENGINE_URL } from '$lib/config';
   import { getAuthHeaders } from '$lib/auth/context';
   import { auth, user } from '$lib/stores/auth';
   import { invalidateAll, goto } from '$app/navigation';
@@ -116,7 +116,7 @@
     submissionsData = data.submissions || [];
   });
 
-  let activeTab = $state<'overview' | 'missions' | 'submissions' | 'map' | 'supplies'>('overview');
+  let activeTab = $state<'overview' | 'missions' | 'submissions' | 'map' | 'supplies' | 'settings'>('overview');
   let isCreateClassDialogOpen = $state(false);
   let isCreateMissionDialogOpen = $state(false);
   let isCreateSectorDialogOpen = $state(false);
@@ -172,15 +172,28 @@
     hungerBoost: 0,
     happinessBoost: 0,
     cleanlinessBoost: 0,
+    cooldownHours: 24,
+    maxCompletions: null as number | null,
+    category: 'THIRST' as 'THIRST' | 'HUNGER' | 'HAPPINESS' | 'CLEANLINESS',
   });
+
+  // Decay rates state (for settings tab)
+  let decayRates = $state({
+    thirst: 1.0,
+    hunger: 2.0,
+    happiness: 3.0,
+    cleanliness: 2.0,
+  });
+  let isSavingDecayRates = $state(false);
+  let hasLoadedDecayRates = $state(false);
 
   const tabs = [
     { id: 'overview' as const, label: 'Overview', icon: '📊' },
     { id: 'missions' as const, label: 'Missions', icon: '🎯' },
     { id: 'submissions' as const, label: 'Submissions', icon: '📝' },
     { id: 'map' as const, label: 'Map', icon: '🗺️' },
-    // ✅ after Map
     { id: 'supplies' as const, label: 'Supplies', icon: '🧤' },
+    { id: 'settings' as const, label: 'Settings', icon: '⚙️' },
   ];
 
   // Computed values
@@ -266,6 +279,96 @@
     };
     return colors[type?.toUpperCase()] || '#64748b';
   }
+
+  // -----------------------------
+  // Decay rates handlers
+  // -----------------------------
+  async function loadDecayRates() {
+    if (!currentClassId || hasLoadedDecayRates) return;
+    
+    try {
+      const res = await fetch(`${MASCOT_ENGINE_URL}/api/mascot/${currentClassId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+      });
+
+      if (res.ok) {
+        const mascot = await res.json();
+        if (mascot.decayRates) {
+          decayRates = {
+            thirst: mascot.decayRates.thirst ?? 1.0,
+            hunger: mascot.decayRates.hunger ?? 2.0,
+            happiness: mascot.decayRates.happiness ?? 3.0,
+            cleanliness: mascot.decayRates.cleanliness ?? 2.0,
+          };
+        }
+        hasLoadedDecayRates = true;
+      }
+    } catch (e) {
+      console.error('Failed to load decay rates:', e);
+    }
+  }
+
+  async function saveDecayRates() {
+    if (!currentClassId || isSavingDecayRates) return;
+    isSavingDecayRates = true;
+
+    try {
+      const res = await fetch(`${MASCOT_ENGINE_URL}/api/mascot/${currentClassId}/decay-rates`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          thirstDecayRate: decayRates.thirst,
+          hungerDecayRate: decayRates.hunger,
+          happinessDecayRate: decayRates.happiness,
+          cleanlinessDecayRate: decayRates.cleanliness,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to save decay rates');
+      }
+
+      showToast('Decay rates saved! 🎮', 'success');
+    } catch (e) {
+      console.error('Failed to save decay rates:', e);
+      showToast('Failed to save decay rates', 'error');
+    } finally {
+      isSavingDecayRates = false;
+    }
+  }
+
+  // Default decay rates (matching Prisma schema defaults)
+  const DEFAULT_DECAY_RATES = {
+    thirst: 1.0,
+    hunger: 2.0,
+    happiness: 3.0,
+    cleanliness: 2.0,
+  };
+
+  function restoreDefaultDecayRates() {
+    decayRates = { ...DEFAULT_DECAY_RATES };
+    showToast('Decay rates restored to defaults. Click Save to apply.', 'success');
+  }
+
+  // Load decay rates when settings tab is opened
+  $effect(() => {
+    if (activeTab === 'settings' && currentClassId && !hasLoadedDecayRates) {
+      loadDecayRates();
+    }
+  });
+
+  // Reset decay rates cache when class changes
+  $effect(() => {
+    if (currentClassId) {
+      hasLoadedDecayRates = false;
+    }
+  });
 
   // -----------------------------
   // Supply requests handlers
@@ -821,6 +924,9 @@
       hungerBoost: 0,
       happinessBoost: 0,
       cleanlinessBoost: 0,
+      cooldownHours: 24,
+      maxCompletions: null,
+      category: 'THIRST',
     };
     // Clear errors
     missionFormErrors = {};
@@ -2039,6 +2145,181 @@
           </div>
         {/if}
       </div>
+
+    {:else if currentClassData && activeTab === 'settings'}
+      <!-- Settings tab -->
+      <div class="space-y-6">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-800">Groeny Settings</h2>
+          <p class="text-sm text-slate-600 mt-1">Customize how Groeny's needs decay over time</p>
+        </div>
+
+        <!-- Decay Rates Card -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
+          <div class="bg-gradient-to-r from-purple-500 to-indigo-600 px-4 sm:px-6 py-5">
+            <h3 class="text-lg font-bold text-white">Decay Rates</h3>
+            <p class="text-sm text-white/80 mt-1">
+              Set how fast each need decreases per hour during school hours (8am-4pm, Mon-Fri)
+            </p>
+          </div>
+
+          <div class="p-4 sm:p-6 space-y-6">
+            <!-- Thirst -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="thirst-decay" class="flex items-center gap-2 font-medium text-slate-700">
+                  <span class="text-2xl">💧</span>
+                  Thirst
+                </label>
+                <span class="text-sm text-slate-500">{decayRates.thirst} pts/hour</span>
+              </div>
+              <input
+                id="thirst-decay"
+                type="range"
+                min="0"
+                max="10"
+                step="0.5"
+                bind:value={decayRates.thirst}
+                class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <p class="text-xs text-slate-500">Slower decay - plants don't need constant watering</p>
+            </div>
+
+            <!-- Hunger -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="hunger-decay" class="flex items-center gap-2 font-medium text-slate-700">
+                  <span class="text-2xl">🍎</span>
+                  Hunger
+                </label>
+                <span class="text-sm text-slate-500">{decayRates.hunger} pts/hour</span>
+              </div>
+              <input
+                id="hunger-decay"
+                type="range"
+                min="0"
+                max="10"
+                step="0.5"
+                bind:value={decayRates.hunger}
+                class="w-full h-2 bg-orange-200 rounded-lg appearance-none cursor-pointer accent-orange-600"
+              />
+              <p class="text-xs text-slate-500">Medium decay - feeding animals and garden care</p>
+            </div>
+
+            <!-- Happiness -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="happiness-decay" class="flex items-center gap-2 font-medium text-slate-700">
+                  <span class="text-2xl">🥰</span>
+                  Happiness
+                </label>
+                <span class="text-sm text-slate-500">{decayRates.happiness} pts/hour</span>
+              </div>
+              <input
+                id="happiness-decay"
+                type="range"
+                min="0"
+                max="10"
+                step="0.5"
+                bind:value={decayRates.happiness}
+                class="w-full h-2 bg-sky-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+              />
+              <p class="text-xs text-slate-500">Faster decay - needs constant attention and play</p>
+            </div>
+
+            <!-- Cleanliness -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="cleanliness-decay" class="flex items-center gap-2 font-medium text-slate-700">
+                  <span class="text-2xl">🧹</span>
+                  Cleanliness
+                </label>
+                <span class="text-sm text-slate-500">{decayRates.cleanliness} pts/hour</span>
+              </div>
+              <input
+                id="cleanliness-decay"
+                type="range"
+                min="0"
+                max="10"
+                step="0.5"
+                bind:value={decayRates.cleanliness}
+                class="w-full h-2 bg-pink-200 rounded-lg appearance-none cursor-pointer accent-pink-600"
+              />
+              <p class="text-xs text-slate-500">Medium decay - keeping the schoolyard clean</p>
+            </div>
+
+            <!-- Save Button -->
+            <div class="pt-4 border-t border-slate-200 flex flex-col sm:flex-row gap-3">
+              <button
+                onclick={saveDecayRates}
+                disabled={isSavingDecayRates}
+                class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all shadow-lg shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {#if isSavingDecayRates}
+                  <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                  Saving...
+                {:else}
+                  💾 Save Decay Rates
+                {/if}
+              </button>
+              <button
+                onclick={restoreDefaultDecayRates}
+                disabled={isSavingDecayRates}
+                class="w-full sm:w-auto px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                🔄 Restore Defaults
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200 p-4 sm:p-6">
+          <div class="flex gap-3">
+            <span class="text-2xl">💡</span>
+            <div>
+              <h4 class="font-semibold text-amber-800">How Decay Works</h4>
+              <ul class="mt-2 text-sm text-amber-700 space-y-1">
+                <li>• Stats only decay during school hours (8am-4pm, Monday-Friday)</li>
+                <li>• Higher decay rate = needs decrease faster = more missions needed</li>
+                <li>• Set to 0 to disable decay for a specific need</li>
+                <li>• Completing missions boosts stats back up</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Groeny States Info -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-4 sm:p-6">
+          <h3 class="text-lg font-bold text-slate-800 mb-4">Groeny's Health States</h3>
+          <div class="grid sm:grid-cols-3 gap-4">
+            <div class="flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
+              <span class="text-3xl">😊</span>
+              <div>
+                <p class="font-semibold text-green-800">Normal</p>
+                <p class="text-sm text-green-600">51-100% health</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 p-3 bg-yellow-50 rounded-xl border border-yellow-200">
+              <span class="text-3xl">😢</span>
+              <div>
+                <p class="font-semibold text-yellow-800">Sad</p>
+                <p class="text-sm text-yellow-600">25-50% health</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 p-3 bg-red-50 rounded-xl border border-red-200">
+              <span class="text-3xl">🤒</span>
+              <div>
+                <p class="font-semibold text-red-800">Sick</p>
+                <p class="text-sm text-red-600">1-24% health</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     {/if}
   </main>
 </div>
@@ -2406,6 +2687,62 @@
                 max="50"
                 class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               />
+            </div>
+          </div>
+        </div>
+
+        <!-- Mission Category -->
+        <div>
+          <label for="mission-category" class="block text-sm font-semibold text-slate-700 mb-2">
+            Category
+          </label>
+          <select
+            id="mission-category"
+            bind:value={missionForm.category}
+            class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+          >
+            <option value="THIRST">💧 Thirst</option>
+            <option value="HUNGER">🍎 Hunger</option>
+            <option value="HAPPINESS">😊 Happiness</option>
+            <option value="CLEANLINESS">✨ Cleanliness</option>
+          </select>
+          <p class="text-xs text-slate-500 mt-1">Primary stat this mission affects</p>
+        </div>
+
+        <!-- Cooldown Settings -->
+        <div>
+          <div class="block text-sm font-semibold text-slate-700 mb-3">
+            Cooldown Settings
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="mission-cooldown" class="block text-xs font-medium text-slate-600 mb-1">
+                ⏱️ Cooldown (hours)
+              </label>
+              <input
+                type="number"
+                id="mission-cooldown"
+                bind:value={missionForm.cooldownHours}
+                min="0"
+                max="168"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              />
+              <p class="text-xs text-slate-500 mt-1">Time before student can redo</p>
+            </div>
+            <div>
+              <label for="mission-max-completions" class="block text-xs font-medium text-slate-600 mb-1">
+                🔢 Max Completions
+              </label>
+              <input
+                type="number"
+                id="mission-max-completions"
+                bind:value={missionForm.maxCompletions}
+                min="1"
+                max="100"
+                placeholder="Unlimited"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              />
+              <p class="text-xs text-slate-500 mt-1">Leave empty for unlimited</p>
             </div>
           </div>
         </div>

@@ -9,6 +9,14 @@
 		hungerBoost?: number;
 		happinessBoost?: number;
 		cleanlinessBoost?: number;
+		cooldownStatus?: {
+			available: boolean;
+			reason: string | null;
+			hoursRemaining: number | null;
+		};
+		missionStatus?: 'available' | 'my_active' | 'taken' | 'cooldown' | 'max_reached';
+		myPendingSubmissionId?: string | null;
+		takenBy?: { firstName: string; lastName: string } | null;
 	}
 
 	interface Sector {
@@ -35,6 +43,12 @@
 	// Only show placed sectors
 	let placedSectors = $derived(sectors.filter((s) => s.gridX >= 0 && s.gridY >= 0));
 	let totalMissions = $derived(placedSectors.reduce((sum, s) => sum + (s.missions?.length || 0), 0));
+	
+	// Count active missions (my_active status)
+	let myActiveMissions = $derived(
+		placedSectors.reduce((sum, s) => 
+			sum + (s.missions?.filter(m => m.missionStatus === 'my_active').length || 0), 0)
+	);
 
 	// Responsive cell size
 	let containerRef = $state<HTMLDivElement | null>(null);
@@ -83,6 +97,38 @@
 	function closeSectorPanel() {
 		selectedSector = null;
 	}
+
+	// Sort missions: my_active first, then available, then taken, then cooldown/max_reached
+	function sortMissions(missions: Mission[]): Mission[] {
+		const statusOrder: Record<string, number> = {
+			'my_active': 0,
+			'available': 1,
+			'taken': 2,
+			'cooldown': 3,
+			'max_reached': 4,
+		};
+		return [...missions].sort((a, b) => {
+			const orderA = statusOrder[a.missionStatus || 'available'] ?? 5;
+			const orderB = statusOrder[b.missionStatus || 'available'] ?? 5;
+			return orderA - orderB;
+		});
+	}
+
+	// Get status badge for mission
+	function getMissionStatusBadge(mission: Mission): { text: string; bgColor: string; textColor: string } | null {
+		switch (mission.missionStatus) {
+			case 'my_active':
+				return { text: '📋 Your active mission', bgColor: 'bg-blue-100', textColor: 'text-blue-700' };
+			case 'taken':
+				return { text: `🔒 Taken by ${mission.takenBy?.firstName || 'someone'}`, bgColor: 'bg-orange-100', textColor: 'text-orange-700' };
+			case 'cooldown':
+				return { text: `⏱️ Cooldown: ${mission.cooldownStatus?.hoursRemaining}h left`, bgColor: 'bg-slate-100', textColor: 'text-slate-600' };
+			case 'max_reached':
+				return { text: '✅ Completed (max reached)', bgColor: 'bg-green-100', textColor: 'text-green-700' };
+			default:
+				return null;
+		}
+	}
 </script>
 
 <div class="student-map" bind:this={containerRef}>
@@ -95,7 +141,12 @@
 				</h2>
 				<p class="text-slate-500 text-sm mt-0.5">Tap on an area to discover missions!</p>
 			</div>
-			<div class="flex gap-2">
+			<div class="flex gap-2 flex-wrap">
+				{#if myActiveMissions > 0}
+					<div class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+						📋 {myActiveMissions} active
+					</div>
+				{/if}
 				<div class="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold">
 					📍 {placedSectors.length} area{placedSectors.length !== 1 ? 's' : ''}
 				</div>
@@ -225,12 +276,36 @@
 				<div class="p-4 overflow-y-auto max-h-[60vh] bg-slate-50">
 					{#if selectedSector.missions && selectedSector.missions.length > 0}
 						<div class="space-y-3">
-							{#each selectedSector.missions as mission}
-								<button class="mission-card w-full text-left p-4 bg-white hover:bg-slate-50 rounded-2xl transition-all duration-200 hover:shadow-lg border-2 border-slate-100 hover:border-slate-200 group"
-									onclick={() => handleMissionClick(mission, currentSector)}>
+							{#each sortMissions(selectedSector.missions) as mission}
+								{@const statusBadge = getMissionStatusBadge(mission)}
+								{@const isUnavailable = mission.missionStatus === 'taken' || mission.missionStatus === 'cooldown' || mission.missionStatus === 'max_reached'}
+								<button class="mission-card w-full text-left p-4 bg-white rounded-2xl transition-all duration-200 border-2 group"
+									class:hover:bg-slate-50={!isUnavailable}
+									class:hover:shadow-lg={!isUnavailable}
+									class:border-blue-300={mission.missionStatus === 'my_active'}
+									class:bg-blue-50={mission.missionStatus === 'my_active'}
+									class:border-slate-100={mission.missionStatus !== 'my_active'}
+									class:hover:border-slate-200={!isUnavailable && mission.missionStatus !== 'my_active'}
+									class:opacity-60={isUnavailable}
+									class:cursor-not-allowed={isUnavailable}
+									onclick={() => !isUnavailable && handleMissionClick(mission, currentSector)}
+									disabled={isUnavailable}>
+									
+									<!-- Status Badge -->
+									{#if statusBadge}
+										<div class="mb-2">
+											<span class="px-2.5 py-1 {statusBadge.bgColor} {statusBadge.textColor} rounded-lg text-xs font-semibold">
+												{statusBadge.text}
+											</span>
+										</div>
+									{/if}
+									
 									<div class="flex items-start justify-between gap-3">
 										<div class="flex-1 min-w-0">
-											<h4 class="font-bold text-slate-800 text-lg group-hover:text-emerald-700 transition-colors">{mission.title}</h4>
+											<h4 class="font-bold text-slate-800 text-lg transition-colors"
+												class:group-hover:text-emerald-700={!isUnavailable}>
+												{mission.title}
+											</h4>
 											<p class="text-sm text-slate-500 mt-1 line-clamp-2">{mission.description}</p>
 										</div>
 										<div class="flex flex-col items-end gap-1.5 flex-shrink-0">
@@ -246,12 +321,23 @@
 											{#if mission.cleanlinessBoost}<span class="px-2.5 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-semibold">✨ +{mission.cleanlinessBoost}</span>{/if}
 										</div>
 									{/if}
-									<div class="mt-3 flex items-center justify-end text-xs text-slate-400 group-hover:text-emerald-500 transition-colors">
-										<span>Tap to start</span>
-										<svg class="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-										</svg>
-									</div>
+									
+									<!-- Action hint -->
+									{#if mission.missionStatus === 'my_active'}
+										<div class="mt-3 flex items-center justify-end text-xs text-blue-500 font-medium">
+											<span>Tap to submit</span>
+											<svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+											</svg>
+										</div>
+									{:else if !isUnavailable}
+										<div class="mt-3 flex items-center justify-end text-xs text-slate-400 group-hover:text-emerald-500 transition-colors">
+											<span>Tap to start</span>
+											<svg class="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+											</svg>
+										</div>
+									{/if}
 								</button>
 							{/each}
 						</div>

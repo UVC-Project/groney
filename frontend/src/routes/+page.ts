@@ -1,39 +1,91 @@
 import type { PageLoad } from './$types';
 import { browser } from '$app/environment';
-
-const SHOP_SERVICE_URL = 'http://localhost:3005';
+import { MASCOT_ENGINE_URL } from '$lib/config';
 
 export const ssr = false;
 
+export interface MascotData {
+  id: string;
+  classId: string;
+  thirst: number;
+  hunger: number;
+  happiness: number;
+  cleanliness: number;
+  level: number;
+  xp: number;
+  coins: number;
+  equippedHat: string | null;
+  equippedAccessory: string | null;
+  health: number;
+  state: 'normal' | 'sad' | 'sick';
+  levelProgress: {
+    current: number;
+    required: number;
+    percentage: number;
+  };
+  decayRates: {
+    thirst: number;
+    hunger: number;
+    happiness: number;
+    cleanliness: number;
+  };
+}
+
+const defaultMascot: MascotData = {
+  id: '',
+  classId: '',
+  thirst: 100,
+  hunger: 100,
+  happiness: 100,
+  cleanliness: 100,
+  level: 1,
+  xp: 0,
+  coins: 0,
+  equippedHat: null,
+  equippedAccessory: null,
+  health: 100,
+  state: 'normal',
+  levelProgress: { current: 0, required: 100, percentage: 0 },
+  decayRates: { thirst: 1, hunger: 2, happiness: 3, cleanliness: 2 },
+};
+
 export const load: PageLoad = async ({ fetch }) => {
   if (!browser) {
-    return { coins: 0, equippedHat: null, equippedAccessory: null };
+    return { mascot: defaultMascot };
   }
 
-  const userId = localStorage.getItem('userId') ?? '';
+  // Get userId from auth storage (stored as JSON object)
+  let userId = '';
+  try {
+    const authData = localStorage.getItem('auth');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      userId = parsed?.user?.id ?? '';
+    }
+  } catch {
+    // Fallback to direct userId if auth parsing fails
+    userId = localStorage.getItem('userId') ?? '';
+  }
+
   if (!userId) {
-    return { coins: 0, equippedHat: null, equippedAccessory: null };
+    return { mascot: defaultMascot };
   }
 
   try {
     const res = await fetch(
-      `${SHOP_SERVICE_URL}/api/mascot/by-user/${encodeURIComponent(userId)}?t=${Date.now()}`,
+      `${MASCOT_ENGINE_URL}/api/mascot/by-user/${encodeURIComponent(userId)}?t=${Date.now()}`,
       { cache: 'no-store' }
     );
 
     if (!res.ok) {
-      return { coins: 0, equippedHat: null, equippedAccessory: null };
+      console.error('Mascot fetch failed:', res.status, await res.text());
+      return { mascot: defaultMascot };
     }
 
-    const mascot = await res.json();
-
-    return {
-      coins: mascot?.coins ?? 0,
-      equippedHat: mascot?.equippedHat ?? null,
-      equippedAccessory: mascot?.equippedAccessory ?? null
-    };
+    const mascot: MascotData = await res.json();
+    return { mascot };
   } catch (err) {
     console.error('Error loading mascot for home', err);
-    return { coins: 0, equippedHat: null, equippedAccessory: null };
+    return { mascot: defaultMascot };
   }
 };

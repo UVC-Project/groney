@@ -36,6 +36,62 @@ async function verifyClassAccess(userId: string, classId: string): Promise<boole
 	return !!membership;
 }
 
+// Calculate cooldown status for a mission (CLASS-WIDE cooldown)
+// If anyone in the class completed the mission, it's on cooldown for everyone
+async function getMissionCooldownStatus(missionId: string, classId: string, cooldownHours: number, maxCompletions: number | null) {
+	// Get ALL completed submissions for this mission in this class (not just this user)
+	const completedSubmissions = await prisma.submission.findMany({
+		where: {
+			missionId,
+			classId,
+			status: 'COMPLETED',
+		},
+		orderBy: { updatedAt: 'desc' },
+	});
+
+	const completionCount = completedSubmissions.length;
+
+	// Check if max completions reached (class-wide)
+	if (maxCompletions !== null && completionCount >= maxCompletions) {
+		return {
+			available: false,
+			reason: 'max_completions',
+			completionCount,
+			maxCompletions,
+			cooldownEndsAt: null,
+			hoursRemaining: null,
+		};
+	}
+
+	// Check cooldown from last completion by ANYONE in the class
+	if (completedSubmissions.length > 0) {
+		const lastCompletion = completedSubmissions[0];
+		const cooldownEndsAt = new Date(lastCompletion.updatedAt.getTime() + cooldownHours * 60 * 60 * 1000);
+		const now = new Date();
+
+		if (now < cooldownEndsAt) {
+			const hoursRemaining = Math.ceil((cooldownEndsAt.getTime() - now.getTime()) / (60 * 60 * 1000));
+			return {
+				available: false,
+				reason: 'cooldown',
+				completionCount,
+				maxCompletions,
+				cooldownEndsAt: cooldownEndsAt.toISOString(),
+				hoursRemaining,
+			};
+		}
+	}
+
+	return {
+		available: true,
+		reason: null,
+		completionCount,
+		maxCompletions,
+		cooldownEndsAt: null,
+		hoursRemaining: null,
+	};
+}
+
 // GET /api/student/sectors - Get sectors with missions for a class
 router.get('/sectors', requireStudent, async (req: Request, res: Response) => {
 	try {
@@ -72,13 +128,80 @@ router.get('/sectors', requireStudent, async (req: Request, res: Response) => {
 						hungerBoost: true,
 						happinessBoost: true,
 						cleanlinessBoost: true,
+						cooldownHours: true,
+						maxCompletions: true,
+						category: true,
 					},
 				},
 			},
 			orderBy: { createdAt: 'asc' },
 		});
 
-		res.json(sectors);
+		// Add status to each mission (CLASS-WIDE cooldown and taken status)
+		const sectorsWithStatus = await Promise.all(
+			sectors.map(async (sector) => ({
+				...sector,
+				missions: await Promise.all(
+					sector.missions.map(async (mission) => {
+						const cooldownStatus = await getMissionCooldownStatus(
+							mission.id,
+							classId,
+							mission.cooldownHours,
+							mission.maxCompletions
+						);
+
+						// Check if THIS user has a pending submission (my active mission)
+						const myPendingSubmission = await prisma.submission.findFirst({
+							where: {
+								missionId: mission.id,
+								userId,
+								status: 'PENDING',
+							},
+						});
+
+						// Check if ANYONE ELSE in the class has a pending submission (mission taken)
+						const otherPendingSubmission = await prisma.submission.findFirst({
+							where: {
+								missionId: mission.id,
+								classId,
+								status: 'PENDING',
+								userId: { not: userId },
+							},
+							include: {
+								user: {
+									select: { firstName: true, lastName: true },
+								},
+							},
+						});
+
+						// Determine mission status for display
+						let missionStatus: 'available' | 'my_active' | 'taken' | 'cooldown' | 'max_reached';
+						if (myPendingSubmission) {
+							missionStatus = 'my_active';
+						} else if (otherPendingSubmission) {
+							missionStatus = 'taken';
+						} else if (!cooldownStatus.available) {
+							missionStatus = cooldownStatus.reason === 'max_completions' ? 'max_reached' : 'cooldown';
+						} else {
+							missionStatus = 'available';
+						}
+
+						return {
+							...mission,
+							cooldownStatus,
+							missionStatus,
+							myPendingSubmissionId: myPendingSubmission?.id || null,
+							takenBy: otherPendingSubmission ? {
+								firstName: otherPendingSubmission.user.firstName,
+								lastName: otherPendingSubmission.user.lastName,
+							} : null,
+						};
+					})
+				),
+			}))
+		);
+
+		res.json(sectorsWithStatus);
 	} catch (error) {
 		console.error('Error fetching student sectors:', error);
 		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch sectors' });
@@ -180,7 +303,54 @@ router.post('/missions/:missionId/accept', requireStudent, async (req: Request, 
 			return res.status(400).json({
 				error: 'Bad Request',
 				message: 'You already have a pending submission for this mission',
+				submissionId: existingSubmission.id,
 			});
+		}
+
+		// Check if someone else in the class already has this mission (it's taken)
+		const takenByOther = await prisma.submission.findFirst({
+			where: {
+				missionId,
+				classId,
+				status: 'PENDING',
+				userId: { not: userId },
+			},
+			include: {
+				user: {
+					select: { firstName: true },
+				},
+			},
+		});
+
+		if (takenByOther) {
+			return res.status(400).json({
+				error: 'Bad Request',
+				message: `This mission is already being done by ${takenByOther.user.firstName}`,
+			});
+		}
+
+		// Check cooldown status (CLASS-WIDE)
+		const cooldownStatus = await getMissionCooldownStatus(
+			missionId,
+			classId,
+			mission.cooldownHours,
+			mission.maxCompletions
+		);
+
+		if (!cooldownStatus.available) {
+			if (cooldownStatus.reason === 'max_completions') {
+				return res.status(400).json({
+					error: 'Bad Request',
+					message: `This mission has reached the maximum completions (${cooldownStatus.maxCompletions}) for your class`,
+					cooldownStatus,
+				});
+			} else {
+				return res.status(400).json({
+					error: 'Bad Request',
+					message: `Mission is on cooldown. Available in ${cooldownStatus.hoursRemaining} hour(s)`,
+					cooldownStatus,
+				});
+			}
 		}
 
 		// Create a submission record (pending status - student needs to upload photo)
@@ -204,6 +374,63 @@ router.post('/missions/:missionId/accept', requireStudent, async (req: Request, 
 	} catch (error) {
 		console.error('Error accepting mission:', error);
 		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to accept mission' });
+	}
+});
+
+// GET /api/student/my-missions - Get user's active (pending) missions
+router.get('/my-missions', requireStudent, async (req: Request, res: Response) => {
+	try {
+		const userId = (req as any).userId;
+		const classId = req.query.classId as string;
+
+		if (!classId) {
+			return res.status(400).json({ error: 'Bad Request', message: 'Class ID is required' });
+		}
+
+		// Verify user has access to this class
+		const hasAccess = await verifyClassAccess(userId, classId);
+		if (!hasAccess) {
+			return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to this class' });
+		}
+
+		// Get user's pending submissions with mission details
+		const myMissions = await prisma.submission.findMany({
+			where: {
+				userId,
+				classId,
+				status: 'PENDING',
+			},
+			include: {
+				mission: {
+					include: {
+						sector: {
+							select: { id: true, name: true, type: true },
+						},
+					},
+				},
+			},
+			orderBy: { createdAt: 'desc' },
+		});
+
+		res.json(myMissions.map(sub => ({
+			submissionId: sub.id,
+			acceptedAt: sub.createdAt,
+			mission: {
+				id: sub.mission.id,
+				title: sub.mission.title,
+				description: sub.mission.description,
+				xpReward: sub.mission.xpReward,
+				coinReward: sub.mission.coinReward,
+				thirstBoost: sub.mission.thirstBoost,
+				hungerBoost: sub.mission.hungerBoost,
+				happinessBoost: sub.mission.happinessBoost,
+				cleanlinessBoost: sub.mission.cleanlinessBoost,
+				sector: sub.mission.sector,
+			},
+		})));
+	} catch (error) {
+		console.error('Error fetching my missions:', error);
+		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch your missions' });
 	}
 });
 

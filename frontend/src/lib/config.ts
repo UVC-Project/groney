@@ -49,3 +49,6 @@ export const CONFIG = {
 export const SUPPLY_API_URL =
 	import.meta.env.VITE_SUPPLY_API_URL ?? 'http://localhost:3007';
 
+export const MASCOT_ENGINE_URL =
+	import.meta.env.VITE_MASCOT_ENGINE_URL ?? 'http://localhost:3002';
+
