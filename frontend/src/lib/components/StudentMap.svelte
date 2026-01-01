@@ -64,10 +64,14 @@
   );
 
   // Count urgent available missions
-    let urgentMissionsCount = $derived(
-        placedSectors.reduce((sum, s) => 
-            sum + (s.missions?.filter(m => m.isUrgent && m.missionStatus === 'available').length || 0), 0)
-    );
+  let urgentMissionsCount = $derived(
+    placedSectors.reduce(
+      (sum, s) =>
+        sum +
+        (s.missions?.filter((m) => m.isUrgent && m.missionStatus === 'available').length || 0),
+      0
+    )
+  );
 
   // Responsive cell size
   let containerRef = $state<HTMLDivElement | null>(null);
@@ -238,7 +242,6 @@
 </script>
 
 <div class="student-map" bind:this={containerRef}>
-  <!-- Header -->
   <div class="mb-4">
     <div class="flex items-center justify-between flex-wrap gap-3">
       <div>
@@ -248,10 +251,12 @@
         <p class="text-slate-500 text-sm mt-0.5">Tap on an area to discover missions!</p>
       </div>
       <div class="flex gap-2 flex-wrap">
-		{#if urgentMissionsCount > 0}
-            <div class="px-3 py-1.5 bg-red-100 text-red-700 rounded-full text-sm font-bold animate-pulse shadow-sm border border-red-200">
-                🚨 {urgentMissionsCount} Urgent
-            </div>
+        {#if urgentMissionsCount > 0}
+          <div
+            class="px-3 py-1.5 bg-red-100 text-red-700 rounded-full text-sm font-bold animate-pulse shadow-sm border border-red-200"
+          >
+            🚨 {urgentMissionsCount} Urgent
+          </div>
         {/if}
         {#if myActiveMissions > 0}
           <div class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
@@ -268,17 +273,14 @@
     </div>
   </div>
 
-  <!-- Map Container -->
   <div class="map-container rounded-2xl shadow-xl border-4 border-white/50 overflow-hidden">
     <div class="relative bg-gradient-to-b from-sky-200 via-sky-100 to-emerald-200">
       <div class="relative p-4 sm:p-5 flex justify-center">
-        <!-- Map grid with padding for hover effects -->
         <div class="map-grid-wrapper" style="padding: 8px;">
           <div
             class="relative rounded-xl"
             style="width: {mapWidth * CELL_SIZE}px; height: {mapHeight * CELL_SIZE}px;"
           >
-            <!-- Grass background -->
             <div
               class="absolute inset-0 bg-gradient-to-br from-green-300 via-emerald-300 to-green-400 rounded-xl"
             ></div>
@@ -287,7 +289,6 @@
               style="background-image: radial-gradient(circle at 2px 2px, rgba(0,100,0,0.3) 1px, transparent 1px); background-size: 12px 12px;"
             ></div>
 
-            <!-- Sectors -->
             {#each placedSectors as sector (sector.id)}
               {@const config = getConfig(sector.type)}
               {@const isSelected = selectedSector?.id === sector.id}
@@ -295,23 +296,36 @@
               {@const sectorWidth = sector.gridWidth * CELL_SIZE}
               {@const sectorHeight = sector.gridHeight * CELL_SIZE}
               {@const isSmall = sectorWidth < 100 || sectorHeight < 100}
+
+              {@const sectorUrgentCount =
+                sector.missions?.filter((m) => m.isUrgent && m.missionStatus === 'available')
+                  .length || 0}
+              {@const displayColor = sector.color || config.color}
+
               <button
                 class="sector-btn absolute rounded-2xl transition-all duration-200 group"
                 class:selected={isSelected}
                 style="
-									left: {sector.gridX * CELL_SIZE}px;
-									top: {sector.gridY * CELL_SIZE}px;
-									width: {sectorWidth}px;
-									height: {sectorHeight}px;
-									--sector-color: {config.color};
-									--sector-shadow: {config.shadowColor};
-									background: linear-gradient(145deg, {config.gradientFrom} 0%, {config.gradientTo} 100%);
-									border: 3px solid {config.color};
-									box-shadow: 0 4px 12px {config.shadowColor}, inset 0 2px 8px rgba(255,255,255,0.5);
-								"
+                  left: {sector.gridX * CELL_SIZE}px;
+                  top: {sector.gridY * CELL_SIZE}px;
+                  width: {sectorWidth}px;
+                  height: {sectorHeight}px;
+                  --sector-color: {displayColor};
+                  --sector-shadow: {config.shadowColor};
+                  background: linear-gradient(145deg, {config.gradientFrom} 0%, {config.gradientTo} 100%);
+                  border: 3px solid {displayColor};
+                  box-shadow: 0 4px 12px {config.shadowColor}, inset 0 2px 8px rgba(255,255,255,0.5);
+                "
                 onclick={() => handleSectorClick(sector)}
               >
-                <!-- Shine -->
+                {#if sectorUrgentCount > 0}
+                  <div
+                    class="absolute -top-3 -right-3 z-30 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white shadow-lg ring-2 ring-white animate-bounce"
+                  >
+                    <span class="text-xs font-bold">{sectorUrgentCount}</span>
+                  </div>
+                {/if}
+
                 <div class="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
                   <div
                     class="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-white/30 to-transparent rotate-12"
@@ -321,7 +335,6 @@
                 <div
                   class="absolute inset-0 flex flex-col items-center justify-center p-1.5 overflow-hidden"
                 >
-                  <!-- Icon -->
                   <div
                     class="sector-icon drop-shadow-md flex-shrink-0"
                     style="font-size: {isSmall
@@ -331,11 +344,10 @@
                     {config.icon}
                   </div>
 
-                  <!-- Name - only show if sector is big enough -->
                   {#if sectorHeight > 70}
                     <div
                       class="sector-name font-bold text-center leading-tight px-1 w-full flex-shrink-0"
-                      style="color: {config.color}; font-size: {Math.max(
+                      style="color: {displayColor}; font-size: {Math.max(
                         10,
                         Math.min(14, sectorWidth / 8)
                       )}px; text-shadow: 0 1px 1px rgba(255,255,255,0.9);"
@@ -344,11 +356,10 @@
                     </div>
                   {/if}
 
-                  <!-- Mission badge -->
                   {#if missionCount > 0}
                     <div
                       class="mission-badge mt-1 px-2 py-0.5 rounded-full text-white font-bold shadow-md flex items-center gap-0.5 flex-shrink-0"
-                      style="background: {config.color}; font-size: {isSmall ? '10px' : '11px'};"
+                      style="background: {displayColor}; font-size: {isSmall ? '10px' : '11px'};"
                     >
                       🎯 {missionCount}
                     </div>
@@ -357,7 +368,6 @@
               </button>
             {/each}
 
-            <!-- Empty state -->
             {#if placedSectors.length === 0}
               <div class="absolute inset-0 flex items-center justify-center">
                 <div
@@ -375,17 +385,14 @@
     </div>
   </div>
 
-  <!-- Modal -->
   {#if selectedSector}
     {@const config = getConfig(selectedSector.type)}
     {@const currentSector = selectedSector}
-    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
     <div
       class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
       onclick={closeSectorPanel}
       role="presentation"
     >
-      <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
       <div
         class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden animate-slide-up"
         onclick={(e) => e.stopPropagation()}
@@ -393,7 +400,6 @@
         aria-modal="true"
         tabindex="-1"
       >
-        <!-- Header -->
         <div
           class="px-6 py-5 flex items-center justify-between relative overflow-hidden"
           style="background: linear-gradient(135deg, {config.gradientFrom} 0%, {config.gradientTo} 100%);"
@@ -439,7 +445,6 @@
           </button>
         </div>
 
-        <!-- Missions -->
         <div class="p-4 overflow-y-auto max-h-[60vh] bg-slate-50">
           {#if selectedSector.missions && selectedSector.missions.length > 0}
             <div class="space-y-3">
@@ -596,7 +601,6 @@
     </div>
   {/if}
 </div>
-
 
 <style>
   .student-map {
