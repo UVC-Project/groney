@@ -1155,7 +1155,7 @@
       // Show success toast
       showToast('Submission approved successfully! 🎉', 'success');
 
-      // TODO: Refresh mascot stats (pending backend implementation)
+      await invalidateAll();
     } catch (error) {
       console.error('❌ Failed to approve submission:', error);
       // Rollback on error
@@ -1198,6 +1198,8 @@
 
       // Show success toast
       showToast('Submission rejected.', 'success');
+
+      await invalidateAll();
     } catch (error) {
       console.error('❌ Failed to reject submission:', error);
       // Rollback on error
