@@ -18,14 +18,47 @@
 		sectors = data.sectors;
 	});
 
-	// Selected mission for the modal
+	const STATUS_PRIORITY: Record<string, number> = {
+		'my_active': 0,
+		'available': 1,
+		'cooldown': 2,
+		'taken': 3,
+		'max_reached': 4
+	};
+
+	// Prepare data for the map: Sort missions and mark sectors as Red if needed
+	let displaySectors = $derived(
+		sectors.map(sector => {
+			const sortedMissions = [...sector.missions].sort((a: any, b: any) => {
+				const priorityA = STATUS_PRIORITY[a.missionStatus] ?? 99;
+				const priorityB = STATUS_PRIORITY[b.missionStatus] ?? 99;
+				
+				if (priorityA !== priorityB) return priorityA - priorityB;
+				
+				// Urgent missions go to the top of the list
+				if (a.isUrgent && !b.isUrgent) return -1;
+				if (!a.isUrgent && b.isUrgent) return 1;
+				
+				return 0;
+			});
+
+			// Check if we need to color the sector Red on the map
+			const hasUrgent = sortedMissions.some((m: any) => m.isUrgent && m.missionStatus === 'available');
+
+			return {
+				...sector,
+				missions: sortedMissions,
+				color: hasUrgent ? '#ef4444' : undefined 
+			};
+		})
+	);
+
 	let selectedMission = $state<any>(null);
 	let selectedSector = $state<any>(null);
 	let isAccepting = $state(false);
 	let errorMessage = $state('');
 	let successMessage = $state('');
 
-	// Auth state
 	let authState = $state(get(auth));
 	
 	$effect(() => {
@@ -35,7 +68,6 @@
 		return unsubscribe;
 	});
 
-	// Redirect to login if not authenticated
 	$effect(() => {
 		if (browser && !authState.user) {
 			goto('/login');
@@ -56,7 +88,6 @@
 	}
 
 	async function refreshSectors() {
-		// Refresh the page data to get updated mission statuses
 		await invalidateAll();
 	}
 
@@ -106,12 +137,11 @@
 
 			successMessage = 'Mission accepted! Go complete it and come back to submit.';
 			
-			// Refresh data to update mission statuses
 			await refreshSectors();
 			
 			setTimeout(() => {
 				closeModal();
-				goto(`/missions/${missionId}/accept`);
+				goto(`/missions/${missionId}/submit`);
 			}, 1000);
 		} catch (err) {
 			console.error('Accept mission error:', err);
@@ -121,7 +151,6 @@
 		}
 	}
 
-	// Determine what action to show based on mission status
 	function getMissionAction(mission: any): { label: string; action: 'accept' | 'submit' | 'none'; disabled: boolean } {
 		switch (mission.missionStatus) {
 			case 'my_active':
@@ -142,14 +171,13 @@
 
 <div class="container mx-auto px-4 py-6 max-w-4xl">
 	<StudentMap
-		{sectors}
+		sectors={displaySectors}
 		{mapWidth}
 		{mapHeight}
 		onMissionClick={(mission, sector) => handleMissionClick(mission, sector)}
 	/>
 </div>
 
-<!-- Mission Detail Modal -->
 {#if selectedMission}
 	{@const missionAction = getMissionAction(selectedMission)}
 	<div
@@ -160,11 +188,12 @@
 			class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in"
 			onclick={(e) => e.stopPropagation()}
 		>
-			<!-- Header -->
-			<div class="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4 text-white">
+			<div class="px-6 py-4 text-white bg-gradient-to-r from-emerald-500 to-teal-600">
 				<div class="flex items-center justify-between">
 					<div>
-						<h3 class="text-xl font-bold">{selectedMission.title}</h3>
+						<div class="flex items-center gap-2">
+							<h3 class="text-xl font-bold">{selectedMission.title}</h3>
+						</div>
 						{#if selectedSector}
 							<p class="text-emerald-100 text-sm mt-1">📍 {selectedSector.name}</p>
 						{/if}
@@ -177,11 +206,9 @@
 				</div>
 			</div>
 
-			<!-- Content -->
 			<div class="p-6">
 				<p class="text-slate-700 mb-4">{selectedMission.description}</p>
 
-				<!-- Rewards -->
 				<div class="flex flex-wrap gap-2 mb-4">
 					<span class="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">
 						⭐ +{selectedMission.xpReward} XP
@@ -191,7 +218,6 @@
 					</span>
 				</div>
 
-				<!-- Stat Boosts -->
 				{#if selectedMission.thirstBoost || selectedMission.hungerBoost || selectedMission.happinessBoost || selectedMission.cleanlinessBoost}
 					<div class="mb-4">
 						<p class="text-sm font-semibold text-slate-600 mb-2">Mascot Boosts:</p>
@@ -220,26 +246,20 @@
 					</div>
 				{/if}
 
-				<!-- Status info for taken/cooldown missions -->
 				{#if selectedMission.missionStatus === 'taken'}
 					<div class="p-3 bg-orange-50 border border-orange-200 rounded-lg text-orange-700 text-sm mb-4">
-						🔒 This mission is currently being done by {selectedMission.takenBy?.firstName || 'another student'}.
+						🔒 This mission is currently being done by {selectedMission.takenBy?.firstName || 'someone'}.
 					</div>
 				{:else if selectedMission.missionStatus === 'cooldown'}
 					<div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 text-sm mb-4">
-						⏱️ This mission was recently completed. Available again in {selectedMission.cooldownStatus?.hoursRemaining} hour(s).
+						⏱️ Available in {selectedMission.cooldownStatus?.hoursRemaining}h
 					</div>
 				{:else if selectedMission.missionStatus === 'max_reached'}
 					<div class="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm mb-4">
-						✅ This mission has been completed the maximum number of times.
-					</div>
-				{:else if selectedMission.missionStatus === 'my_active'}
-					<div class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm mb-4">
-						📋 You've accepted this mission! Complete it in the schoolyard and come back to submit a photo.
+						✅ Max completions reached
 					</div>
 				{/if}
 
-				<!-- Messages -->
 				{#if errorMessage}
 					<div class="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-4">
 						{errorMessage}
@@ -252,7 +272,6 @@
 					</div>
 				{/if}
 
-				<!-- Actions -->
 				<div class="flex gap-3">
 					<button
 						onclick={closeModal}
@@ -281,10 +300,10 @@
 						</button>
 					{:else if missionAction.action === 'submit'}
 						<button
-							disabled={true}
+							onclick={() => goto(`/missions/${selectedMission.id}/submit`)}
 							class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 						>
-							📸 Submit Photo (Coming Soon)
+							{missionAction.label}
 						</button>
 					{:else}
 						<button
