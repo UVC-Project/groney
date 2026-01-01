@@ -111,7 +111,7 @@
 			
 			setTimeout(() => {
 				closeModal();
-				goto(`/missions/${missionId}/submit`);
+				goto(`/missions/${missionId}/accept`);
 			}, 1000);
 		} catch (err) {
 			console.error('Accept mission error:', err);
