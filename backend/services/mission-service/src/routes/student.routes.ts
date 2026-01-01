@@ -92,7 +92,7 @@ async function getMissionCooldownStatus(missionId: string, classId: string, cool
 	};
 }
 
-// GET /api/student/sectors - Get sectors with missions for a class
+// GET /api/student/sectors - Get sectors with calculated status & urgency
 router.get('/sectors', requireStudent, async (req: Request, res: Response) => {
 	try {
 		const userId = (req as any).userId;
@@ -108,36 +108,43 @@ router.get('/sectors', requireStudent, async (req: Request, res: Response) => {
 			return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to this class' });
 		}
 
-		// Get all sectors with their missions for the class
-		// Only return sectors that are placed on the map (gridX >= 0)
-		const sectors = await prisma.sector.findMany({
-			where: {
-				classId,
-				gridX: { gte: 0 },
-				gridY: { gte: 0 },
-			},
-			include: {
-				missions: {
-					select: {
-						id: true,
-						title: true,
-						description: true,
-						xpReward: true,
-						coinReward: true,
-						thirstBoost: true,
-						hungerBoost: true,
-						happinessBoost: true,
-						cleanlinessBoost: true,
-						cooldownHours: true,
-						maxCompletions: true,
-						category: true,
+		// Fetch Sectors AND Mascot in parallel
+		const [sectors, mascot] = await Promise.all([
+			prisma.sector.findMany({
+				where: {
+					classId,
+					gridX: { gte: 0 },
+					gridY: { gte: 0 },
+				},
+				include: {
+					missions: {
+						select: {
+							id: true,
+							title: true,
+							description: true,
+							xpReward: true,
+							coinReward: true,
+							thirstBoost: true,
+							hungerBoost: true,
+							happinessBoost: true,
+							cleanlinessBoost: true,
+							cooldownHours: true,
+							maxCompletions: true,
+							category: true,
+						},
 					},
 				},
-			},
-			orderBy: { createdAt: 'asc' },
-		});
+				orderBy: { createdAt: 'asc' },
+			}),
+			prisma.mascot.findUnique({
+				where: { classId }
+			})
+		]);
 
-		// Add status to each mission (CLASS-WIDE cooldown and taken status)
+		// Define Critical Threshold (Mascot needs help!)
+		const CRITICAL_LEVEL = 30;
+
+		// Add status and urgency to each mission
 		const sectorsWithStatus = await Promise.all(
 			sectors.map(async (sector) => ({
 				...sector,
@@ -186,10 +193,20 @@ router.get('/sectors', requireStudent, async (req: Request, res: Response) => {
 							missionStatus = 'available';
 						}
 
+						// If Mascot stat < 30 AND Mission boosts that stat => URGENT
+						let isUrgent = false;
+						if (mascot && missionStatus === 'available') {
+							if (mascot.thirst < CRITICAL_LEVEL && (mission.thirstBoost || 0) > 0) isUrgent = true;
+							if (mascot.hunger < CRITICAL_LEVEL && (mission.hungerBoost || 0) > 0) isUrgent = true;
+							if (mascot.happiness < CRITICAL_LEVEL && (mission.happinessBoost || 0) > 0) isUrgent = true;
+							if (mascot.cleanliness < CRITICAL_LEVEL && (mission.cleanlinessBoost || 0) > 0) isUrgent = true;
+						}
+
 						return {
 							...mission,
 							cooldownStatus,
 							missionStatus,
+							isUrgent,
 							myPendingSubmissionId: myPendingSubmission?.id || null,
 							takenBy: otherPendingSubmission ? {
 								firstName: otherPendingSubmission.user.firstName,
