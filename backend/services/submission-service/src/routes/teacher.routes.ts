@@ -26,7 +26,7 @@ async function getActiveClassId(userId: string, requestedClassId?: string): Prom
 		const hasAccess = await verifyTeacherOwnsClass(userId, requestedClassId);
 		return hasAccess ? requestedClassId : null;
 	}
-	
+
 	// Otherwise, get the most recent class the user is a member of
 	const membership = await prisma.classUser.findFirst({
 		where: { userId },
@@ -169,11 +169,10 @@ router.post('/submissions/:id/review', requireTeacher, async (req: Request, res:
 			});
 		}
 
-		// Update submission status
-		const dbStatus = status === 'completed' ? 'COMPLETED' : 'REJECTED';
-
 		const updatedSubmission = await prisma.$transaction(async (tx) => {
 			// Update submission
+			const dbStatus = status === 'completed' ? 'COMPLETED' : 'REJECTED';
+
 			const updated = await tx.submission.update({
 				where: { id },
 				data: {
@@ -182,18 +181,23 @@ router.post('/submissions/:id/review', requireTeacher, async (req: Request, res:
 				},
 			});
 
-			// If approved, award XP and coins to mascot
 			if (status === 'completed') {
+
+				await tx.mission.update({
+					where: { id: submission.missionId },
+					data: { status: 'COMPLETED' }
+				});
+
 				const mascot = await tx.mascot.findUnique({
 					where: { classId: submission.classId },
 				});
 
 				if (mascot) {
 					// Calculate new stats (capped at 100)
-					const newThirst = Math.min(100, mascot.thirst + submission.mission.thirstBoost);
-					const newHunger = Math.min(100, mascot.hunger + submission.mission.hungerBoost);
-					const newHappiness = Math.min(100, mascot.happiness + submission.mission.happinessBoost);
-					const newCleanliness = Math.min(100, mascot.cleanliness + submission.mission.cleanlinessBoost);
+					const newThirst = Math.min(100, mascot.thirst + (submission.mission.thirstBoost || 0));
+					const newHunger = Math.min(100, mascot.hunger + (submission.mission.hungerBoost || 0));
+					const newHappiness = Math.min(100, mascot.happiness + (submission.mission.happinessBoost || 0));
+					const newCleanliness = Math.min(100, mascot.cleanliness + (submission.mission.cleanlinessBoost || 0));
 					const newXp = mascot.xp + submission.mission.xpReward;
 
 					// Calculate new level based on XP thresholds
@@ -205,7 +209,6 @@ router.post('/submissions/:id/review', requireTeacher, async (req: Request, res:
 							break;
 						}
 					}
-
 					const leveledUp = newLevel > mascot.level;
 
 					// Update mascot
@@ -245,6 +248,12 @@ router.post('/submissions/:id/review', requireTeacher, async (req: Request, res:
 						});
 					}
 				}
+			} else {
+				// Free up the Mission (Reset to AVAILABLE)
+				await tx.mission.update({
+					where: { id: submission.missionId },
+					data: { status: 'AVAILABLE' }
+				});
 			}
 
 			return updated;

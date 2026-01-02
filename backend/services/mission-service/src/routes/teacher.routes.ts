@@ -9,7 +9,7 @@ const requireTeacher = (req: Request, res: Response, next: Function) => {
 	// TODO: Implement actual authentication middleware
 	// For now, we'll assume the user is authenticated and userId is in req.user
 	const userId = req.headers['x-user-id'] as string;
-	
+
 	if (!userId) {
 		return res.status(401).json({ error: 'Unauthorized', message: 'User not authenticated' });
 	}
@@ -26,7 +26,7 @@ async function getActiveClassId(userId: string, requestedClassId?: string): Prom
 		const hasAccess = await verifyTeacherOwnsClass(userId, requestedClassId);
 		return hasAccess ? requestedClassId : null;
 	}
-	
+
 	// Otherwise, get the most recent class the user is a member of
 	const membership = await prisma.classUser.findFirst({
 		where: { userId },

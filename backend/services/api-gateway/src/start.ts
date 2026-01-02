@@ -4,7 +4,6 @@ import morgan from 'morgan';
 import { config } from 'dotenv';
 import shopRoutes from './routes/shopRoutes';
 import teacherRoutes from './routes/teacherRoutes';
-import mapRoutes from './routes/mapRoutes';
 import authRoutes from './routes/authRoutes';
 import studentRoutes from './routes/studentRoutes';
 import supplyRoutes from './routes/supplyRoutes';
@@ -26,9 +25,6 @@ app.use('/api/teacher', teacherRoutes);
 
 // Student endpoints (proxy routes - must come before body parser)
 app.use('/api/student', studentRoutes);
-
-// Mission endpoints (proxy routes)
-app.use('/map', mapRoutes);
 
 // Body parser for non-proxy routes
 app.use(express.json());
