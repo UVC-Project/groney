@@ -8,7 +8,104 @@ const prisma: PrismaClient = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey';
 const JWT_EXPIRES_IN = '7d';
 
+//Get today's date in Amsterdam timezone as a date object 
+function getAmsterdamToday(): Date {
+	const now = new Date();
+	// Format date parts in Amsterdam timezone
+	const formatter = new Intl.DateTimeFormat('en-CA', {
+		timeZone: 'Europe/Amsterdam',
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+	});
+	const parts = formatter.formatToParts(now);
+	const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+	const month = parseInt(parts.find(p => p.type === 'month')?.value || '1') - 1;
+	const day = parseInt(parts.find(p => p.type === 'day')?.value || '1');
+	
+	// Return a date representning midnight in Amsterdam (stored as UTC equivalent)
+	return new Date(Date.UTC(year, month, day));
+}
+
+//Get yesterday's date in Amsterdam timezone
+
+function getAmsterdamYesterday(): Date {
+	const today = getAmsterdamToday();
+	return new Date(today.getTime() - 24 * 60 * 60 * 1000);
+}
+
+//Convert a date to Amsterdam date for comparison 
+
+function toAmsterdamDay(date: Date): Date {
+	const formatter = new Intl.DateTimeFormat('en-CA', {
+		timeZone: 'Europe/Amsterdam',
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+	});
+	const parts = formatter.formatToParts(date);
+	const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+	const month = parseInt(parts.find(p => p.type === 'month')?.value || '1') - 1;
+	const day = parseInt(parts.find(p => p.type === 'day')?.value || '1');
+	
+	return new Date(Date.UTC(year, month, day));
+}
+
+interface StreakResult {
+	currentStreak: number;
+	longestStreak: number;
+	streakBroken: boolean;
+}
+
 export default class LoginController {
+//Calculate streak based on last login date 
+
+	static calculateStreak(
+		lastLoginDate: Date | null,
+		currentStreak: number,
+		longestStreak: number
+	): StreakResult {
+		const today = getAmsterdamToday();
+		const yesterday = getAmsterdamYesterday();
+
+		// First time login ever
+		if (!lastLoginDate) {
+			return {
+				currentStreak: 1,
+				longestStreak: Math.max(1, longestStreak),
+				streakBroken: false,
+			};
+		}
+
+		const lastLoginDay = toAmsterdamDay(lastLoginDate);
+
+		// Already logged in today - no change
+		if (lastLoginDay.getTime() === today.getTime()) {
+			return {
+				currentStreak,
+				longestStreak,
+				streakBroken: false,
+			};
+		}
+
+		// Logged in yesterday - continue streak
+		if (lastLoginDay.getTime() === yesterday.getTime()) {
+			const newStreak = currentStreak + 1;
+			return {
+				currentStreak: newStreak,
+				longestStreak: Math.max(newStreak, longestStreak),
+				streakBroken: false,
+			};
+		}
+
+		// Missed one or more days - streak broken, reset to 1
+		return {
+			currentStreak: 1,
+			longestStreak: longestStreak, // Keep longest unchanged
+			streakBroken: currentStreak > 0, // Was there a streak to break?
+		};
+	}
+
 	/**
 	 * Login a user (student or teacher)
 	 */
@@ -38,6 +135,26 @@ export default class LoginController {
 			const match = await bcrypt.compare(password, user.password);
 			if (!match) {
 				return res.status(401).json({ message: 'Invalid username or password' });
+			}
+
+			// Calculate streak for students
+			let streakData: StreakResult | null = null;
+			if (user.role === 'STUDENT') {
+				streakData = LoginController.calculateStreak(
+					user.lastLoginDate,
+					user.currentStreak,
+					user.longestStreak
+				);
+
+				// Update user's streak data in database
+				await prisma.user.update({
+					where: { id: user.id },
+					data: {
+						currentStreak: streakData.currentStreak,
+						longestStreak: streakData.longestStreak,
+						lastLoginDate: getAmsterdamToday(),
+					},
+				});
 			}
 
 			// Get the user's classes
@@ -74,6 +191,14 @@ export default class LoginController {
 					role: user.role,
 				},
 				classes,
+				// Include streak data for students
+				...(streakData && {
+					streak: {
+						current: streakData.currentStreak,
+						longest: streakData.longestStreak,
+						broken: streakData.streakBroken,
+					},
+				}),
 			});
 		} catch (err: unknown) {
 			console.error('Login error:', err);
@@ -121,6 +246,26 @@ export default class LoginController {
 				classCode: cm.class.classCode,
 			}));
 
+			// Calculate if streak was broken for students (check without updating)
+			let streakData = null;
+			if (user.role === 'STUDENT') {
+				const today = getAmsterdamToday();
+				const yesterday = getAmsterdamYesterday();
+				const lastLoginDay = user.lastLoginDate ? toAmsterdamDay(user.lastLoginDate) : null;
+
+				// Check if streak is still valid (logged in today or yesterday)
+				const streakValid = lastLoginDay && (
+					lastLoginDay.getTime() === today.getTime() ||
+					lastLoginDay.getTime() === yesterday.getTime()
+				);
+
+				streakData = {
+					current: user.currentStreak,
+					longest: user.longestStreak,
+					broken: !streakValid && user.currentStreak > 0,
+				};
+			}
+
 			return res.json({
 				user: {
 					id: user.id,
@@ -130,6 +275,7 @@ export default class LoginController {
 					role: user.role,
 				},
 				classes,
+				...(streakData && { streak: streakData }),
 			});
 		} catch (err: unknown) {
 			console.error('Token verification error:', err);
