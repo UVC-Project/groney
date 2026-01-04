@@ -16,24 +16,20 @@ model User {
   firstName     String
   lastName      String
   username      String   @unique
+  email         String?  @unique
   password      String
   role          UserRole
-  classId       String?
-  activeClassId String?  // For teachers managing multiple classes
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   classMember ClassUser[]
+
   submissions Submission[]
   purchases   Purchase[]
   activities  Activity[]
   supplyRequests SupplyRequest[]
 
 
-  passwordResetTokens PasswordResetToken[]
-
-  @@index([classId])
-  @@index([activeClassId])
   @@map("users")
 }
 
@@ -42,19 +38,6 @@ enum UserRole {
   TEACHER
 }
 
-// Password reset model
-model PasswordResetToken {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([token])
-  @@index([userId])
-}
 
 // Class model
 model Class {

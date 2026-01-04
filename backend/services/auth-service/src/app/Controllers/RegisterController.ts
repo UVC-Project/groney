@@ -16,17 +16,27 @@ export default class RegisterController {
 				return res.status(400).json({ message: 'Missing required fields' });
 			}
 
-			// if (password.length < 8) {
-			// 	return res.status(400).json({ message: 'Password must be at least 8 characters long' });
-			// }
+			if (password.length < 8) {
+				return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+			}
 
-			// const taken = await prisma.user.findUnique({
-			// 	where: { username },
-			// });
+			const taken = await prisma.user.findUnique({
+				where: { username },
+			});
 
-			// if (taken) {
-			// 	return res.status(409).json({ message: 'Username is already taken' });
-			// }
+			if (taken) {
+				return res.status(409).json({ message: 'Username is already taken' });
+			}
+
+			if (email) {
+				const emailTaken = await prisma.user.findUnique({
+					where: { email }
+				});
+
+				if (emailTaken) {
+					return res.status(409).json({ message: 'Email is already taken' });
+				}
+			}
 
 			const hashed = await bcrypt.hash(password, 10);
 
@@ -54,7 +64,7 @@ export default class RegisterController {
 						firstName,
 						lastName,
 						username,
-						// email,
+						email,
 						password: hashed,
 						role: UserRole.TEACHER,
 					},
