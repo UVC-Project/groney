@@ -1,15 +1,26 @@
-// Auth context - now uses the auth store
-// This file provides backwards compatibility with existing code
+import { writable, get } from "svelte/store";
+import { browser } from "$app/environment";
+import { auth } from "$lib/stores/auth";
 
-import { get } from 'svelte/store';
-import { auth, type User } from '$lib/stores/auth';
+export interface User {
+	id: string;
+	username: string;
+	role: "TEACHER" | "STUDENT";
+	classId?: string | null;
+}
 
-export type { User } from '$lib/stores/auth';
+export const user = writable<User | null>(null);
+export const token = writable<string | null>(null);
 
-export interface AuthContext {
-	user: User | null;
-	isAuthenticated: boolean;
-	isTeacher: boolean;
+export const isAuthenticated = writable(false);
+export const isTeacher = writable(false);
+
+if (browser) {
+	const savedToken = localStorage.getItem("token");
+	const savedUser = localStorage.getItem("user");
+
+	if (savedToken) token.set(savedToken);
+	if (savedUser) user.set(JSON.parse(savedUser));
 }
 
 // Get current user from store (for backwards compatibility)
@@ -50,30 +61,17 @@ export const TEST_TEACHER: User = {
 	role: 'TEACHER',
 };
 
-// Mock auth context for testing (legacy)
-export function createTestAuthContext(): AuthContext {
-	const state = get(auth);
-	return {
-		user: state.user,
-		isAuthenticated: !!state.user,
-		isTeacher: state.user?.role === 'TEACHER',
-	};
-}
+user.subscribe((u) => {
+	if (!browser) return;
 
-// API client with auth headers (legacy)
-export async function authenticatedFetch(
-	url: string,
-	options: RequestInit = {},
-	user?: User | null
-): Promise<Response> {
-	const headers = {
-		'Content-Type': 'application/json',
-		...getAuthHeaders(user),
-		...(options.headers || {}),
-	};
+	if (!u) {
+		localStorage.removeItem("user");
+		isAuthenticated.set(false);
+		isTeacher.set(false);
+		return;
+	}
 
-	return fetch(url, {
-		...options,
-		headers,
-	});
-}
+	localStorage.setItem("user", JSON.stringify(u));
+	isAuthenticated.set(true);
+	isTeacher.set(u.role === "TEACHER");
+});

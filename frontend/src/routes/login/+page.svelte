@@ -6,6 +6,7 @@
 	let password = $state('');
 	let error = $state('');
 	let isLoading = $state(false);
+	let remember = $state(false);
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();

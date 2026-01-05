@@ -2,6 +2,9 @@
 CREATE TYPE "UserRole" AS ENUM ('STUDENT', 'TEACHER');
 
 -- CreateEnum
+CREATE TYPE "SupplyRequestStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+
+-- CreateEnum
 CREATE TYPE "SectorType" AS ENUM ('TREES', 'FLOWERS', 'POND', 'ANIMALS', 'GARDEN', 'PLAYGROUND', 'COMPOST', 'OTHER', 'CHICKENS');
 
 -- CreateEnum
@@ -27,10 +30,23 @@ CREATE TABLE "users" (
     "username" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "role" "UserRole" NOT NULL,
+    "classId" TEXT,
+    "activeClassId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PasswordResetToken" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PasswordResetToken_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -69,10 +85,39 @@ CREATE TABLE "mascots" (
     "equippedHat" TEXT,
     "equippedAccessory" TEXT,
     "lastDecayAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "thirstDecayRate" DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+    "hungerDecayRate" DOUBLE PRECISION NOT NULL DEFAULT 2.0,
+    "happinessDecayRate" DOUBLE PRECISION NOT NULL DEFAULT 3.0,
+    "cleanlinessDecayRate" DOUBLE PRECISION NOT NULL DEFAULT 2.0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "mascots_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "supplies" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT NOT NULL DEFAULT '',
+    "imageUrl" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "supplies_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "supply_requests" (
+    "id" TEXT NOT NULL,
+    "supplyId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "classId" TEXT NOT NULL,
+    "status" "SupplyRequestStatus" NOT NULL DEFAULT 'PENDING',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "supply_requests_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -106,6 +151,8 @@ CREATE TABLE "missions" (
     "cleanlinessBoost" INTEGER NOT NULL DEFAULT 0,
     "requiresPhoto" BOOLEAN NOT NULL DEFAULT true,
     "requiresQR" BOOLEAN NOT NULL DEFAULT false,
+    "cooldownHours" INTEGER NOT NULL DEFAULT 24,
+    "maxCompletions" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "coordinates_x" DOUBLE PRECISION NOT NULL DEFAULT 50.0,
@@ -173,6 +220,21 @@ CREATE TABLE "activities" (
 CREATE UNIQUE INDEX "users_username_key" ON "users"("username");
 
 -- CreateIndex
+CREATE INDEX "users_classId_idx" ON "users"("classId");
+
+-- CreateIndex
+CREATE INDEX "users_activeClassId_idx" ON "users"("activeClassId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PasswordResetToken_token_key" ON "PasswordResetToken"("token");
+
+-- CreateIndex
+CREATE INDEX "PasswordResetToken_token_idx" ON "PasswordResetToken"("token");
+
+-- CreateIndex
+CREATE INDEX "PasswordResetToken_userId_idx" ON "PasswordResetToken"("userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "classes_classCode_key" ON "classes"("classCode");
 
 -- CreateIndex
@@ -180,6 +242,15 @@ CREATE INDEX "classes_classCode_idx" ON "classes"("classCode");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "mascots_classId_key" ON "mascots"("classId");
+
+-- CreateIndex
+CREATE INDEX "supply_requests_classId_idx" ON "supply_requests"("classId");
+
+-- CreateIndex
+CREATE INDEX "supply_requests_userId_idx" ON "supply_requests"("userId");
+
+-- CreateIndex
+CREATE INDEX "supply_requests_status_idx" ON "supply_requests"("status");
 
 -- CreateIndex
 CREATE INDEX "sectors_classId_idx" ON "sectors"("classId");
@@ -215,6 +286,9 @@ CREATE INDEX "activities_classId_idx" ON "activities"("classId");
 CREATE INDEX "activities_createdAt_idx" ON "activities"("createdAt");
 
 -- AddForeignKey
+ALTER TABLE "PasswordResetToken" ADD CONSTRAINT "PasswordResetToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "class_users" ADD CONSTRAINT "class_users_classId_fkey" FOREIGN KEY ("classId") REFERENCES "classes"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -222,6 +296,15 @@ ALTER TABLE "class_users" ADD CONSTRAINT "class_users_userId_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "mascots" ADD CONSTRAINT "mascots_classId_fkey" FOREIGN KEY ("classId") REFERENCES "classes"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "supply_requests" ADD CONSTRAINT "supply_requests_supplyId_fkey" FOREIGN KEY ("supplyId") REFERENCES "supplies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "supply_requests" ADD CONSTRAINT "supply_requests_classId_fkey" FOREIGN KEY ("classId") REFERENCES "classes"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "supply_requests" ADD CONSTRAINT "supply_requests_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "sectors" ADD CONSTRAINT "sectors_classId_fkey" FOREIGN KEY ("classId") REFERENCES "classes"("id") ON DELETE CASCADE ON UPDATE CASCADE;

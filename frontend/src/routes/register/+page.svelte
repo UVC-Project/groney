@@ -11,6 +11,7 @@
 	let firstName = $state('');
 	let lastName = $state('');
 	let username = $state('');
+	let email = $state('');
 	let password = $state('');
 	let confirmPassword = $state('');
 
@@ -52,6 +53,7 @@
 				firstName,
 				lastName,
 				username,
+				email,
 				password,
 				className,
 				schoolName,
@@ -61,6 +63,7 @@
 				firstName,
 				lastName,
 				username,
+				email,
 				password,
 				classCode,
 			});
@@ -206,6 +209,20 @@
 				</div>
 
 				{#if registrationType === 'teacher'}
+				<div>
+					<label for="email" class="block text-sm font-semibold text-slate-700 mb-2">
+						Email
+					</label>
+					<input
+						type="text"
+						id="email"
+						bind:value={email}
+						required
+						class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+						placeholder="johndoe@example.com"
+					/>
+				</div>
+				
 					<div>
 						<label for="className" class="block text-sm font-semibold text-slate-700 mb-2">
 							Class Name
