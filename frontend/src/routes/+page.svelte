@@ -2,6 +2,7 @@
   import ScrollToTopButton from '$lib/components/ScrollToTop.svelte';
   import LogoutModal from '$lib/components/LogoutModal.svelte';
   import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
+  import StreakWidget from '$lib/components/StreakWidget.svelte';
   import type { PageData } from './$types';
   import type { MascotData } from './+page';
   import { goto } from '$app/navigation';
@@ -153,10 +154,11 @@
     Groeny
   </h1>
 
-  <!-- Level + coins -->
+  <!-- Level + coins + streak -->
   <div class="flex justify-center gap-3 mb-6">
     <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg">🎖️ {level}</div>
     <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg">🪙 {coins}</div>
+    <StreakWidget />
   </div>
 
   <!-- Mascot -->
