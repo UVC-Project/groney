@@ -1,5 +1,6 @@
-import { writable } from "svelte/store";
+import { writable, get } from "svelte/store";
 import { browser } from "$app/environment";
+import { auth } from "$lib/stores/auth";
 
 export interface User {
 	id: string;
