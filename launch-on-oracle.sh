@@ -21,7 +21,7 @@ set -a
 eval "$SECRET_CONTENT"
 set +a
 
-echo "   -> HOST_NAME is now: $HOST_NAME"
+echo "   -> VITE_API_URL is now: $VITE_API_URL"
 if [ ! -z "$POSTGRES_PASSWORD" ]; then
     echo "   -> POSTGRES_PASSWORD detected."
 fi
