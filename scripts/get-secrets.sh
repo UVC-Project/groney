@@ -3,7 +3,7 @@
 export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/home/ubuntu/bin
 # Standalone utility to fetch secrets from OCI Vault
 
-SECRET_OCID="ocid1.vaultsecret.oc1.eu-madrid-1.amaaaaaa5wo6ujyawjiscn43sphe5z37fobw5vgggjqpu3mvzpaaej7cfi6a"
+SECRET_OCID="ocid1.vaultsecret.oc1.eu-madrid-1.amaaaaaa5wo6ujyajw7ewb6l5qyw5b2qoimevvlqql4z4vb557x4eaqbw2kq"
 
 # Fetch and decode
 SECRET_CONTENT=$(oci secrets secret-bundle get \
