@@ -17,16 +17,13 @@
   );
   let showBottomNav = $derived(!isTeacherRoute && !isAuthRoute);
 
-  let bgValue = $state(get(selectedBackground));
-
-  $effect(() => {
-    const unsubscribe = selectedBackground.subscribe((value) => {
-      bgValue = value;
-    });
-    return unsubscribe;
-  });
-
-  let bgClass = $derived(bgValue.className);
+  // We can just use the store value directly with the $ syntax in the template or derived logic.
+  // Converting store to state for derived usage:
+  // However, mixing legacy stores and runes: best to just use $selectedBackground directly in derived.
+  let isMobileNavVisible = $state(false); // Example state
+  
+  // Directly access store value automatically reactive
+  let bgClass = $derived($selectedBackground.className);
 
 	const PUBLIC_ROUTES = [
 		'/login',
