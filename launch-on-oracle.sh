@@ -46,5 +46,10 @@ docker image prune -f
 echo "🚀 Launching Production Stack for $PROJECT_NAME (App + DB + Redis + Tunnel)..."
 docker compose --profile prod up -d --build
 
+# 7. Fix Prisma Client (Shared Volume compatibility)
+echo "🔧 Running Prisma Client fix..."
+./scripts/fix-docker-prisma.sh
+
+
 echo "🌐 Deployment Complete!"
 echo "Check status with: docker compose ps"
