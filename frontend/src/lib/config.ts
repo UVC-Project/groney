@@ -1,7 +1,7 @@
 // API Configuration for Teacher Dashboard
 
 // API Base URL - points to API Gateway
-export const API_BASE_URL = 'http://localhost:3000';
+export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -46,9 +46,8 @@ export const CONFIG = {
 	},
 };
 
-export const SUPPLY_API_URL =
-	import.meta.env.VITE_SUPPLY_API_URL ?? 'http://localhost:3007';
+export const SUPPLY_API_URL = API_BASE_URL;
 
-export const MASCOT_ENGINE_URL =
-	import.meta.env.VITE_MASCOT_ENGINE_URL ?? 'http://localhost:3002';
+export const MASCOT_ENGINE_URL = API_BASE_URL;
 
+export const SHOP_API_URL = API_BASE_URL;

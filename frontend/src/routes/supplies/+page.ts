@@ -1,6 +1,6 @@
 import type { PageLoad } from './$types';
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+import { API_BASE_URL } from '$lib/config';
 
 export type Supply = {
   id: string;
@@ -11,7 +11,7 @@ export type Supply = {
 
 export const load: PageLoad = async ({ fetch }) => {
   try {
-    const res = await fetch(`${API_URL}/api/supplies`);
+    const res = await fetch(`${API_BASE_URL}/api/supplies`);
 
     if (!res.ok) {
       console.error('Failed to fetch supplies:', res.status);

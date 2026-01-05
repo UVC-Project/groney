@@ -42,12 +42,12 @@
   );
 
   // --- API
-  const SHOP = 'http://localhost:3005';
+  import { SHOP_API_URL } from '$lib/config';
 
   async function equipItem(item: Item) {
     if (!data.classId) return;
 
-    await fetch(`${SHOP}/api/mascot/equip`, {
+    await fetch(`${SHOP_API_URL}/api/mascot/equip`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -63,7 +63,7 @@
     // Decide what to clear based on item type
     const itemType = selectedItem.type; // "HAT" | "ACCESSORY"
 
-    await fetch(`${SHOP}/api/mascot/unequip`, {
+    await fetch(`${SHOP_API_URL}/api/mascot/unequip`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

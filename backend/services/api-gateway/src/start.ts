@@ -7,6 +7,7 @@ import teacherRoutes from './routes/teacherRoutes';
 import authRoutes from './routes/authRoutes';
 import studentRoutes from './routes/studentRoutes';
 import supplyRoutes from './routes/supplyRoutes';
+import mascotRoutes from './routes/mascotRoutes';
 
 
 config();
@@ -31,6 +32,7 @@ app.use(express.json());
 
 // Shop endpoints (local routes that need body parsing)
 app.use('/api', shopRoutes);
+app.use('/api', mascotRoutes);
 
 // Supply endpoints (student requests + teacher approvals)
 app.use('/api', supplyRoutes);

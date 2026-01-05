@@ -3,7 +3,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const router = Router();
 
-const SUPPLY_SERVICE_URL = process.env.SUPPLY_SERVICE_URL || 'http://localhost:3007';
+const SUPPLY_SERVICE_URL = process.env.SUPPLY_SERVICE_URL || 'http://supply-service:3007';
 
 // GET /api/supplies  -> supply-service /api/supplies
 router.use(
