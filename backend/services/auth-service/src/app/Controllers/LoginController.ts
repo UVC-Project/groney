@@ -21,11 +21,37 @@ const STREAK_MILESTONES: Record<number, number> = {
 	365: 150,
 };
 
+// Motivational messages for milestone rewards
+const MILESTONE_MESSAGES: string[] = [
+	"You're on fire!",
+	"Great consistency!",
+	"Grooney is proud of you!",
+	"Keep the streak alive!",
+	"Awesome job showing up!",
+];
+
 /**
  * Get coin reward for a streak milestone, or 0 if not a milestone
  */
 function getMilestoneReward(streakDay: number): number {
 	return STREAK_MILESTONES[streakDay] || 0;
+}
+
+/**
+ * Get a random motivational message for milestone rewards
+ */
+function getRandomMilestoneMessage(): string {
+	const index = Math.floor(Math.random() * MILESTONE_MESSAGES.length);
+	return MILESTONE_MESSAGES[index];
+}
+
+
+//Milesetone reward event data for the UI
+
+interface MilestoneRewardEvent {
+	streakDay: number;
+	coinsEarned: number;
+	message: string;
 }
 
 //Get today's date in Amsterdam timezone as a date object 
@@ -159,6 +185,7 @@ export default class LoginController {
 
 			// Calculate streak for students
 			let streakData: StreakResult | null = null;
+			let milestoneRewardEvent: MilestoneRewardEvent | null = null;
 			if (user.role === 'STUDENT') {
 				streakData = LoginController.calculateStreak(
 					user.lastLoginDate,
@@ -195,6 +222,14 @@ export default class LoginController {
 						},
 					});
 					newLastMilestoneReached = streakData.currentStreak;
+					
+					// Create milestone reward event for the UI
+					milestoneRewardEvent = {
+						streakDay: streakData.currentStreak,
+						coinsEarned: milestoneReward,
+						message: getRandomMilestoneMessage(),
+					};
+					
 					console.log(`🎉 Streak milestone ${streakData.currentStreak} days reached by ${user.username}! Awarded ${milestoneReward} coins.`);
 				}
 
@@ -251,6 +286,10 @@ export default class LoginController {
 						longest: streakData.longestStreak,
 						broken: streakData.streakBroken,
 					},
+				}),
+				// Include milestone reward event if earned
+				...(milestoneRewardEvent && {
+					milestoneReward: milestoneRewardEvent,
 				}),
 			});
 		} catch (err: unknown) {
