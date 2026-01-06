@@ -88,9 +88,6 @@ function createAuthStore() {
 				});
 
 				const data = await response.json();
-				
-				console.log('🔍 Full login response:', data);
-				console.log('🎁 Milestone reward in response:', data.milestoneReward);
 
 				if (!response.ok) {
 					return { success: false, error: data.message || 'Login failed' };
@@ -116,7 +113,6 @@ function createAuthStore() {
 
 				// Store milestone reward event if present (for UI to display)
 				if (data.milestoneReward) {
-					console.log('🎉 Milestone reward received:', data.milestoneReward);
 					milestoneRewardStore.set(data.milestoneReward);
 				}
 
