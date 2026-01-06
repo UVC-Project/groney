@@ -7,7 +7,9 @@
   import type { MascotData } from './+page';
   import { goto } from '$app/navigation';
   import { onMount, onDestroy } from 'svelte';
+  import { get } from 'svelte/store';
   import { MASCOT_ENGINE_URL } from '$lib/config';
+  import { milestoneRewardStore, clearMilestoneReward } from '$lib/stores/auth';
 
   // Groeny gifs for different states
   import NormalGif from '$lib/assets/images/groney-gif/normal.gif';
@@ -15,6 +17,9 @@
   let { data }: { data: PageData } = $props();
 
   let showLogoutModal = $state(false);
+  let showMilestoneReward = $state(false);
+  let milestoneReward = $state<{ streakDay: number; coinsEarned: number; message: string } | null>(null);
+  let milestoneTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Live mascot data (updated via polling)
   let liveMascot = $state<MascotData>(data.mascot);
@@ -48,17 +53,67 @@
     }
   }
 
-  // Start polling on mount
+  // Start polling on mount and check for milestone reward
   onMount(() => {
     pollInterval = setInterval(fetchMascot, POLL_INTERVAL);
+    
+    // Check current value immediately (in case reward was set before component mounted)
+    const currentReward = get(milestoneRewardStore);
+    if (currentReward) {
+      console.log('📦 Found existing milestone reward:', currentReward);
+      showMilestoneRewardForReward(currentReward);
+    }
+    
+    // Subscribe to milestone reward store for future changes
+    const unsubscribe = milestoneRewardStore.subscribe((reward) => {
+      console.log('📦 Milestone store value changed:', reward);
+      if (reward) {
+        showMilestoneRewardForReward(reward);
+      }
+    });
+    
+    return () => {
+      unsubscribe();
+    };
   });
+
+  // Helper function to show milestone reward popup
+  function showMilestoneRewardForReward(reward: { streakDay: number; coinsEarned: number; message: string }) {
+    console.log('🎯 Showing milestone popup!', reward);
+    milestoneReward = reward;
+    showMilestoneReward = true;
+    
+    // Clear any existing timeout
+    if (milestoneTimeout) {
+      clearTimeout(milestoneTimeout);
+    }
+    
+    // Auto-dismiss after 6 seconds
+    milestoneTimeout = setTimeout(() => {
+      dismissMilestoneReward();
+    }, 6000);
+  }
 
   // Cleanup on destroy
   onDestroy(() => {
     if (pollInterval) {
       clearInterval(pollInterval);
     }
+    if (milestoneTimeout) {
+      clearTimeout(milestoneTimeout);
+    }
   });
+
+  // Dismiss milestone reward message
+  function dismissMilestoneReward() {
+    showMilestoneReward = false;
+    milestoneReward = null;
+    clearMilestoneReward();
+    if (milestoneTimeout) {
+      clearTimeout(milestoneTimeout);
+      milestoneTimeout = null;
+    }
+  }
 
   // Use live data
   let coins = $derived(liveMascot.coins);
@@ -153,6 +208,36 @@
   <h1 class="text-4xl md:text-6xl font-extrabold text-center text-gray-800 mb-4">
     Groeny
   </h1>
+
+  <!-- Milestone Reward Message -->
+  {#if showMilestoneReward && milestoneReward}
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+         onclick={dismissMilestoneReward}
+         onkeydown={(e) => e.key === 'Escape' && dismissMilestoneReward()}
+         role="button"
+         tabindex="0">
+      <div class="bg-white rounded-3xl shadow-2xl p-8 mx-4 max-w-sm text-center animate-bounce-in"
+           onclick={(e) => e.stopPropagation()}
+           onkeydown={(e) => e.stopPropagation()}
+           role="dialog"
+           tabindex="-1">
+        <div class="text-5xl mb-4">🔥</div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">
+          {milestoneReward.streakDay}-day streak!
+        </h2>
+        <div class="bg-yellow-100 rounded-full px-4 py-2 inline-block mb-3">
+          <span class="text-xl font-bold text-yellow-700">🪙 +{milestoneReward.coinsEarned} coins</span>
+        </div>
+        <p class="text-gray-600 text-lg mb-4">{milestoneReward.message}</p>
+        <button
+          class="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-full transition-colors"
+          onclick={dismissMilestoneReward}
+        >
+          Awesome!
+        </button>
+      </div>
+    </div>
+  {/if}
 
   <!-- Level + coins + streak -->
   <div class="flex justify-center gap-3 mb-6">

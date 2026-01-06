@@ -23,6 +23,12 @@ export interface StreakInfo {
 	broken: boolean;
 }
 
+export interface MilestoneReward {
+	streakDay: number;
+	coinsEarned: number;
+	message: string;
+}
+
 interface AuthState {
 	user: User | null;
 	token: string | null;
@@ -38,6 +44,13 @@ const initialState: AuthState = {
 	streak: null,
 	isLoading: true,
 };
+
+// Separate store for milestone reward (must be defined before createAuthStore)
+export const milestoneRewardStore = writable<MilestoneReward | null>(null);
+
+export function clearMilestoneReward() {
+	milestoneRewardStore.set(null);
+}
 
 function createAuthStore() {
 	const { subscribe, set, update } = writable<AuthState>(initialState);
@@ -75,6 +88,9 @@ function createAuthStore() {
 				});
 
 				const data = await response.json();
+				
+				console.log('🔍 Full login response:', data);
+				console.log('🎁 Milestone reward in response:', data.milestoneReward);
 
 				if (!response.ok) {
 					return { success: false, error: data.message || 'Login failed' };
@@ -96,6 +112,12 @@ function createAuthStore() {
 					if (data.user?.id) {
 						localStorage.setItem('userId', data.user.id);
 					}
+				}
+
+				// Store milestone reward event if present (for UI to display)
+				if (data.milestoneReward) {
+					console.log('🎉 Milestone reward received:', data.milestoneReward);
+					milestoneRewardStore.set(data.milestoneReward);
 				}
 
 				return { 
