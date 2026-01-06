@@ -5,10 +5,10 @@ import { requireAuth, requireTeacher, passAuthContext } from '../middleware/auth
 const router = Router();
 
 // Service URLs from environment variables
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
-const MISSION_SERVICE_URL = process.env.MISSION_SERVICE_URL || 'http://localhost:3003';
-const SUBMISSION_SERVICE_URL = process.env.SUBMISSION_SERVICE_URL || 'http://localhost:3004';
-const MASCOT_ENGINE_URL = process.env.MASCOT_ENGINE_URL || 'http://localhost:3002';
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+const MISSION_SERVICE_URL = process.env.MISSION_SERVICE_URL || 'http://mission-service:3003';
+const SUBMISSION_SERVICE_URL = process.env.SUBMISSION_SERVICE_URL || 'http://submission-service:3004';
+const MASCOT_ENGINE_URL = process.env.MASCOT_ENGINE_URL || 'http://mascot-engine:3002';
 
 // Apply authentication middleware to all teacher routes
 router.use(requireAuth);

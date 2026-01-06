@@ -53,7 +53,8 @@ docker-compose up
 │   ├── shop-service/        # Shop items and purchases
 │   └── calculation-service/ # CO2 impact calculations
 ├── GreenSchoolyardICT/      # Legacy monolithic app (prototype)
-└── docker-compose.yml       # Docker orchestration
+├── docker-compose.yml       # Docker orchestration
+└── design.md                # 📘 Technical Architecture & Cloudflare Setup
 ```
 
 ## 🚀 Getting Started for New Developers

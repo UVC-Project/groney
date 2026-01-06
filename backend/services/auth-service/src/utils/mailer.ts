@@ -1,17 +1,18 @@
 import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
-  host: "sandbox.smtp.mailtrap.io",
-  port: 2525,
-  auth: {
-    user: "132f44a394fcd2",
-    pass: "c98e703d22cdef"
-  }
+	host: process.env.SMTP_HOST || "sandbox.smtp.mailtrap.io",
+	port: parseInt(process.env.SMTP_PORT || "2525"),
+	auth: {
+		user: process.env.SMTP_USER || "132f44a394fcd2",
+		pass: process.env.SMTP_PASS || "c98e703d22cdef"
+	}
 });
 
 export async function sendResetPasswordEmail(to: string, token: string) {
-	const resetUrl = `http://localhost:5173/reset-password?token=${token}`;
-	
+	const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+	const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+
 	await transporter.sendMail({
 		from: `"Groeny Support" <${process.env.SMTP_USER}>`,
 		to,
