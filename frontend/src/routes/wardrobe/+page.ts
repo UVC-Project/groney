@@ -1,7 +1,7 @@
 import type { PageLoad } from './$types';
 import { browser } from '$app/environment';
 
-import { SHOP_API_URL } from '$lib/config';
+import { MASCOT_ENGINE_URL } from '$lib/config';
 
 const GATEWAY = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
@@ -13,7 +13,7 @@ export const load: PageLoad = async ({ fetch }) => {
   try {
     const [itemsRes, mascotRes] = await Promise.all([
       fetch(`${GATEWAY}/api/shop/items?userId=${encodeURIComponent(userId)}`),
-      fetch(`${SHOP_API_URL}/api/mascot/by-user/${encodeURIComponent(userId)}`)
+      fetch(`${MASCOT_ENGINE_URL}/api/mascot/by-user/${encodeURIComponent(userId)}`)
     ]);
 
     const items = itemsRes.ok ? await itemsRes.json() : [];
