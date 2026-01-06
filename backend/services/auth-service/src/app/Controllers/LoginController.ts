@@ -268,6 +268,11 @@ export default class LoginController {
 
 			const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
+			// Include previous streak if it was broken (for UI to show reset message)
+			const streakResetInfo = streakData?.streakBroken ? {
+				previousStreak: user.currentStreak,
+			} : null;
+
 			return res.json({
 				message: 'Login successful',
 				token,
@@ -290,6 +295,10 @@ export default class LoginController {
 				// Include milestone reward event if earned
 				...(milestoneRewardEvent && {
 					milestoneReward: milestoneRewardEvent,
+				}),
+				// Include streak reset info if streak was broken
+				...(streakResetInfo && {
+					streakReset: streakResetInfo,
 				}),
 			});
 		} catch (err: unknown) {
