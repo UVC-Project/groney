@@ -12,7 +12,7 @@
   // ✅ ADDED
   import PageIntroModal from '$lib/components/PageIntroModal.svelte';
   import { pageIntros } from '$lib/config/pageIntros';
-
+  
   let { children }: { children: Snippet } = $props();
 
   let isTeacherRoute = $derived(page.url.pathname.startsWith('/teacher'));
@@ -50,10 +50,43 @@
   let isStudent = $state(false);
   let intro = $derived(pageIntros[page.url.pathname]);
 
-  onMount(() => {
-    const currentUser = get(user);
-    const path = window.location.pathname;
+  // ✅ ADDED: per-user key (must match the userId you log in pages)
+  let userKey = $state('');
 
+  // ✅ ADDED: per-user, per-page storage helpers
+  function getSeenPagesKey(key: string) {
+    return `groeny:intro_seen_pages:${key}`;
+  }
+
+  function readSeenPages(key: string): Record<string, boolean> {
+    try {
+      const raw = localStorage.getItem(getSeenPagesKey(key));
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function writeSeenPages(key: string, pages: Record<string, boolean>) {
+    localStorage.setItem(getSeenPagesKey(key), JSON.stringify(pages));
+  }
+
+  function hasSeenPageIntro(key: string, path: string): boolean {
+    const pages = readSeenPages(key);
+    return pages[path] === true;
+  }
+
+  function markSeenPageIntro(key: string, path: string) {
+    const pages = readSeenPages(key);
+    pages[path] = true;
+    writeSeenPages(key, pages);
+  }
+
+onMount(() => {
+  const path = window.location.pathname;
+
+  const unsub = user.subscribe((currentUser) => {
+    // 1) redirect rules (reactive after login/logout)
     if (!currentUser && !isPublicRoute(path)) {
       goto('/login');
       return;
@@ -61,9 +94,10 @@
 
     if (currentUser && isPublicRoute(path)) {
       goto('/');
+      return;
     }
 
-    // ✅ ADDED: determine student + name for intros
+    // 2) compute student + name + userKey every time user changes
     try {
       const role = (
         (currentUser as any)?.role ??
@@ -78,24 +112,44 @@
         (currentUser as any)?.email ??
         '';
 
-      // fallback to localStorage auth if needed
+      // fallback to localStorage auth if needed (for name only)
       if (!studentName) {
         const authData = localStorage.getItem('auth');
         if (authData) {
-          const parsed = JSON.parse(authData);
-          const u = parsed?.user;
-          studentName =
-            u?.username ?? u?.name ?? u?.firstName ?? u?.email ?? '';
+          try {
+            const parsed = JSON.parse(authData);
+            const u = parsed?.user;
+            studentName =
+              u?.username ?? u?.name ?? u?.firstName ?? u?.email ?? '';
+          } catch {}
         }
       }
 
       isStudent = role === 'STUDENT';
+
+      const lsUserId = localStorage.getItem('userId') ?? '';
+
+      let authUserId = '';
+      const authData = localStorage.getItem('auth');
+      if (authData) {
+        try {
+          const parsed = JSON.parse(authData);
+          authUserId = parsed?.user?.id ?? '';
+        } catch {}
+      }
+
+      userKey = (currentUser as any)?.id || lsUserId || authUserId || '';
+
     } catch (e) {
       console.warn('Intro user parse error:', e);
     }
   });
 
-  // ✅ ADDED: show intro per page (map/shop/wardrobe/wiki/...)
+  return () => unsub();
+});
+
+
+  // ✅ show intro only once per page, per userId
   $effect(() => {
     const path = page.url.pathname;
 
@@ -104,11 +158,20 @@
       return;
     }
 
-    if (isStudent && pageIntros[path]) {
-      showIntro = true;
-    } else {
+    // only for student + only if that page has intro content
+    if (!isStudent || !pageIntros[path]) {
       showIntro = false;
+      return;
     }
+
+    // wait until we know the userId
+    if (!userKey) {
+      showIntro = false;
+      return;
+    }
+
+    // ✅ only show if the user has not seen THIS page intro before
+    showIntro = !hasSeenPageIntro(userKey, path);
   });
 </script>
 
@@ -121,7 +184,6 @@
     <BottomNav />
   {/if}
 
-  <!-- ✅ ADDED -->
   <PageIntroModal
     open={showIntro}
     studentName={studentName}
@@ -130,6 +192,10 @@
     bullets={intro?.bullets ?? []}
     tipText={intro?.tipText ?? ''}
     emoji={intro?.emoji ?? '👋'}
-    onClose={() => (showIntro = false)}
+    onClose={() => {
+      const path = page.url.pathname;
+      if (userKey) markSeenPageIntro(userKey, path);
+      showIntro = false;
+    }}
   />
 </div>
