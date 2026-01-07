@@ -53,4 +53,29 @@ router.post(
 	})
 );
 
+// Request new password
+router.post(
+	'/password-reset/request',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/password-reset/request': '/api/auth/password-reset/request',
+		},
+	})
+);
+
+// Reset password
+router.post(
+	'/password-reset/reset',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/password-reset/reset': '/api/auth/password-reset/reset',
+		},
+	})
+);
+
+
 export default router;

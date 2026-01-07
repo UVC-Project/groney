@@ -12,25 +12,29 @@ datasource db {
 
 // User model for both students and teachers
 model User {
-  id            String   @id @default(cuid())
-  firstName     String
-  lastName      String
-  username      String   @unique
-  email         String?  @unique
-  password      String
-  role          UserRole
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  username  String   @unique
+  email     String?  @unique
+  password  String
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Daily login streak tracking (for students)
+  currentStreak        Int       @default(0)
+  longestStreak        Int       @default(0)
+  lastLoginDate        DateTime? // Last login date (Amsterdam timezone day)
+  lastMilestoneReached Int       @default(0) // Highest streak milestone rewarded in current streak run
 
   classMember ClassUser[]
 
-  submissions Submission[]
-  purchases   Purchase[]
-  activities  Activity[]
-  supplyRequests SupplyRequest[]
-
-  passwordResetTokens PasswordResetToken[]
-
+  submissions        Submission[]
+  purchases          Purchase[]
+  activities         Activity[]
+  supplyRequests     SupplyRequest[]
+  PasswordResetToken PasswordResetToken[]
 
   @@map("users")
 }
@@ -54,24 +58,23 @@ model PasswordResetToken {
 
 // Class model
 model Class {
-  id         String   @id @default(cuid())
-  name       String
-  school     String
-  classCode  String   @unique
+  id        String   @id @default(cuid())
+  name      String
+  school    String
+  classCode String   @unique
   // Map configuration
-  mapWidth   Int      @default(20)  // Grid width in cells (each cell ~0.5m)
-  mapHeight  Int      @default(16)  // Grid height in cells
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  mapWidth  Int      @default(20) // Grid width in cells (each cell ~0.5m)
+  mapHeight Int      @default(16) // Grid height in cells
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  members ClassUser[]
-  mascot      Mascot?
-  sectors     Sector[]
-  activities  Activity[]
-  submissions Submission[]
-  purchases   Purchase[]
+  members        ClassUser[]
+  mascot         Mascot?
+  sectors        Sector[]
+  activities     Activity[]
+  submissions    Submission[]
+  purchases      Purchase[]
   supplyRequests SupplyRequest[]
-
 
   @@index([classCode])
   @@map("classes")
@@ -90,27 +93,27 @@ model ClassUser {
 
 // Mascot model
 model Mascot {
-  id              String   @id @default(cuid())
-  classId         String   @unique
-  thirst          Int      @default(100)
-  hunger          Int      @default(100)
-  happiness       Int      @default(100)
-  cleanliness     Int      @default(100)
-  level           Int      @default(1)
-  xp              Int      @default(0)
-  coins           Int      @default(0)
-  equippedHat     String?
+  id                String   @id @default(cuid())
+  classId           String   @unique
+  thirst            Int      @default(100)
+  hunger            Int      @default(100)
+  happiness         Int      @default(100)
+  cleanliness       Int      @default(100)
+  level             Int      @default(1)
+  xp                Int      @default(0)
+  coins             Int      @default(0)
+  equippedHat       String?
   equippedAccessory String?
-  lastDecayAt     DateTime @default(now())
-  
+  lastDecayAt       DateTime @default(now())
+
   // Decay rates per hour (teacher-customizable)
-  thirstDecayRate     Float @default(1.0)
-  hungerDecayRate     Float @default(2.0)
-  happinessDecayRate  Float @default(3.0)
+  thirstDecayRate      Float @default(1.0)
+  hungerDecayRate      Float @default(2.0)
+  happinessDecayRate   Float @default(3.0)
   cleanlinessDecayRate Float @default(2.0)
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
 
@@ -155,21 +158,20 @@ model SupplyRequest {
   @@map("supply_requests")
 }
 
-
 // Sector model (areas of the schoolyard)
 model Sector {
-  id        String     @id @default(cuid())
-  classId   String
-  name      String
-  type      SectorType
+  id         String     @id @default(cuid())
+  classId    String
+  name       String
+  type       SectorType
   // Grid position and size (for map builder)
-  gridX     Int        @default(0)  // X position on grid
-  gridY     Int        @default(0)  // Y position on grid
-  gridWidth Int        @default(2)  // Width in grid cells
-  gridHeight Int       @default(2)  // Height in grid cells
-  color     String?    // Optional custom color
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  gridX      Int        @default(0) // X position on grid
+  gridY      Int        @default(0) // Y position on grid
+  gridWidth  Int        @default(2) // Width in grid cells
+  gridHeight Int        @default(2) // Height in grid cells
+  color      String? // Optional custom color
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 
   class    Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
   missions Mission[]
@@ -206,26 +208,26 @@ enum MissionStatus {
 
 // Mission model
 model Mission {
-  id              String   @id @default(cuid())
-  sectorId        String
-  title           String
-  description     String
-  xpReward        Int
-  coinReward      Int
-  thirstBoost     Int      @default(0)
-  hungerBoost     Int      @default(0)
-  happinessBoost  Int      @default(0)
-  cleanlinessBoost Int     @default(0)
-  requiresPhoto   Boolean  @default(true)
-  requiresQR      Boolean  @default(false)
-  cooldownHours   Int      @default(24)  // Hours before same student can redo mission
-  maxCompletions  Int?     // Optional: max times a student can complete this mission (null = unlimited)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  coordinates_x   Float    @default(50.0)
-  coordinates_y   Float    @default(50.0)
-  category        MissionCategory @default(THIRST)
-  status          MissionStatus @default(AVAILABLE)
+  id               String          @id @default(cuid())
+  sectorId         String
+  title            String
+  description      String
+  xpReward         Int
+  coinReward       Int
+  thirstBoost      Int             @default(0)
+  hungerBoost      Int             @default(0)
+  happinessBoost   Int             @default(0)
+  cleanlinessBoost Int             @default(0)
+  requiresPhoto    Boolean         @default(true)
+  requiresQR       Boolean         @default(false)
+  cooldownHours    Int             @default(24) // Hours before same student can redo mission
+  maxCompletions   Int? // Optional: max times a student can complete this mission (null = unlimited)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  coordinates_x    Float           @default(50.0)
+  coordinates_y    Float           @default(50.0)
+  category         MissionCategory @default(THIRST)
+  status           MissionStatus   @default(AVAILABLE)
 
   sector      Sector       @relation(fields: [sectorId], references: [id], onDelete: Cascade)
   submissions Submission[]
@@ -236,15 +238,15 @@ model Mission {
 
 // Submission model (proof of work)
 model Submission {
-  id          String           @id @default(cuid())
-  missionId   String
-  userId      String
-  classId     String
-  photoUrl    String?
-  qrScanned   Boolean          @default(false)
-  status      SubmissionStatus @default(PENDING)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id        String           @id @default(cuid())
+  missionId String
+  userId    String
+  classId   String
+  photoUrl  String?
+  qrScanned Boolean          @default(false)
+  status    SubmissionStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
   mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -265,14 +267,14 @@ enum SubmissionStatus {
 
 // Shop Item model
 model ShopItem {
-  id        String       @id @default(cuid())
-  name      String
+  id          String   @id @default(cuid())
+  name        String
   description String   @default("")
-  type      ItemType
-  price     Int
-  imageUrl  String
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  type        ItemType
+  price       Int
+  imageUrl    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   purchases Purchase[]
 
@@ -324,4 +326,5 @@ enum ActivityType {
   MISSION_COMPLETED
   PURCHASE
   LEVEL_UP
+  MASCOT_INTERACTION
 }

@@ -3,6 +3,7 @@ import { config } from 'dotenv';
 import teacherRoutes from './routes/teacher.routes';
 import RegisterController from './app/Controllers/RegisterController';
 import LoginController from './app/Controllers/LoginController';
+import PasswordResetController from './app/Controllers/PasswordResetController';
 
 config();
 
@@ -33,6 +34,9 @@ app.post('/api/auth/login', LoginController.login);
 app.get('/api/auth/verify', LoginController.verifyToken);
 app.post('/api/auth/register/teacher', RegisterController.registerTeacher);
 app.post('/api/auth/register/student', RegisterController.registerStudent);
+
+app.post('/api/auth/password-reset/request', PasswordResetController.requestReset);
+app.post('/api/auth/password-reset/reset', PasswordResetController.resetPassword);
 
 // Legacy routes (for backwards compatibility)
 app.post('/login', LoginController.login);

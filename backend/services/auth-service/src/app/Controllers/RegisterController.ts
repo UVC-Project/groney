@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient, UserRole } from '@prisma/client';
 import bcrypt from 'bcrypt';
-import { generateVerificationToken } from '../../Services/token';
 
 const prisma: PrismaClient = new PrismaClient();
 
@@ -39,9 +38,6 @@ export default class RegisterController {
 				}
 			}
 
-			const verificationToken = generateVerificationToken();
-			const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
 			const hashed = await bcrypt.hash(password, 10);
 
 			// Generate unique class code
@@ -71,13 +67,9 @@ export default class RegisterController {
 						email,
 						password: hashed,
 						role: UserRole.TEACHER,
-						emailVerified: false,	
-						emailVerificationToken: verificationToken,
-						emailVerificationExp: verificationExpiry,
 					},
 				});
 
-				// await sendVerifyEmail(result.teacher.email!, verificationToken);
 
 				const cls = await tx.class.create({
 					data: {

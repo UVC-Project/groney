@@ -49,6 +49,11 @@ const initialState: AuthState = {
 	isLoading: true,
 };
 
+interface ApiResponse {
+	success: boolean;
+	message?: string;
+}
+
 // Separate store for milestone reward (must be defined before createAuthStore)
 export const milestoneRewardStore = writable<MilestoneReward | null>(null);
 
@@ -73,11 +78,11 @@ function createAuthStore() {
 			try {
 				const parsed = JSON.parse(stored);
 				// Ensure streak field exists (for backwards compatibility with old localstorage data)
-				set({ 
+				set({
 					...initialState,
-					...parsed, 
+					...parsed,
 					streak: parsed.streak || null,
-					isLoading: false 
+					isLoading: false
 				});
 			} catch {
 				set({ ...initialState, isLoading: false });
@@ -132,9 +137,9 @@ function createAuthStore() {
 					streakResetStore.set(data.streakReset);
 				}
 
-				return { 
-					success: true, 
-					streakBroken: data.streak?.broken || false 
+				return {
+					success: true,
+					streakBroken: data.streak?.broken || false
 				};
 			} catch (error) {
 				console.error('Login error:', error);
@@ -222,6 +227,33 @@ function createAuthStore() {
 				'x-user-id': user.id,
 				'x-user-role': user.role,
 			};
+		},
+
+		async requestPasswordReset(email: string): Promise<ApiResponse> {
+			try {
+				const response = await fetch(
+					`${API_BASE_URL}/api/auth/password-reset/request`,
+					{
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ email }),
+					}
+				);
+
+				const data = await response.json();
+
+				// Always return message (even if email doesn't exist)
+				return {
+					success: true,
+					message: data.message,
+				};
+			} catch (error) {
+				console.error('Password reset request error:', error);
+				return {
+					success: false,
+					message: 'Network error. Please try again.',
+				};
+			}
 		},
 	};
 }
