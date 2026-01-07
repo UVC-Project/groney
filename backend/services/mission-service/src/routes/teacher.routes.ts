@@ -133,8 +133,9 @@ router.delete('/sectors/:id', requireTeacher, async (req: Request, res: Response
 	try {
 		const userId = (req as any).userId;
 		const sectorId = req.params.id;
+		const requestedClassId = req.query.classId as string | undefined;
 
-		const classId = await getActiveClassId(userId);
+		const classId = await getActiveClassId(userId, requestedClassId);
 		if (!classId) {
 			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
 		}

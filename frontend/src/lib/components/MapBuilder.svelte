@@ -40,6 +40,8 @@
     onDecorationMove?: (decorationId: string, x: number, y: number) => void;
     onDecorationResize?: (decorationId: string, width: number, height: number) => void;
     onDecorationDelete?: (decorationId: string) => void;
+    // Confirmation request handler (for keyboard delete)
+    onRequestConfirm?: (type: 'removeSector' | 'deleteDecoration', id: string, name: string) => void;
   }
 
   let {
@@ -62,6 +64,7 @@
     onDecorationMove,
     onDecorationResize,
     onDecorationDelete,
+    onRequestConfirm,
   }: Props = $props();
 
   // Split sectors into placed and unplaced
@@ -479,29 +482,26 @@
       if (selectedSectorId) {
         const sector = placedSectors.find(s => s.id === selectedSectorId);
         if (sector) {
-          handleRemoveSectorFromMap(sector);
+          // Request confirmation from parent
+          onRequestConfirm?.('removeSector', sector.id, sector.name);
         }
       } else if (selectedDecorationId) {
-        handleDeleteDecoration(selectedDecorationId);
+        const decoration = decorations.find(d => d.id === selectedDecorationId);
+        if (decoration) {
+          onRequestConfirm?.('deleteDecoration', decoration.id, getDecorationConfig(decoration.type).label);
+        }
       }
     }
   }
 
   function handleDeleteDecoration(decorationId: string) {
-    const decoration = decorations.find(d => d.id === decorationId);
-    const confirmed = confirm(`Delete this ${getDecorationConfig(decoration?.type || '').label}?`);
-    if (confirmed) {
-      onDecorationDelete?.(decorationId);
-      selectedDecorationId = null;
-    }
+    onDecorationDelete?.(decorationId);
+    selectedDecorationId = null;
   }
 
-  function handleRemoveSectorFromMap(sector: MapSector) {
-    const confirmed = confirm(`Remove "${sector.name}" from the map?\n\nThe sector will be moved back to the palette and can be placed again later.`);
-    if (confirmed) {
-      onSectorRemoveFromMap?.(sector.id);
-      selectedSectorId = null;
-    }
+  function handleRemoveSectorFromMap(sectorId: string) {
+    onSectorRemoveFromMap?.(sectorId);
+    selectedSectorId = null;
   }
 
   // Drag handlers for placing sectors from palette
@@ -1054,10 +1054,6 @@
     </div>
     <span>2 cells = 1 meter</span>
   </div>
-
-
-
-
 </div>
 
 <style>
