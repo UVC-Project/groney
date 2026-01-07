@@ -112,54 +112,6 @@
       return new Date(dateString).toLocaleDateString('en-GB');
   }
 
-  // Fetch activities when filter changes
-  async function fetchActivities() {
-    isLoadingActivities = true;
-    try {
-        let userId = '';
-        const authData = localStorage.getItem('auth');
-        let userRole = 'STUDENT'; 
-        
-        if (authData) {
-            const parsed = JSON.parse(authData);
-            userId = parsed?.user?.id;
-        }
-
-        // URL construction (Logic remains the same)
-        const endpoint = activityFilter === 'mine'
-            ? `${API_BASE_URL}/api/student/activities`
-            : `${API_BASE_URL}/api/student/activities/class?classId=${liveMascot.classId}`;
-
-        const res = await fetch(endpoint, {
-            headers: {
-                'x-user-id': userId,
-                'x-user-role': userRole,
-            }
-        });
-
-        if (res.ok) {
-            activities = await res.json();
-        } else {
-            console.warn('Failed to fetch activities, using mock data');
-            activities = []; 
-        }
-    } catch (err) {
-        console.error('Error loading activities:', err);
-    } finally {
-        isLoadingActivities = false;
-    }
-  }
-
-  // Reactively fetch when filter changes
-  $effect(() => {
-      fetchActivities();
-  });
-  
-  // Helper to format dates
-  function formatDate(dateString: string) {
-      return new Date(dateString).toLocaleDateString('en-GB');
-  }
-
   // Track if the messages have already been shown
   let rewardShown = false;
   let resetShown = false;
