@@ -23,9 +23,10 @@ model User {
   updatedAt     DateTime @updatedAt
 
   // Daily login streak tracking (for students)
-  currentStreak   Int       @default(0)
-  longestStreak   Int       @default(0)
-  lastLoginDate   DateTime? // Last login date (Amsterdam timezone day)
+  currentStreak        Int       @default(0)
+  longestStreak        Int       @default(0)
+  lastLoginDate        DateTime? // Last login date (Amsterdam timezone day)
+  lastMilestoneReached Int       @default(0) // Highest streak milestone rewarded in current streak run
 
   classMember ClassUser[]
 

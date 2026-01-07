@@ -7,7 +7,9 @@
   import type { MascotData } from './+page';
   import { goto } from '$app/navigation';
   import { onMount, onDestroy } from 'svelte';
+  import { get } from 'svelte/store';
   import { MASCOT_ENGINE_URL } from '$lib/config';
+  import { milestoneRewardStore, clearMilestoneReward, streakResetStore, clearStreakReset } from '$lib/stores/auth';
 
   // Groeny gifs for different states
   import NormalGif from '$lib/assets/images/groney-gif/normal.gif';
@@ -15,6 +17,14 @@
   let { data }: { data: PageData } = $props();
 
   let showLogoutModal = $state(false);
+  let showMilestoneReward = $state(false);
+  let milestoneReward = $state<{ streakDay: number; coinsEarned: number; message: string } | null>(null);
+  let milestoneTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  // Streak reset message state
+  let showStreakReset = $state(false);
+  let streakResetInfo = $state<{ previousStreak: number } | null>(null);
+  let streakResetTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Live mascot data (updated via polling)
   let liveMascot = $state<MascotData>(data.mascot);
@@ -48,17 +58,127 @@
     }
   }
 
-  // Start polling on mount
+  // Track if the messages have already been shown
+  let rewardShown = false;
+  let resetShown = false;
+
+  // Start polling on mount and check for milestone reward / streak reset
   onMount(() => {
     pollInterval = setInterval(fetchMascot, POLL_INTERVAL);
+    
+    // Check current value immediately (in case reward was set before component mounted)
+    const currentReward = get(milestoneRewardStore);
+    if (currentReward && !rewardShown) {
+      showMilestoneRewardForReward(currentReward);
+    }
+    
+    // Check for streak reset
+    const currentReset = get(streakResetStore);
+    if (currentReset && !resetShown) {
+      showStreakResetMessage(currentReset);
+    }
+    
+    // Subscribe to milestone reward store for future changes
+    const unsubscribeMilestone = milestoneRewardStore.subscribe((reward) => {
+      if (reward && !rewardShown) {
+        showMilestoneRewardForReward(reward);
+      }
+    });
+    
+    // Subscribe to streak reset store for future changes
+    const unsubscribeReset = streakResetStore.subscribe((reset) => {
+      if (reset && !resetShown) {
+        showStreakResetMessage(reset);
+      }
+    });
+    
+    return () => {
+      unsubscribeMilestone();
+      unsubscribeReset();
+    };
   });
+
+  // Helper function to show milestone reward popup
+  function showMilestoneRewardForReward(reward: { streakDay: number; coinsEarned: number; message: string }) {
+    // Prevent showing the same reward twice
+    if (rewardShown) return;
+    rewardShown = true;
+    
+    milestoneReward = reward;
+    showMilestoneReward = true;
+    
+    // Clear the store immediately so it won't reappear on navigation/refresh
+    clearMilestoneReward();
+    
+    // Fetch updated mascot data immediately to show new coin balance
+    fetchMascot();
+    
+    // Clear any existing timeout
+    if (milestoneTimeout) {
+      clearTimeout(milestoneTimeout);
+    }
+    
+    // Auto-dismiss after 5 seconds
+    milestoneTimeout = setTimeout(() => {
+      dismissMilestoneReward();
+    }, 5000);
+  }
+
+  // Helper function to show streak reset message
+  function showStreakResetMessage(reset: { previousStreak: number }) {
+    // Prevent showing the same reset message twice
+    if (resetShown) return;
+    resetShown = true;
+    
+    streakResetInfo = reset;
+    showStreakReset = true;
+    
+    // Clear the store immediately so it won't reappear on navigation/refresh
+    clearStreakReset();
+    
+    // Clear any existing timeout
+    if (streakResetTimeout) {
+      clearTimeout(streakResetTimeout);
+    }
+    
+    // Auto-dismiss after 5 seconds
+    streakResetTimeout = setTimeout(() => {
+      dismissStreakReset();
+    }, 5000);
+  }
 
   // Cleanup on destroy
   onDestroy(() => {
     if (pollInterval) {
       clearInterval(pollInterval);
     }
+    if (milestoneTimeout) {
+      clearTimeout(milestoneTimeout);
+    }
+    if (streakResetTimeout) {
+      clearTimeout(streakResetTimeout);
+    }
   });
+
+  // Dismiss milestone reward message
+  function dismissMilestoneReward() {
+    showMilestoneReward = false;
+    milestoneReward = null;
+    if (milestoneTimeout) {
+      clearTimeout(milestoneTimeout);
+      milestoneTimeout = null;
+    }
+  }
+
+  // Dismiss streak reset message
+  function dismissStreakReset() {
+    showStreakReset = false;
+    streakResetInfo = null;
+    if (streakResetTimeout) {
+      clearTimeout(streakResetTimeout);
+      streakResetTimeout = null;
+    }
+  }
 
   // Use live data
   let coins = $derived(liveMascot.coins);
@@ -153,6 +273,77 @@
   <h1 class="text-4xl md:text-6xl font-extrabold text-center text-gray-800 mb-4">
     Groeny
   </h1>
+
+  <!-- Milestone Reward Message -->
+  {#if showMilestoneReward && milestoneReward}
+    <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6"
+         onclick={dismissMilestoneReward}
+         onkeydown={(e) => e.key === 'Escape' && dismissMilestoneReward()}
+         role="button"
+         tabindex="0">
+      <!-- Backdrop with subtle blur -->
+      <div class="absolute inset-0 bg-black/20 backdrop-blur-[2px]"></div>
+      
+      <!-- Popup card -->
+      <div class="relative bg-white rounded-2xl sm:rounded-3xl shadow-xl p-6 sm:p-8 w-full max-w-xs sm:max-w-sm text-center animate-bounce-in mb-4 sm:mb-0"
+           onclick={(e) => e.stopPropagation()}
+           onkeydown={(e) => e.stopPropagation()}
+           role="dialog"
+           aria-labelledby="milestone-title"
+           tabindex="-1">
+        <div class="text-4xl sm:text-5xl mb-3">🔥</div>
+        <h2 id="milestone-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
+          {milestoneReward.streakDay}-day streak!
+        </h2>
+        <div class="bg-yellow-50 border border-yellow-200 rounded-full px-4 py-1.5 inline-block mb-3">
+          <span class="text-lg sm:text-xl font-bold text-yellow-600">🪙 +{milestoneReward.coinsEarned} coins</span>
+        </div>
+        <p class="text-gray-500 text-base sm:text-lg mb-4">{milestoneReward.message}</p>
+        <button
+          class="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-semibold px-6 py-2.5 rounded-full transition-colors touch-manipulation"
+          onclick={dismissMilestoneReward}
+        >
+          Awesome!
+        </button>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Streak Reset Message -->
+  {#if showStreakReset && streakResetInfo}
+    <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6"
+         onclick={dismissStreakReset}
+         onkeydown={(e) => e.key === 'Escape' && dismissStreakReset()}
+         role="button"
+         tabindex="0">
+      <!-- Backdrop with subtle blur -->
+      <div class="absolute inset-0 bg-black/20 backdrop-blur-[2px]"></div>
+      
+      <!-- Popup card -->
+      <div class="relative bg-white rounded-2xl sm:rounded-3xl shadow-xl p-6 sm:p-8 w-full max-w-xs sm:max-w-sm text-center animate-bounce-in mb-4 sm:mb-0"
+           onclick={(e) => e.stopPropagation()}
+           onkeydown={(e) => e.stopPropagation()}
+           role="dialog"
+           aria-labelledby="streak-reset-title"
+           tabindex="-1">
+        <div class="text-4xl sm:text-5xl mb-3">💪</div>
+        <h2 id="streak-reset-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
+          Welcome back!
+        </h2>
+        <p class="text-gray-500 text-base mb-3">Your streak has reset, but that's okay!</p>
+        <div class="bg-gray-100 border border-gray-200 rounded-full px-4 py-1.5 inline-block mb-3">
+          <span class="text-base font-medium text-gray-600">Previous streak: {streakResetInfo.previousStreak} days</span>
+        </div>
+        <p class="text-gray-600 text-base sm:text-lg mb-4">Let's start fresh together! 🌱</p>
+        <button
+          class="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-semibold px-6 py-2.5 rounded-full transition-colors touch-manipulation"
+          onclick={dismissStreakReset}
+        >
+          Let's go!
+        </button>
+      </div>
+    </div>
+  {/if}
 
   <!-- Level + coins + streak -->
   <div class="flex justify-center gap-3 mb-6">

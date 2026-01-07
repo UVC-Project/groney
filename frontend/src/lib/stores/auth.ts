@@ -23,6 +23,16 @@ export interface StreakInfo {
 	broken: boolean;
 }
 
+export interface MilestoneReward {
+	streakDay: number;
+	coinsEarned: number;
+	message: string;
+}
+
+export interface StreakReset {
+	previousStreak: number;
+}
+
 interface AuthState {
 	user: User | null;
 	token: string | null;
@@ -38,6 +48,20 @@ const initialState: AuthState = {
 	streak: null,
 	isLoading: true,
 };
+
+// Separate store for milestone reward (must be defined before createAuthStore)
+export const milestoneRewardStore = writable<MilestoneReward | null>(null);
+
+export function clearMilestoneReward() {
+	milestoneRewardStore.set(null);
+}
+
+// Separate store for streak reset info 
+export const streakResetStore = writable<StreakReset | null>(null);
+
+export function clearStreakReset() {
+	streakResetStore.set(null);
+}
 
 function createAuthStore() {
 	const { subscribe, set, update } = writable<AuthState>(initialState);
@@ -96,6 +120,16 @@ function createAuthStore() {
 					if (data.user?.id) {
 						localStorage.setItem('userId', data.user.id);
 					}
+				}
+
+				// Store milestone reward event if present (for UI to display)
+				if (data.milestoneReward) {
+					milestoneRewardStore.set(data.milestoneReward);
+				}
+
+				// Store streak reset info if streak was broken (for UI to be shown)
+				if (data.streakReset) {
+					streakResetStore.set(data.streakReset);
 				}
 
 				return { 
