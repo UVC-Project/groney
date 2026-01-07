@@ -5,7 +5,7 @@
 
   onMount(() => {
     function handleScroll() {
-      visible = window.scrollY > 200;
+      visible = window.scrollY > 50;
     }
 
     window.addEventListener("scroll", handleScroll);
