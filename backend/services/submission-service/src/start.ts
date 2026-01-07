@@ -2,6 +2,7 @@ import express from 'express';
 import { config } from 'dotenv';
 import teacherRoutes from './routes/teacher.routes';
 import studentRoutes from './routes/student.routes';
+import filesRoutes from './routes/files.routes';
 import { ensureBucketExists } from './lib/s3';
 
 config();
@@ -30,6 +31,9 @@ app.use('/api/teacher', teacherRoutes);
 
 // Student routes (for photo uploads)
 app.use('/api/student', studentRoutes);
+
+// File serving routes (proxy to MinIO)
+app.use('/api/files', filesRoutes);
 
 // 404 handler for undefined routes
 app.use((_req, res) => {
