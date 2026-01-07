@@ -11,11 +11,13 @@
   import { MASCOT_ENGINE_URL, API_BASE_URL } from '$lib/config';
   import { milestoneRewardStore, clearMilestoneReward, streakResetStore, clearStreakReset } from '$lib/stores/auth';
 
+
   // Groeny gifs for different states
   import NormalGif from '$lib/assets/images/groney-gif/normal.gif';
 
   let { data }: { data: PageData } = $props();
 
+  let displayName = $state<string>(''); 
   let showLogoutModal = $state(false);
   let showMilestoneReward = $state(false);
   let milestoneReward = $state<{ streakDay: number; coinsEarned: number; message: string } | null>(null);
@@ -118,6 +120,32 @@
 
   // Start polling on mount and check for milestone reward / streak reset
   onMount(() => {
+    // ✅ Read logged-in user's display name from localStorage
+  try {
+    const authData = localStorage.getItem('auth');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      const user = parsed?.user;
+
+        const role = (
+        parsed?.role ??
+        user?.role ??
+        localStorage.getItem('role') ??
+        ''
+      ).toString().toUpperCase();
+
+      // Pick the best available field (adjust if needed)
+      displayName =
+        user?.username ??
+        user?.name ??
+        user?.firstName ??
+        user?.email ??
+        '';
+    }
+  } catch (e) {
+    console.warn('Failed to parse auth from localStorage', e);
+    displayName = '';
+  }
     pollInterval = setInterval(fetchMascot, POLL_INTERVAL);
     
     // Check current value immediately (in case reward was set before component mounted)
@@ -304,13 +332,12 @@
     goto('/login');
   }
 </script>
-
 <div class="container mx-auto px-4 py-10">
 
   <!-- Welcome -->
   <div class="flex justify-between items-center mb-6">
     <p class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white text-sm font-medium text-gray-800 shadow-lg">
-      Welcome!
+      Welcome{displayName ? `, ${displayName}` : ''}!
     </p>
     <div class="flex items-center gap-4">
       <BackgroundPicker />
