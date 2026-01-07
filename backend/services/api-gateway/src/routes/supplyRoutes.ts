@@ -4,7 +4,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 const router = Router();
 
 const SUPPLY_SERVICE_URL =
-  process.env.SUPPLY_SERVICE_URL || 'http://localhost:3007';
+  process.env.SUPPLY_SERVICE_URL || 'http://supply-service:3007';
 
 /**
  * Student: list supplies
@@ -15,6 +15,9 @@ router.use(
   createProxyMiddleware({
     target: SUPPLY_SERVICE_URL,
     changeOrigin: true,
+    pathRewrite: {
+      '^/api/supplies': '/api/supplies',
+    },
   })
 );
 
@@ -27,6 +30,9 @@ router.use(
   createProxyMiddleware({
     target: SUPPLY_SERVICE_URL,
     changeOrigin: true,
+    pathRewrite: {
+      '^/api/supply-requests': '/api/supply-requests',
+    },
     onProxyReq: (proxyReq, req) => {
       if (req.body && Object.keys(req.body).length > 0) {
         const bodyData = JSON.stringify(req.body);

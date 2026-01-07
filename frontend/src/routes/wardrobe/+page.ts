@@ -1,8 +1,9 @@
 import type { PageLoad } from './$types';
 import { browser } from '$app/environment';
 
+import { MASCOT_ENGINE_URL } from '$lib/config';
+
 const GATEWAY = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-const SHOP = 'http://localhost:3005';
 
 export const load: PageLoad = async ({ fetch }) => {
   const userId = browser ? (localStorage.getItem('userId') ?? '') : '';
@@ -12,7 +13,7 @@ export const load: PageLoad = async ({ fetch }) => {
   try {
     const [itemsRes, mascotRes] = await Promise.all([
       fetch(`${GATEWAY}/api/shop/items?userId=${encodeURIComponent(userId)}`),
-      fetch(`${SHOP}/api/mascot/by-user/${encodeURIComponent(userId)}`)
+      fetch(`${MASCOT_ENGINE_URL}/api/mascot/by-user/${encodeURIComponent(userId)}`)
     ]);
 
     const items = itemsRes.ok ? await itemsRes.json() : [];

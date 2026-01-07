@@ -17,10 +17,27 @@ export interface ClassInfo {
 	classCode: string;
 }
 
+export interface StreakInfo {
+	current: number;
+	longest: number;
+	broken: boolean;
+}
+
+export interface MilestoneReward {
+	streakDay: number;
+	coinsEarned: number;
+	message: string;
+}
+
+export interface StreakReset {
+	previousStreak: number;
+}
+
 interface AuthState {
 	user: User | null;
 	token: string | null;
 	classes: ClassInfo[];
+	streak: StreakInfo | null;
 	isLoading: boolean;
 }
 
@@ -28,8 +45,23 @@ const initialState: AuthState = {
 	user: null,
 	token: null,
 	classes: [],
+	streak: null,
 	isLoading: true,
 };
+
+// Separate store for milestone reward (must be defined before createAuthStore)
+export const milestoneRewardStore = writable<MilestoneReward | null>(null);
+
+export function clearMilestoneReward() {
+	milestoneRewardStore.set(null);
+}
+
+// Separate store for streak reset info 
+export const streakResetStore = writable<StreakReset | null>(null);
+
+export function clearStreakReset() {
+	streakResetStore.set(null);
+}
 
 function createAuthStore() {
 	const { subscribe, set, update } = writable<AuthState>(initialState);
@@ -40,7 +72,13 @@ function createAuthStore() {
 		if (stored) {
 			try {
 				const parsed = JSON.parse(stored);
-				set({ ...parsed, isLoading: false });
+				// Ensure streak field exists (for backwards compatibility with old localstorage data)
+				set({ 
+					...initialState,
+					...parsed, 
+					streak: parsed.streak || null,
+					isLoading: false 
+				});
 			} catch {
 				set({ ...initialState, isLoading: false });
 			}
@@ -52,7 +90,7 @@ function createAuthStore() {
 	return {
 		subscribe,
 
-		async login(username: string, password: string): Promise<{ success: boolean; error?: string }> {
+		async login(username: string, password: string): Promise<{ success: boolean; error?: string; streakBroken?: boolean }> {
 			try {
 				const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
 					method: 'POST',
@@ -70,6 +108,7 @@ function createAuthStore() {
 					user: data.user,
 					token: data.token,
 					classes: data.classes || [],
+					streak: data.streak || null,
 					isLoading: false,
 				};
 
@@ -77,9 +116,26 @@ function createAuthStore() {
 
 				if (browser) {
 					localStorage.setItem('auth', JSON.stringify(newState));
+					// Also store userId for other components that need it
+					if (data.user?.id) {
+						localStorage.setItem('userId', data.user.id);
+					}
 				}
 
-				return { success: true };
+				// Store milestone reward event if present (for UI to display)
+				if (data.milestoneReward) {
+					milestoneRewardStore.set(data.milestoneReward);
+				}
+
+				// Store streak reset info if streak was broken (for UI to be shown)
+				if (data.streakReset) {
+					streakResetStore.set(data.streakReset);
+				}
+
+				return { 
+					success: true, 
+					streakBroken: data.streak?.broken || false 
+				};
 			} catch (error) {
 				console.error('Login error:', error);
 				return { success: false, error: 'Network error. Please try again.' };
@@ -179,3 +235,4 @@ export const isTeacher = derived(auth, ($auth) => $auth.user?.role === 'TEACHER'
 export const isStudent = derived(auth, ($auth) => $auth.user?.role === 'STUDENT');
 export const isLoading = derived(auth, ($auth) => $auth.isLoading);
 export const userClasses = derived(auth, ($auth) => $auth.classes);
+export const userStreak = derived(auth, ($auth) => $auth.streak);

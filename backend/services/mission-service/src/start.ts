@@ -1,5 +1,4 @@
 import express from 'express';
-import mapRoutes from './routes/map.routes';
 import teacherRoutes from './routes/teacher.routes';
 import studentRoutes from './routes/student.routes';
 
@@ -27,8 +26,6 @@ app.use('/api/teacher', teacherRoutes);
 
 // Student routes
 app.use('/api/student', studentRoutes);
-
-app.use('/map', mapRoutes);
 
 // 404 handler for undefined routes
 app.use((_req, res) => {
