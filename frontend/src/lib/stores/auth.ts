@@ -255,6 +255,42 @@ function createAuthStore() {
 				};
 			}
 		},
+
+		async resetPassword(
+			token: string,
+			newPassword: string
+		): Promise<ApiResponse> {
+			try {
+				const response = await fetch(
+					`${API_BASE_URL}/api/auth/password-reset/reset`,
+					{
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ token, newPassword }),
+					}
+				);
+
+				const data = await response.json();
+
+				if (!response.ok) {
+					return {
+						success: false,
+						message: data.message || 'Password reset failed',
+					};
+				}
+
+				return {
+					success: true,
+					message: data.message,
+				};
+			} catch (error) {
+				console.error('Password reset error:', error);
+				return {
+					success: false,
+					message: 'Network error. Please try again.',
+				};
+			}
+		},
 	};
 }
 
