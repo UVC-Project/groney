@@ -45,7 +45,7 @@
       <div class="flex items-start justify-between gap-4">
         <div>
           <p class="text-sm font-semibold text-gray-500">
-            {emoji} Welcome{studentName ? `, ${studentName}` : ''}!
+            {emoji} Welcome!
           </p>
           <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-800 mt-1">{title}</h2>
           {#if subtitle}
