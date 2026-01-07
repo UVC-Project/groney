@@ -9,8 +9,19 @@
     color?: string;
   }
 
+  interface MapDecoration {
+    id: string;
+    type: string;
+    gridX: number;
+    gridY: number;
+    gridWidth: number;
+    gridHeight: number;
+    label?: string;
+  }
+
   interface Props {
     sectors: MapSector[];
+    decorations?: MapDecoration[];
     mapWidth: number;
     mapHeight: number;
     editable?: boolean;
@@ -24,10 +35,18 @@
     onSectorDelete?: (sectorId: string) => void;
     onSectorRemoveFromMap?: (sectorId: string) => void;
     onSectorEdit?: (sector: MapSector) => void;
+    // Decoration handlers
+    onAddDecoration?: (type: string, x: number, y: number) => void;
+    onDecorationMove?: (decorationId: string, x: number, y: number) => void;
+    onDecorationResize?: (decorationId: string, width: number, height: number) => void;
+    onDecorationDelete?: (decorationId: string) => void;
+    // Confirmation request handler (for keyboard delete)
+    onRequestConfirm?: (type: 'removeSector' | 'deleteDecoration', id: string, name: string) => void;
   }
 
   let {
     sectors = [],
+    decorations = [],
     mapWidth = 20,
     mapHeight = 16,
     editable = false,
@@ -41,6 +60,11 @@
     onSectorDelete,
     onSectorRemoveFromMap,
     onSectorEdit,
+    onAddDecoration,
+    onDecorationMove,
+    onDecorationResize,
+    onDecorationDelete,
+    onRequestConfirm,
   }: Props = $props();
 
   // Split sectors into placed and unplaced
@@ -64,7 +88,8 @@
   });
 
   let dragState = $state<{
-    sectorId: string;
+    sectorId?: string;
+    decorationId?: string;
     type: 'move' | 'resize';
     startX: number;
     startY: number;
@@ -72,14 +97,21 @@
     originalY: number;
     originalWidth: number;
     originalHeight: number;
+    // Track current values during drag (for visual feedback)
+    currentX: number;
+    currentY: number;
+    currentWidth: number;
+    currentHeight: number;
   } | null>(null);
 
   let selectedSectorId = $state<string | null>(null);
+  let selectedDecorationId = $state<string | null>(null);
   
-  // Drag state for placing sectors
+  // Drag state for placing sectors/decorations
   let placingDrag = $state<{
     sectorId?: string;
     type?: string;
+    decorationType?: string;
     isNew: boolean;
   } | null>(null);
   let dropPreview = $state<{ x: number; y: number } | null>(null);
@@ -100,9 +132,205 @@
     CHICKENS: { color: '#d97706', bgColor: '#fef3c7', icon: '🐔', label: 'Chickens' },
   };
 
+  // Decoration type configurations (visual-only elements)
+  const decorationConfig: Record<string, { color: string; bgColor: string; icon: string; label: string }> = {
+    BUILDING: { color: '#64748b', bgColor: '#e2e8f0', icon: '🏫', label: 'Building' },
+    PAVEMENT: { color: '#78716c', bgColor: '#d6d3d1', icon: '👣', label: 'Path' },
+    PARKING: { color: '#525252', bgColor: '#d4d4d4', icon: '🅿️', label: 'Parking' },
+    FENCE: { color: '#92400e', bgColor: '#fef3c7', icon: '🚧', label: 'Fence' },
+    ENTRANCE: { color: '#0891b2', bgColor: '#cffafe', icon: '🚪', label: 'Entrance' },
+    BENCH: { color: '#a16207', bgColor: '#fef9c3', icon: '🪑', label: 'Bench' },
+    TRASH_BIN: { color: '#166534', bgColor: '#dcfce7', icon: '🗑️', label: 'Trash Bin' },
+    BIKE_RACK: { color: '#1d4ed8', bgColor: '#dbeafe', icon: '🚲', label: 'Bike Rack' },
+  };
+
   function getConfig(type: string) {
     return sectorConfig[type?.toUpperCase()] || sectorConfig.OTHER;
   }
+
+  function getDecorationConfig(type: string) {
+    return decorationConfig[type?.toUpperCase()] || decorationConfig.BUILDING;
+  }
+
+  // Check if two rectangles touch on any edge and return the overlap range
+  function getEdgeOverlaps(
+    a: { x: number; y: number; w: number; h: number },
+    b: { x: number; y: number; w: number; h: number }
+  ): { 
+    top: { start: number; end: number } | null;
+    right: { start: number; end: number } | null;
+    bottom: { start: number; end: number } | null;
+    left: { start: number; end: number } | null;
+  } {
+    const result = { top: null as any, right: null as any, bottom: null as any, left: null as any };
+    
+    // Top: b is directly above a
+    if (b.y + b.h === a.y) {
+      const overlapStart = Math.max(a.x, b.x);
+      const overlapEnd = Math.min(a.x + a.w, b.x + b.w);
+      if (overlapStart < overlapEnd) {
+        result.top = { start: overlapStart - a.x, end: overlapEnd - a.x };
+      }
+    }
+    // Bottom: b is directly below a
+    if (a.y + a.h === b.y) {
+      const overlapStart = Math.max(a.x, b.x);
+      const overlapEnd = Math.min(a.x + a.w, b.x + b.w);
+      if (overlapStart < overlapEnd) {
+        result.bottom = { start: overlapStart - a.x, end: overlapEnd - a.x };
+      }
+    }
+    // Left: b is directly to the left of a
+    if (b.x + b.w === a.x) {
+      const overlapStart = Math.max(a.y, b.y);
+      const overlapEnd = Math.min(a.y + a.h, b.y + b.h);
+      if (overlapStart < overlapEnd) {
+        result.left = { start: overlapStart - a.y, end: overlapEnd - a.y };
+      }
+    }
+    // Right: b is directly to the right of a
+    if (a.x + a.w === b.x) {
+      const overlapStart = Math.max(a.y, b.y);
+      const overlapEnd = Math.min(a.y + a.h, b.y + b.h);
+      if (overlapStart < overlapEnd) {
+        result.right = { start: overlapStart - a.y, end: overlapEnd - a.y };
+      }
+    }
+    
+    return result;
+  }
+
+  // Get all border overlaps for a decoration, including corner overlaps
+  function getDecorationOverlaps(decoration: MapDecoration, allDecorations: MapDecoration[]): {
+    top: Array<{ start: number; end: number }>;
+    right: Array<{ start: number; end: number }>;
+    bottom: Array<{ start: number; end: number }>;
+    left: Array<{ start: number; end: number }>;
+    corners: { topLeft: boolean; topRight: boolean; bottomLeft: boolean; bottomRight: boolean };
+  } {
+    const overlaps = { 
+      top: [] as Array<{ start: number; end: number }>,
+      right: [] as Array<{ start: number; end: number }>,
+      bottom: [] as Array<{ start: number; end: number }>,
+      left: [] as Array<{ start: number; end: number }>,
+      corners: { topLeft: false, topRight: false, bottomLeft: false, bottomRight: false }
+    };
+    
+    const currentRect = {
+      x: decoration.gridX,
+      y: decoration.gridY,
+      w: decoration.gridWidth,
+      h: decoration.gridHeight
+    };
+    
+    // Track which edges have overlaps at their endpoints
+    let topStartCovered = false, topEndCovered = false;
+    let bottomStartCovered = false, bottomEndCovered = false;
+    let leftStartCovered = false, leftEndCovered = false;
+    let rightStartCovered = false, rightEndCovered = false;
+    
+    for (const other of allDecorations) {
+      if (other.id === decoration.id) continue;
+      if (other.type !== decoration.type) continue;
+      
+      const otherRect = {
+        x: other.gridX,
+        y: other.gridY,
+        w: other.gridWidth,
+        h: other.gridHeight
+      };
+      
+      const edges = getEdgeOverlaps(currentRect, otherRect);
+      if (edges.top) {
+        overlaps.top.push(edges.top);
+        if (edges.top.start === 0) topStartCovered = true;
+        if (edges.top.end === currentRect.w) topEndCovered = true;
+      }
+      if (edges.right) {
+        overlaps.right.push(edges.right);
+        if (edges.right.start === 0) rightStartCovered = true;
+        if (edges.right.end === currentRect.h) rightEndCovered = true;
+      }
+      if (edges.bottom) {
+        overlaps.bottom.push(edges.bottom);
+        if (edges.bottom.start === 0) bottomStartCovered = true;
+        if (edges.bottom.end === currentRect.w) bottomEndCovered = true;
+      }
+      if (edges.left) {
+        overlaps.left.push(edges.left);
+        if (edges.left.start === 0) leftStartCovered = true;
+        if (edges.left.end === currentRect.h) leftEndCovered = true;
+      }
+    }
+    
+    // Determine corner overlaps - corners need filling when two perpendicular edges are covered at that corner
+    // Top-left corner: top edge starts at 0 AND left edge starts at 0
+    overlaps.corners.topLeft = topStartCovered && leftStartCovered;
+    // Top-right corner: top edge ends at width AND right edge starts at 0
+    overlaps.corners.topRight = topEndCovered && rightStartCovered;
+    // Bottom-left corner: bottom edge starts at 0 AND left edge ends at height
+    overlaps.corners.bottomLeft = bottomStartCovered && leftEndCovered;
+    // Bottom-right corner: bottom edge ends at width AND right edge ends at height
+    overlaps.corners.bottomRight = bottomEndCovered && rightEndCovered;
+    
+    return overlaps;
+  }
+
+  // Check if entire edge is covered (for border-radius decisions)
+  function isEdgeFullyCovered(overlaps: Array<{ start: number; end: number }>, edgeLength: number): boolean {
+    if (overlaps.length === 0) return false;
+    // Merge overlapping ranges and check if they cover 0 to edgeLength
+    const sorted = [...overlaps].sort((a, b) => a.start - b.start);
+    let covered = 0;
+    for (const range of sorted) {
+      if (range.start <= covered) {
+        covered = Math.max(covered, range.end);
+      }
+    }
+    return covered >= edgeLength;
+  }
+
+  // Calculate visible segments for an edge by subtracting overlaps from the full length
+  function getUncoveredSegments(totalLength: number, overlaps: Array<{ start: number; end: number }>): Array<{ start: number; end: number }> {
+    // 1. Sort overlaps by start
+    const sorted = [...overlaps].sort((a, b) => a.start - b.start);
+    
+    // 2. Merge overlapping intervals
+    const merged: Array<{ start: number; end: number }> = [];
+    if (sorted.length > 0) {
+      let current = sorted[0];
+      for (let i = 1; i < sorted.length; i++) {
+        const next = sorted[i];
+        if (next.start <= current.end) {
+          current.end = Math.max(current.end, next.end);
+        } else {
+          merged.push(current);
+          current = next;
+        }
+      }
+      merged.push(current);
+    }
+    
+    // 3. Compute gaps (uncovered segments)
+    const result: Array<{ start: number; end: number }> = [];
+    let currentPos = 0;
+    
+    for (const overlap of merged) {
+      if (overlap.start > currentPos) {
+        result.push({ start: currentPos, end: overlap.start });
+      }
+      currentPos = Math.max(currentPos, overlap.end);
+    }
+    
+    if (currentPos < totalLength) {
+      result.push({ start: currentPos, end: totalLength });
+    }
+    
+    return result;
+  }
+
+  // Palette tab state
+  let paletteTab = $state<'sectors' | 'decorations'>('sectors');
 
   // Drag handlers for moving/resizing placed sectors
   function handleMouseDown(e: MouseEvent, sector: MapSector, type: 'move' | 'resize') {
@@ -111,6 +339,7 @@
     e.stopPropagation();
 
     selectedSectorId = sector.id;
+    selectedDecorationId = null;
     dragState = {
       sectorId: sector.id,
       type,
@@ -120,6 +349,37 @@
       originalY: sector.gridY,
       originalWidth: sector.gridWidth,
       originalHeight: sector.gridHeight,
+      currentX: sector.gridX,
+      currentY: sector.gridY,
+      currentWidth: sector.gridWidth,
+      currentHeight: sector.gridHeight,
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }
+
+  // Drag handlers for decorations
+  function handleDecorationMouseDown(e: MouseEvent, decoration: MapDecoration, type: 'move' | 'resize') {
+    if (!editable) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    selectedDecorationId = decoration.id;
+    selectedSectorId = null;
+    dragState = {
+      decorationId: decoration.id,
+      type,
+      startX: e.clientX,
+      startY: e.clientY,
+      originalX: decoration.gridX,
+      originalY: decoration.gridY,
+      originalWidth: decoration.gridWidth,
+      originalHeight: decoration.gridHeight,
+      currentX: decoration.gridX,
+      currentY: decoration.gridY,
+      currentWidth: decoration.gridWidth,
+      currentHeight: decoration.gridHeight,
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -132,25 +392,43 @@
     const deltaX = Math.round((e.clientX - dragState.startX) / CELL_SIZE);
     const deltaY = Math.round((e.clientY - dragState.startY) / CELL_SIZE);
 
-    const sector = sectors.find((s) => s.id === dragState!.sectorId);
-    if (!sector) return;
-
     if (dragState.type === 'move') {
-      const newX = Math.max(0, Math.min(mapWidth - sector.gridWidth, dragState.originalX + deltaX));
-      const newY = Math.max(0, Math.min(mapHeight - sector.gridHeight, dragState.originalY + deltaY));
-      if (newX !== sector.gridX || newY !== sector.gridY) {
-        onSectorMove?.(sector.id, newX, newY);
-      }
+      const newX = Math.max(0, Math.min(mapWidth - dragState.originalWidth, dragState.originalX + deltaX));
+      const newY = Math.max(0, Math.min(mapHeight - dragState.originalHeight, dragState.originalY + deltaY));
+      // Update local drag state for visual feedback only - no API call
+      dragState.currentX = newX;
+      dragState.currentY = newY;
     } else if (dragState.type === 'resize') {
-      const newWidth = Math.max(2, Math.min(12, mapWidth - sector.gridX, dragState.originalWidth + deltaX));
-      const newHeight = Math.max(2, Math.min(10, mapHeight - sector.gridY, dragState.originalHeight + deltaY));
-      if (newWidth !== sector.gridWidth || newHeight !== sector.gridHeight) {
-        onSectorResize?.(sector.id, newWidth, newHeight);
-      }
+      // No arbitrary size limits - only constrained by map boundaries
+      const newWidth = Math.max(1, Math.min(mapWidth - dragState.originalX, dragState.originalWidth + deltaX));
+      const newHeight = Math.max(1, Math.min(mapHeight - dragState.originalY, dragState.originalHeight + deltaY));
+      // Update local drag state for visual feedback only - no API call
+      dragState.currentWidth = newWidth;
+      dragState.currentHeight = newHeight;
     }
   }
 
   function handleMouseUp() {
+    if (dragState) {
+      // Only call API when drag is complete
+      if (dragState.type === 'move') {
+        if (dragState.currentX !== dragState.originalX || dragState.currentY !== dragState.originalY) {
+          if (dragState.sectorId) {
+            onSectorMove?.(dragState.sectorId, dragState.currentX, dragState.currentY);
+          } else if (dragState.decorationId) {
+            onDecorationMove?.(dragState.decorationId, dragState.currentX, dragState.currentY);
+          }
+        }
+      } else if (dragState.type === 'resize') {
+        if (dragState.currentWidth !== dragState.originalWidth || dragState.currentHeight !== dragState.originalHeight) {
+          if (dragState.sectorId) {
+            onSectorResize?.(dragState.sectorId, dragState.currentWidth, dragState.currentHeight);
+          } else if (dragState.decorationId) {
+            onDecorationResize?.(dragState.decorationId, dragState.currentWidth, dragState.currentHeight);
+          }
+        }
+      }
+    }
     dragState = null;
     window.removeEventListener('mousemove', handleMouseMove);
     window.removeEventListener('mouseup', handleMouseUp);
@@ -159,7 +437,19 @@
   function handleSectorClick(e: MouseEvent, sector: MapSector) {
     e.stopPropagation();
     selectedSectorId = sector.id;
+    selectedDecorationId = null;
     onSectorClick?.(sector);
+    
+    // Focus the grid container to enable keyboard events
+    if (editable) {
+      gridRef?.focus();
+    }
+  }
+
+  function handleDecorationClick(e: MouseEvent, decoration: MapDecoration) {
+    e.stopPropagation();
+    selectedDecorationId = decoration.id;
+    selectedSectorId = null;
     
     // Focus the grid container to enable keyboard events
     if (editable) {
@@ -177,44 +467,49 @@
   }
 
   function handleGridClick() {
-    if (editable) selectedSectorId = null;
+    if (editable) {
+      selectedSectorId = null;
+      selectedDecorationId = null;
+    }
   }
 
   // Keyboard event handler for the entire map
   function handleMapKeydown(e: KeyboardEvent) {
-    if (!editable || !selectedSectorId) return;
+    if (!editable) return;
     
     if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
-      const sector = placedSectors.find(s => s.id === selectedSectorId);
-      if (sector) {
-        handleRemoveSectorFromMap(sector);
+      if (selectedSectorId) {
+        const sector = placedSectors.find(s => s.id === selectedSectorId);
+        if (sector) {
+          // Request confirmation from parent
+          onRequestConfirm?.('removeSector', sector.id, sector.name);
+        }
+      } else if (selectedDecorationId) {
+        const decoration = decorations.find(d => d.id === selectedDecorationId);
+        if (decoration) {
+          onRequestConfirm?.('deleteDecoration', decoration.id, getDecorationConfig(decoration.type).label);
+        }
       }
     }
   }
 
-  function handleRemoveSectorFromMap(sector: MapSector) {
-    const confirmed = confirm(`Remove "${sector.name}" from the map?\n\nThe sector will be moved back to the palette and can be placed again later.`);
-    if (confirmed) {
-      onSectorRemoveFromMap?.(sector.id);
-      selectedSectorId = null;
-    }
+  function handleDeleteDecoration(decorationId: string) {
+    onDecorationDelete?.(decorationId);
+    selectedDecorationId = null;
   }
 
-  function handleDeleteSector(sector: MapSector) {
-    const confirmed = confirm(`Permanently delete "${sector.name}"?\n\nThis will also delete all missions in this sector. This action cannot be undone.`);
-    if (confirmed) {
-      onSectorDelete?.(sector.id);
-      selectedSectorId = null;
-    }
+  function handleRemoveSectorFromMap(sectorId: string) {
+    onSectorRemoveFromMap?.(sectorId);
+    selectedSectorId = null;
   }
 
   // Drag handlers for placing sectors from palette
-  function handlePaletteDragStart(e: DragEvent, sectorId?: string, type?: string) {
+  function handlePaletteDragStart(e: DragEvent, sectorId?: string, type?: string, decorationType?: string) {
     if (!e.dataTransfer) return;
-    e.dataTransfer.setData('application/json', JSON.stringify({ sectorId, type }));
+    e.dataTransfer.setData('application/json', JSON.stringify({ sectorId, type, decorationType }));
     e.dataTransfer.effectAllowed = 'move';
-    placingDrag = { sectorId, type, isNew: !sectorId };
+    placingDrag = { sectorId, type, decorationType, isNew: !sectorId };
   }
 
   function handleGridDragOver(e: DragEvent) {
@@ -225,8 +520,8 @@
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const x = Math.floor((e.clientX - rect.left) / CELL_SIZE);
     const y = Math.floor((e.clientY - rect.top) / CELL_SIZE);
-    const clampedX = Math.max(0, Math.min(mapWidth - 3, x));
-    const clampedY = Math.max(0, Math.min(mapHeight - 3, y));
+    const clampedX = Math.max(0, Math.min(mapWidth - 2, x));
+    const clampedY = Math.max(0, Math.min(mapHeight - 2, y));
     dropPreview = { x: clampedX, y: clampedY };
   }
 
@@ -244,6 +539,9 @@
       if (data.sectorId) {
         // Placing an existing unplaced sector
         onPlaceSector?.(data.sectorId, dropPreview.x, dropPreview.y);
+      } else if (data.decorationType) {
+        // Creating a new decoration
+        onAddDecoration?.(data.decorationType, dropPreview.x, dropPreview.y);
       } else if (data.type) {
         // Creating a new sector
         onAddSector?.(data.type, dropPreview.x, dropPreview.y);
@@ -290,8 +588,85 @@
       </div>
     </div>
   {/if}
+
+  <!-- Add Elements Palette (edit mode only) -->
+  {#if editable}
+    <div class="mb-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <!-- Tab Headers -->
+      <div class="flex border-b border-slate-200">
+        <button
+          class="flex-1 px-4 py-3 text-sm font-semibold transition-colors relative"
+          class:bg-emerald-50={paletteTab === 'sectors'}
+          class:text-emerald-700={paletteTab === 'sectors'}
+          class:text-slate-500={paletteTab !== 'sectors'}
+          class:hover:bg-slate-50={paletteTab !== 'sectors'}
+          onclick={() => paletteTab = 'sectors'}
+        >
+          <span class="flex items-center justify-center gap-2">
+            🌳 Add Sectors
+          </span>
+          {#if paletteTab === 'sectors'}
+            <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500"></div>
+          {/if}
+        </button>
+        <button
+          class="flex-1 px-4 py-3 text-sm font-semibold transition-colors relative"
+          class:bg-slate-100={paletteTab === 'decorations'}
+          class:text-slate-700={paletteTab === 'decorations'}
+          class:text-slate-500={paletteTab !== 'decorations'}
+          class:hover:bg-slate-50={paletteTab !== 'decorations'}
+          onclick={() => paletteTab = 'decorations'}
+        >
+          <span class="flex items-center justify-center gap-2">
+            🏫 Add Decorations
+          </span>
+          {#if paletteTab === 'decorations'}
+            <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-500"></div>
+          {/if}
+        </button>
+      </div>
+      
+      <!-- Tab Content -->
+      <div class="p-4">
+        <p class="text-xs text-slate-400 mb-3">Drag items to place on map</p>
+        
+        {#if paletteTab === 'sectors'}
+          <div class="flex flex-wrap gap-2">
+            {#each Object.entries(sectorConfig) as [type, config]}
+              <div
+                draggable="true"
+                ondragstart={(e) => handlePaletteDragStart(e, undefined, type)}
+                class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
+                style="background-color: {config.bgColor}; border-color: {config.color};"
+                role="button"
+                tabindex="0"
+              >
+              <span class="text-xl">{config.icon}</span>
+              <span class="text-sm font-semibold" style="color: {config.color};">{config.label}</span>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <div class="flex flex-wrap gap-2">
+          {#each Object.entries(decorationConfig) as [type, config]}
+            <div
+              draggable="true"
+              ondragstart={(e) => handlePaletteDragStart(e, undefined, undefined, type)}
+              class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
+              style="background-color: {config.bgColor}; border-color: {config.color};"
+              role="button"
+              tabindex="0"
+            >
+              <span class="text-xl">{config.icon}</span>
+              <span class="text-sm font-semibold" style="color: {config.color};">{config.label}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
+      </div>
+    </div>
+  {/if}
   
-  <!-- Grid Size Controls (only in edit mode) -->
   <!-- Edit Controls & Hints -->
   {#if editable}
     <div class="mb-2 flex items-center justify-between gap-4 text-xs text-slate-500">
@@ -411,33 +786,193 @@
       <!-- Drop Preview -->
       {#if dropPreview && placingDrag}
         {@const currentDrag = placingDrag}
-        {@const config = currentDrag.sectorId 
-          ? getConfig(unplacedSectors.find(s => s.id === currentDrag.sectorId)?.type || 'OTHER')
-          : getConfig(currentDrag.type || 'OTHER')}
+        {@const config = currentDrag.decorationType 
+          ? getDecorationConfig(currentDrag.decorationType)
+          : currentDrag.sectorId 
+            ? getConfig(unplacedSectors.find(s => s.id === currentDrag.sectorId)?.type || 'OTHER')
+            : getConfig(currentDrag.type || 'OTHER')}
         <div
           class="absolute rounded-xl border-2 border-dashed pointer-events-none animate-pulse z-30"
           style="
             left: {dropPreview.x * CELL_SIZE}px;
             top: {dropPreview.y * CELL_SIZE}px;
-            width: {3 * CELL_SIZE}px;
-            height: {3 * CELL_SIZE}px;
+            width: {2 * CELL_SIZE}px;
+            height: {2 * CELL_SIZE}px;
             background-color: {config.bgColor}80;
             border-color: {config.color};
           "
         >
           <div class="absolute inset-0 flex items-center justify-center">
-            <span class="text-3xl opacity-60">{config.icon}</span>
+            <span class="text-2xl opacity-60">{config.icon}</span>
           </div>
         </div>
       {/if}
+
+      <!-- Decorations (rendered below sectors) -->
+      {#each decorations as decoration (decoration.id)}
+        {@const config = getDecorationConfig(decoration.type)}
+        {@const isSelected = selectedDecorationId === decoration.id}
+        {@const isDragging = dragState?.decorationId === decoration.id}
+        {@const displayX = isDragging ? dragState!.currentX : decoration.gridX}
+        {@const displayY = isDragging ? dragState!.currentY : decoration.gridY}
+        {@const displayWidth = isDragging ? dragState!.currentWidth : decoration.gridWidth}
+        {@const displayHeight = isDragging ? dragState!.currentHeight : decoration.gridHeight}
+        
+        {@const overlaps = getDecorationOverlaps(decoration, decorations)}
+        
+        <!-- Calculate visible border segments -->
+        {@const visibleTop = getUncoveredSegments(displayWidth, overlaps.top)}
+        {@const visibleBottom = getUncoveredSegments(displayWidth, overlaps.bottom)}
+        {@const visibleLeft = getUncoveredSegments(displayHeight, overlaps.left)}
+        {@const visibleRight = getUncoveredSegments(displayHeight, overlaps.right)}
+        
+        <!-- Determine rounded corners -->
+        <!-- A corner is rounded ONLY if it's a visible endpoint of both adjacent edges -->
+        <!-- Top-Left: Top starts at 0 AND Left starts at 0 -->
+        {@const roundTL = visibleTop.some(s => s.start === 0) && visibleLeft.some(s => s.start === 0)}
+        <!-- Top-Right: Top ends at width AND Right starts at 0 -->
+        {@const roundTR = visibleTop.some(s => s.end === displayWidth) && visibleRight.some(s => s.start === 0)}
+        <!-- Bottom-Left: Bottom starts at 0 AND Left ends at height -->
+        {@const roundBL = visibleBottom.some(s => s.start === 0) && visibleLeft.some(s => s.end === displayHeight)}
+        <!-- Bottom-Right: Bottom ends at width AND Right ends at height -->
+        {@const roundBR = visibleBottom.some(s => s.end === displayWidth) && visibleRight.some(s => s.end === displayHeight)}
+
+        <div
+          class="absolute transition-all group"
+          class:duration-100={!isDragging}
+          class:duration-0={isDragging}
+          class:cursor-grab={editable && !isDragging}
+          class:cursor-grabbing={isDragging}
+          class:ring-2={isSelected}
+          class:ring-slate-400={isSelected}
+          class:shadow-lg={isSelected || isDragging}
+          class:z-15={isSelected || isDragging}
+          class:z-5={!isSelected && !isDragging}
+          style="
+            box-sizing: border-box;
+            left: {displayX * CELL_SIZE}px;
+            top: {displayY * CELL_SIZE}px;
+            width: {displayWidth * CELL_SIZE}px;
+            height: {displayHeight * CELL_SIZE}px;
+            background: {config.bgColor};
+            border-top-left-radius: {roundTL ? '8px' : '0'};
+            border-top-right-radius: {roundTR ? '8px' : '0'};
+            border-bottom-left-radius: {roundBL ? '8px' : '0'};
+            border-bottom-right-radius: {roundBR ? '8px' : '0'};
+          "
+          onclick={(e) => handleDecorationClick(e, decoration)}
+          onmousedown={(e) => editable && handleDecorationMouseDown(e, decoration, 'move')}
+          role="button"
+          tabindex="0"
+          aria-label="{config.label} decoration"
+        >
+          <!-- Custom Borders -->
+          
+          <!-- Top Border Segments -->
+          {#each visibleTop as segment}
+            <div 
+              class="absolute pointer-events-none"
+              style="
+                top: 0;
+                left: {segment.start * CELL_SIZE}px;
+                width: {(segment.end - segment.start) * CELL_SIZE}px;
+                height: 2px;
+                background: {config.color};
+                border-top-left-radius: {segment.start === 0 && roundTL ? '8px' : '0'};
+                border-top-right-radius: {segment.end === displayWidth && roundTR ? '8px' : '0'};
+              "
+            ></div>
+          {/each}
+
+          <!-- Bottom Border Segments -->
+          {#each visibleBottom as segment}
+            <div 
+              class="absolute pointer-events-none"
+              style="
+                bottom: 0;
+                left: {segment.start * CELL_SIZE}px;
+                width: {(segment.end - segment.start) * CELL_SIZE}px;
+                height: 2px;
+                background: {config.color};
+                border-bottom-left-radius: {segment.start === 0 && roundBL ? '8px' : '0'};
+                border-bottom-right-radius: {segment.end === displayWidth && roundBR ? '8px' : '0'};
+              "
+            ></div>
+          {/each}
+
+          <!-- Left Border Segments -->
+          {#each visibleLeft as segment}
+            <div 
+              class="absolute pointer-events-none"
+              style="
+                left: 0;
+                top: {segment.start * CELL_SIZE}px;
+                height: {(segment.end - segment.start) * CELL_SIZE}px;
+                width: 2px;
+                background: {config.color};
+                border-top-left-radius: {segment.start === 0 && roundTL ? '8px' : '0'};
+                border-bottom-left-radius: {segment.end === displayHeight && roundBL ? '8px' : '0'};
+              "
+            ></div>
+          {/each}
+
+          <!-- Right Border Segments -->
+          {#each visibleRight as segment}
+            <div 
+              class="absolute pointer-events-none"
+              style="
+                right: 0;
+                top: {segment.start * CELL_SIZE}px;
+                height: {(segment.end - segment.start) * CELL_SIZE}px;
+                width: 2px;
+                background: {config.color};
+                border-top-right-radius: {segment.start === 0 && roundTR ? '8px' : '0'};
+                border-bottom-right-radius: {segment.end === displayHeight && roundBR ? '8px' : '0'};
+              "
+            ></div>
+          {/each}
+
+          <div class="absolute inset-0 flex flex-col items-center justify-center p-1 overflow-hidden">
+            <div style="font-size: {Math.max(16, Math.min(28, displayHeight * CELL_SIZE / 3))}px;">
+              {config.icon}
+            </div>
+            {#if decoration.label || displayWidth >= 3}
+              <div class="text-center leading-tight px-1 truncate w-full font-medium"
+                style="color: {config.color}; font-size: {Math.max(8, Math.min(11, displayWidth * CELL_SIZE / 10))}px;">
+                {decoration.label || config.label}
+              </div>
+            {/if}
+          </div>
+
+          {#if editable && isSelected}
+            <div
+              class="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-slate-500 rounded-full cursor-se-resize flex items-center justify-center shadow-lg border-2 border-white hover:bg-slate-600 z-30"
+              onmousedown={(e) => { e.stopPropagation(); handleDecorationMouseDown(e, decoration, 'resize'); }}
+              role="button"
+              aria-label="Resize"
+              tabindex="0"
+            >
+              <svg class="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 20h16M20 4v16" />
+              </svg>
+            </div>
+          {/if}
+        </div>
+      {/each}
 
       <!-- Placed Sectors -->
       {#each placedSectors as sector (sector.id)}
         {@const config = getConfig(sector.type)}
         {@const isSelected = selectedSectorId === sector.id}
         {@const isDragging = dragState?.sectorId === sector.id}
+        {@const displayX = isDragging ? dragState!.currentX : sector.gridX}
+        {@const displayY = isDragging ? dragState!.currentY : sector.gridY}
+        {@const displayWidth = isDragging ? dragState!.currentWidth : sector.gridWidth}
+        {@const displayHeight = isDragging ? dragState!.currentHeight : sector.gridHeight}
         <div
-          class="absolute rounded-xl transition-all duration-100 group"
+          class="absolute rounded-xl transition-all group"
+          class:duration-100={!isDragging}
+          class:duration-0={isDragging}
           class:cursor-grab={editable && !isDragging}
           class:cursor-grabbing={isDragging}
           class:cursor-pointer={!editable}
@@ -448,10 +983,10 @@
           class:z-20={isSelected || isDragging}
           class:z-10={!isSelected && !isDragging}
           style="
-            left: {sector.gridX * CELL_SIZE}px;
-            top: {sector.gridY * CELL_SIZE}px;
-            width: {sector.gridWidth * CELL_SIZE}px;
-            height: {sector.gridHeight * CELL_SIZE}px;
+            left: {displayX * CELL_SIZE}px;
+            top: {displayY * CELL_SIZE}px;
+            width: {displayWidth * CELL_SIZE}px;
+            height: {displayHeight * CELL_SIZE}px;
             background: linear-gradient(145deg, {config.bgColor} 0%, white 100%);
             border: 3px solid {config.color};
           "
@@ -465,11 +1000,11 @@
         >
           <div class="absolute inset-0 flex flex-col items-center justify-center p-1 overflow-hidden">
             <div class="transition-transform" class:scale-110={isSelected}
-              style="font-size: {Math.max(24, Math.min(40, sector.gridHeight * CELL_SIZE / 3))}px;">
+              style="font-size: {Math.max(24, Math.min(40, displayHeight * CELL_SIZE / 3))}px;">
               {config.icon}
             </div>
             <div class="font-bold text-center leading-tight px-1 truncate w-full"
-              style="color: {config.color}; font-size: {Math.max(10, Math.min(14, sector.gridWidth * CELL_SIZE / 8))}px;">
+              style="color: {config.color}; font-size: {Math.max(10, Math.min(14, displayWidth * CELL_SIZE / 8))}px;">
               {sector.name}
             </div>
             {#if sector.missions && sector.missions.length > 0}
@@ -497,12 +1032,12 @@
       {/each}
 
       <!-- Empty state -->
-      {#if placedSectors.length === 0}
+      {#if placedSectors.length === 0 && decorations.length === 0}
         <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div class="text-center p-6 bg-white/70 rounded-2xl backdrop-blur-sm">
             <div class="text-4xl mb-2">🗺️</div>
             <p class="text-slate-600 font-medium text-sm">
-              {editable ? 'Drag sectors from above to build your map' : 'No sectors placed on map yet'}
+              {editable ? 'Drag sectors or decorations to build your map' : 'No elements placed on map yet'}
             </p>
           </div>
         </div>
@@ -519,10 +1054,6 @@
     </div>
     <span>2 cells = 1 meter</span>
   </div>
-
-
-
-
 </div>
 
 <style>

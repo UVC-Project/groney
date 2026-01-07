@@ -120,6 +120,13 @@ function createAuthStore() {
 					if (data.user?.id) {
 						localStorage.setItem('userId', data.user.id);
 					}
+					// For teachers, set the first class as selected if not already set
+					if (data.user?.role === 'TEACHER' && data.classes?.length > 0) {
+						const existingClassId = localStorage.getItem('teacher_selected_class_id');
+						if (!existingClassId) {
+							localStorage.setItem('teacher_selected_class_id', data.classes[0].id);
+						}
+					}
 				}
 
 				// Store milestone reward event if present (for UI to display)
