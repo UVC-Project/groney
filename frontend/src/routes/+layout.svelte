@@ -1,6 +1,7 @@
 <script lang="ts">
   import '../app.css';
   import BottomNav from '$lib/components/BottomNav.svelte';
+  import { Toast } from '$lib/components/ui';
   import { page } from '$app/state';
   import { selectedBackground } from '$lib/stores/backgroundTheme';
   import { get } from 'svelte/store';
@@ -183,6 +184,9 @@ onMount(() => {
   {#if showBottomNav}
     <BottomNav />
   {/if}
+
+  <!-- Global Toast Notifications -->
+  <Toast />
 
   <PageIntroModal
     open={showIntro}

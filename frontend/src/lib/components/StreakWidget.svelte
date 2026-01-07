@@ -14,19 +14,26 @@
 {#if studentUser}
 	{#if !streak}
 		<!-- No streak data yet -->
-		<div class="bg-gray-300 px-4 py-1 rounded-full font-bold text-gray-600 shadow-lg">
+		<span class="badge bg-gray-200 text-gray-500 text-base font-bold px-4 py-2">
 			🔥 --
-		</div>
+		</span>
 	{:else if isBroken}
-		<!-- Broken steak -->
-		<div class="bg-gray-300 px-4 py-1 rounded-full font-bold text-gray-500 shadow-lg" title="Streak reset! Log in daily to rebuild">
+		<!-- Broken streak -->
+		<span 
+			class="badge bg-gray-200 text-gray-500 text-base font-bold px-4 py-2" 
+			title="Streak reset! Log in daily to rebuild"
+		>
 			💔 {currentStreak}
-		</div>
+		</span>
 	{:else}
 		<!-- Active streak -->
-		<div class="bg-orange-400 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg" title="Best: {longestStreak} days">
-			🔥 {currentStreak}
-		</div>
+		<span 
+			class="badge text-base font-bold px-4 py-2 shadow-sm"
+			style="background: linear-gradient(135deg, #F97316 0%, #EA580C 100%); color: white;"
+			title="Best: {longestStreak} days"
+		>
+			🔥 {currentStreak} day{currentStreak !== 1 ? 's' : ''}
+		</span>
 	{/if}
 {/if}
 

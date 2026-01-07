@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button, Badge, Modal, StatCard, Alert } from '$lib/components/ui';
   import ScrollToTopButton from '$lib/components/ScrollToTop.svelte';
   import LogoutModal from '$lib/components/LogoutModal.svelte';
   import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
@@ -10,7 +11,7 @@
   import { get } from 'svelte/store';
   import { MASCOT_ENGINE_URL, API_BASE_URL } from '$lib/config';
   import { milestoneRewardStore, clearMilestoneReward, streakResetStore, clearStreakReset } from '$lib/stores/auth';
-
+  import { toast } from '$lib/stores/toast';
 
   // Groeny gifs for different states
   import NormalGif from '$lib/assets/images/groney-gif/normal.gif';
@@ -70,58 +71,55 @@
   async function fetchActivities() {
     isLoadingActivities = true;
     try {
-        let userId = '';
-        const authData = localStorage.getItem('auth');
-        let userRole = 'STUDENT'; 
-        
-        if (authData) {
-            const parsed = JSON.parse(authData);
-            userId = parsed?.user?.id;
+      let userId = '';
+      const authData = localStorage.getItem('auth');
+      let userRole = 'STUDENT'; 
+      
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        userId = parsed?.user?.id;
+      }
+
+      const endpoint = activityFilter === 'mine'
+        ? `${API_BASE_URL}/api/student/activities`
+        : `${API_BASE_URL}/api/student/activities/class?classId=${liveMascot.classId}`;
+
+      const res = await fetch(endpoint, {
+        headers: {
+          'x-user-id': userId,
+          'x-user-role': userRole,
         }
+      });
 
-        // URL construction (Logic remains the same)
-        const endpoint = activityFilter === 'mine'
-            ? `${API_BASE_URL}/api/student/activities`
-            : `${API_BASE_URL}/api/student/activities/class?classId=${liveMascot.classId}`;
-
-        const res = await fetch(endpoint, {
-            headers: {
-                'x-user-id': userId,
-                'x-user-role': userRole,
-            }
-        });
-
-        if (res.ok) {
-            activities = await res.json();
-        } else {
-            console.warn('Failed to fetch activities, using mock data');
-            activities = []; 
-        }
+      if (res.ok) {
+        activities = await res.json();
+      } else {
+        console.warn('Failed to fetch activities');
+        activities = []; 
+      }
     } catch (err) {
-        console.error('Error loading activities:', err);
+      console.error('Error loading activities:', err);
     } finally {
-        isLoadingActivities = false;
+      isLoadingActivities = false;
     }
   }
 
   // Reactively fetch when filter changes
   $effect(() => {
-      fetchActivities();
+    fetchActivities();
   });
   
   // Helper to format dates
   function formatDate(dateString: string) {
-      return new Date(dateString).toLocaleDateString('en-GB');
+    return new Date(dateString).toLocaleDateString('en-GB');
   }
 
-  // Helper function to resolve photo URLs (handles both relative API paths and absolute URLs)
+  // Helper function to resolve photo URLs
   function resolvePhotoUrl(photoUrl: string | null): string | null {
     if (!photoUrl) return null;
-    // If it's a relative path starting with /api, prepend API_BASE_URL
     if (photoUrl.startsWith('/api/')) {
       return `${API_BASE_URL}${photoUrl}`;
     }
-    // Otherwise return as-is (for absolute URLs)
     return photoUrl;
   }
 
@@ -131,35 +129,26 @@
 
   // Start polling on mount and check for milestone reward / streak reset
   onMount(() => {
-    // ✅ Read logged-in user's display name from localStorage
-  try {
-    const authData = localStorage.getItem('auth');
-    if (authData) {
-      const parsed = JSON.parse(authData);
-      const user = parsed?.user;
-
-        const role = (
-        parsed?.role ??
-        user?.role ??
-        localStorage.getItem('role') ??
-        ''
-      ).toString().toUpperCase();
-
-      // Pick the best available field (adjust if needed)
-      displayName =
-        user?.username ??
-        user?.name ??
-        user?.firstName ??
-        user?.email ??
-        '';
+    try {
+      const authData = localStorage.getItem('auth');
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        const user = parsed?.user;
+        displayName =
+          user?.username ??
+          user?.name ??
+          user?.firstName ??
+          user?.email ??
+          '';
+      }
+    } catch (e) {
+      console.warn('Failed to parse auth from localStorage', e);
+      displayName = '';
     }
-  } catch (e) {
-    console.warn('Failed to parse auth from localStorage', e);
-    displayName = '';
-  }
+
     pollInterval = setInterval(fetchMascot, POLL_INTERVAL);
     
-    // Check current value immediately (in case reward was set before component mounted)
+    // Check current value immediately
     const currentReward = get(milestoneRewardStore);
     if (currentReward && !rewardShown) {
       showMilestoneRewardForReward(currentReward);
@@ -193,25 +182,19 @@
 
   // Helper function to show milestone reward popup
   function showMilestoneRewardForReward(reward: { streakDay: number; coinsEarned: number; message: string }) {
-    // Prevent showing the same reward twice
     if (rewardShown) return;
     rewardShown = true;
     
     milestoneReward = reward;
     showMilestoneReward = true;
     
-    // Clear the store immediately so it won't reappear on navigation/refresh
     clearMilestoneReward();
-    
-    // Fetch updated mascot data immediately to show new coin balance
     fetchMascot();
     
-    // Clear any existing timeout
     if (milestoneTimeout) {
       clearTimeout(milestoneTimeout);
     }
     
-    // Auto-dismiss after 5 seconds
     milestoneTimeout = setTimeout(() => {
       dismissMilestoneReward();
     }, 5000);
@@ -219,22 +202,18 @@
 
   // Helper function to show streak reset message
   function showStreakResetMessage(reset: { previousStreak: number }) {
-    // Prevent showing the same reset message twice
     if (resetShown) return;
     resetShown = true;
     
     streakResetInfo = reset;
     showStreakReset = true;
     
-    // Clear the store immediately so it won't reappear on navigation/refresh
     clearStreakReset();
     
-    // Clear any existing timeout
     if (streakResetTimeout) {
       clearTimeout(streakResetTimeout);
     }
     
-    // Auto-dismiss after 5 seconds
     streakResetTimeout = setTimeout(() => {
       dismissStreakReset();
     }, 5000);
@@ -242,15 +221,9 @@
 
   // Cleanup on destroy
   onDestroy(() => {
-    if (pollInterval) {
-      clearInterval(pollInterval);
-    }
-    if (milestoneTimeout) {
-      clearTimeout(milestoneTimeout);
-    }
-    if (streakResetTimeout) {
-      clearTimeout(streakResetTimeout);
-    }
+    if (pollInterval) clearInterval(pollInterval);
+    if (milestoneTimeout) clearTimeout(milestoneTimeout);
+    if (streakResetTimeout) clearTimeout(streakResetTimeout);
   });
 
   // Dismiss milestone reward message
@@ -290,7 +263,7 @@
   let equippedHat = $derived(liveMascot.equippedHat);
   let equippedAccessory = $derived(liveMascot.equippedAccessory);
 
-  // DB-based item IDs → gifs (with equipped items)
+  // DB-based item IDs → gifs
   const groenyGifMap: Record<string, string> = {
     'hat-red-cap': '/src/lib/assets/images/groney-gif/redHat.gif',
     'hat-blue-cap': '/src/lib/assets/images/groney-gif/blueHat.gif',
@@ -298,12 +271,11 @@
     'acc-sunglasses': '/src/lib/assets/images/groney-gif/sunglasses.gif'
   };
 
-  // State-based gifs (sad/sick versions)
-  // TODO: Add actual sad and sick gifs when available
+  // State-based gifs
   const stateGifMap: Record<string, string> = {
     'normal': NormalGif,
-    'sad': NormalGif,    // Replace with sad gif when available
-    'sick': NormalGif,   // Replace with sick gif when available
+    'sad': NormalGif,
+    'sick': NormalGif,
   };
 
   // Priority: equipped item → state-based default
@@ -316,23 +288,16 @@
 
   // Health color based on percentage
   let healthColor = $derived(
-    health >= 51 ? 'bg-green-500' :
-    health >= 25 ? 'bg-yellow-500' :
+    health >= 51 ? 'bg-emerald-500' :
+    health >= 25 ? 'bg-amber-500' :
     'bg-red-500'
   );
 
-  let healthBgColor = $derived(
-    health >= 51 ? 'bg-green-100' :
-    health >= 25 ? 'bg-yellow-100' :
-    'bg-red-100'
+  let healthTextColor = $derived(
+    health >= 51 ? 'text-emerald-700 bg-emerald-100' :
+    health >= 25 ? 'text-amber-700 bg-amber-100' :
+    'text-red-700 bg-red-100'
   );
-
-  // Stat color helper
-  function getStatColor(value: number): string {
-    if (value >= 51) return 'text-green-600';
-    if (value >= 25) return 'text-yellow-600';
-    return 'text-red-600';
-  }
 
   function logout() {
     showLogoutModal = false;
@@ -340,228 +305,299 @@
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     localStorage.removeItem('auth');
+    toast.success('Logged out successfully');
     goto('/login');
   }
 </script>
-<div class="container mx-auto px-4 py-10">
 
-  <!-- Welcome -->
-  <div class="flex justify-between items-center mb-6">
-    <p class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white text-sm font-medium text-gray-800 shadow-lg">
-      Welcome{displayName ? `, ${displayName}` : ''}!
-    </p>
-    <div class="flex items-center gap-4">
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+  <!-- ============================================
+       HEADER SECTION
+       ============================================ -->
+  <header class="flex justify-between items-center section-gap">
+    <div class="badge-primary text-base">
+      👋 Welcome{displayName ? `, ${displayName}` : ''}!
+    </div>
+    <div class="flex items-center gap-3">
       <BackgroundPicker />
-      <button
-        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white hover:bg-gray-300 text-sm font-medium text-gray-800 shadow-lg"
-        onclick={() => showLogoutModal = true}
-      >
+      <Button variant="secondary" size="sm" onclick={() => showLogoutModal = true}>
         Logout
-      </button>
+      </Button>
     </div>
-  </div>
+  </header>
 
-  <!-- Title -->
-  <h1 class="text-4xl md:text-6xl font-extrabold text-center text-gray-800 mb-4">
-    Groeny
-  </h1>
+  <!-- ============================================
+       TITLE & QUICK STATS
+       ============================================ -->
+  <section class="text-center section-gap">
+    <h1 class="heading-1 mb-6">Groeny</h1>
+    
+    <!-- Level, Coins, Streak Badges -->
+    <div class="flex justify-center flex-wrap gap-3">
+      <Badge variant="accent" size="lg">🎖️ Level {level}</Badge>
+      <Badge variant="accent" size="lg">🪙 {coins} Coins</Badge>
+      <StreakWidget />
+    </div>
+  </section>
 
-  <!-- Milestone Reward Message -->
-  {#if showMilestoneReward && milestoneReward}
-    <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6"
-         onclick={dismissMilestoneReward}
-         onkeydown={(e) => e.key === 'Escape' && dismissMilestoneReward()}
-         role="button"
-         tabindex="0">
-      <!-- Backdrop with subtle blur -->
-      <div class="absolute inset-0 bg-black/20 backdrop-blur-[2px]"></div>
-      
-      <!-- Popup card -->
-      <div class="relative bg-white rounded-2xl sm:rounded-3xl shadow-xl p-6 sm:p-8 w-full max-w-xs sm:max-w-sm text-center animate-bounce-in mb-4 sm:mb-0"
-           onclick={(e) => e.stopPropagation()}
-           onkeydown={(e) => e.stopPropagation()}
-           role="dialog"
-           aria-labelledby="milestone-title"
-           tabindex="-1">
-        <div class="text-4xl sm:text-5xl mb-3">🔥</div>
-        <h2 id="milestone-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
-          {milestoneReward.streakDay}-day streak!
-        </h2>
-        <div class="bg-yellow-50 border border-yellow-200 rounded-full px-4 py-1.5 inline-block mb-3">
-          <span class="text-lg sm:text-xl font-bold text-yellow-600">🪙 +{milestoneReward.coinsEarned} coins</span>
-        </div>
-        <p class="text-gray-500 text-base sm:text-lg mb-4">{milestoneReward.message}</p>
-        <button
-          class="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-semibold px-6 py-2.5 rounded-full transition-colors touch-manipulation"
-          onclick={dismissMilestoneReward}
-        >
-          Awesome!
-        </button>
+  <!-- ============================================
+       MASCOT DISPLAY
+       ============================================ -->
+  <section class="flex flex-col items-center section-gap-lg">
+    <!-- Mascot Avatar -->
+    <div class="relative">
+      <div 
+        class="w-72 h-72 md:w-80 md:h-80 rounded-full bg-white flex items-center justify-center shadow-xl"
+        style="border: 6px solid var(--color-primary);"
+      >
+        <img 
+          src={groenySrc} 
+          class="w-56 md:w-64 drop-shadow-lg" 
+          alt="Groeny mascot" 
+        />
       </div>
-    </div>
-  {/if}
-
-  <!-- Streak Reset Message -->
-  {#if showStreakReset && streakResetInfo}
-    <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6"
-         onclick={dismissStreakReset}
-         onkeydown={(e) => e.key === 'Escape' && dismissStreakReset()}
-         role="button"
-         tabindex="0">
-      <!-- Backdrop with subtle blur -->
-      <div class="absolute inset-0 bg-black/20 backdrop-blur-[2px]"></div>
       
-      <!-- Popup card -->
-      <div class="relative bg-white rounded-2xl sm:rounded-3xl shadow-xl p-6 sm:p-8 w-full max-w-xs sm:max-w-sm text-center animate-bounce-in mb-4 sm:mb-0"
-           onclick={(e) => e.stopPropagation()}
-           onkeydown={(e) => e.stopPropagation()}
-           role="dialog"
-           aria-labelledby="streak-reset-title"
-           tabindex="-1">
-        <div class="text-4xl sm:text-5xl mb-3">💪</div>
-        <h2 id="streak-reset-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
-          Welcome back!
-        </h2>
-        <p class="text-gray-500 text-base mb-3">Your streak has reset, but that's okay!</p>
-        <div class="bg-gray-100 border border-gray-200 rounded-full px-4 py-1.5 inline-block mb-3">
-          <span class="text-base font-medium text-gray-600">Previous streak: {streakResetInfo.previousStreak} days</span>
+      <!-- State indicator -->
+      {#if state === 'sad' || state === 'sick'}
+        <div class="absolute -bottom-2 left-1/2 -translate-x-1/2">
+          <Badge variant={state === 'sick' ? 'error' : 'warning'}>
+            {state === 'sick' ? '🤒 Feeling sick' : '😢 Feeling sad'}
+          </Badge>
         </div>
-        <p class="text-gray-600 text-base sm:text-lg mb-4">Let's start fresh together! 🌱</p>
-        <button
-          class="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-semibold px-6 py-2.5 rounded-full transition-colors touch-manipulation"
-          onclick={dismissStreakReset}
-        >
-          Let's go!
-        </button>
-      </div>
-    </div>
-  {/if}
-
-  <!-- Level + coins + streak -->
-  <div class="flex justify-center gap-3 mb-6">
-    <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg">🎖️ {level}</div>
-    <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg">🪙 {coins}</div>
-    <StreakWidget />
-  </div>
-
-  <!-- Mascot -->
-  <div class="flex justify-center mb-4">
-    <div class="w-80 h-80 rounded-full border-8 border-sky-300 flex items-center justify-center bg-white shadow-lg">
-      <img src={groenySrc} class="w-64" alt="Groeny" />
-    </div>
-  </div>
-
-  <!-- Health -->
-  <div class="flex justify-center mb-6">
-    <div class="{healthBgColor} px-4 py-1 rounded-full font-semibold text-gray-800 text-sm shadow">
-      {health}% Health
-      {#if state === 'sad'}
-        <span class="ml-1">😢</span>
-      {:else if state === 'sick'}
-        <span class="ml-1">🤒</span>
       {/if}
     </div>
-  </div>
 
-  <!-- XP Progress -->
-  <div class="max-w-md mx-auto mb-10">
-    <p class="text-gray-800 mb-1 text-sm">XP Progress (Level {level})</p>
-    <div class="w-full bg-gray-200 rounded-full h-3 shadow-lg overflow-hidden">
-      <div class="{healthColor} h-full transition-all duration-500" style="width: {levelProgress.percentage}%"></div>
+    <!-- Health Badge -->
+    <div class="mt-4">
+      <span class="badge {healthTextColor} text-base font-bold px-6 py-2">
+        ❤️ {health}% Health
+      </span>
     </div>
-    <p class="text-right text-gray-800 text-sm mt-1">{levelProgress.current} / {levelProgress.required}</p>
-  </div>
+  </section>
 
-  <!-- Stats -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-    <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-blue-600">
-      <div class="text-3xl mb-1">💧</div>
-      <p class="text-gray-800 text-sm">THIRST</p>
-      <p class="font-extrabold text-xl transition-all duration-500 {getStatColor(thirst)}">{thirst}%</p>
+  <!-- ============================================
+       XP PROGRESS BAR
+       ============================================ -->
+  <section class="section-gap">
+    <div class="card max-w-md mx-auto">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-label">XP Progress</span>
+        <span class="text-sm font-medium text-gray-600">Level {level}</span>
+      </div>
+      <div class="stat-bar">
+        <div class="stat-bar-fill {healthColor}" style="width: {levelProgress.percentage}%"></div>
+      </div>
+      <div class="flex justify-between mt-2">
+        <span class="text-helper">{levelProgress.current} XP</span>
+        <span class="text-helper">{levelProgress.required} XP</span>
+      </div>
     </div>
-    <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-orange-500">
-      <div class="text-3xl mb-1">🍎</div>
-      <p class="text-gray-800 text-sm">HUNGER</p>
-      <p class="font-extrabold text-xl transition-all duration-500 {getStatColor(hunger)}">{hunger}%</p>
-    </div>
-    <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-sky-500">
-      <div class="text-3xl mb-1">🥰</div>
-      <p class="text-gray-800 text-sm">HAPPINESS</p>
-      <p class="font-extrabold text-xl transition-all duration-500 {getStatColor(happiness)}">{happiness}%</p>
-    </div>
-    <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-pink-500">
-      <div class="text-3xl mb-1">🧹</div>
-      <p class="text-gray-800 text-sm">CLEANLINESS</p>
-      <p class="font-extrabold text-xl transition-all duration-500 {getStatColor(cleanliness)}">{cleanliness}%</p>
-    </div>
-  </div>
+  </section>
 
-  <!-- Activity Feed -->
-   <div class="max-w-5xl mx-auto mt-10 mb-20">
+  <!-- ============================================
+       MASCOT STATS GRID
+       ============================================ -->
+  <section class="section-gap-lg">
+    <h2 class="heading-3 text-center mb-6">Groeny's Needs</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <StatCard 
+        label="Thirst" 
+        value={thirst} 
+        icon="💧" 
+        accentColor="var(--color-stat-thirst)"
+      />
+      <StatCard 
+        label="Hunger" 
+        value={hunger} 
+        icon="🍎" 
+        accentColor="var(--color-stat-hunger)"
+      />
+      <StatCard 
+        label="Happiness" 
+        value={happiness} 
+        icon="🥰" 
+        accentColor="var(--color-stat-happiness)"
+      />
+      <StatCard 
+        label="Cleanliness" 
+        value={cleanliness} 
+        icon="🧹" 
+        accentColor="var(--color-stat-cleanliness)"
+      />
+    </div>
+  </section>
+
+  <!-- ============================================
+       ACTIVITY FEED
+       ============================================ -->
+  <section class="pb-20">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-      <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800">Recent activities</h2>
+      <h2 class="heading-3">Recent Activities</h2>
       
+      <!-- Filter Toggle -->
       <div class="bg-gray-100 p-1 rounded-xl inline-flex self-start sm:self-auto">
         <button 
-          class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 {activityFilter === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
+          class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 {activityFilter === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
           onclick={() => activityFilter = 'all'}
         >
-          🏫 Whole Class
+          🏫 Class
         </button>
         <button 
-          class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 {activityFilter === 'mine' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
+          class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 {activityFilter === 'mine' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
           onclick={() => activityFilter = 'mine'}
         >
-          👤 My Activity
+          👤 Mine
         </button>
       </div>
     </div>
 
     {#if isLoadingActivities}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <div class="h-64 bg-gray-100 rounded-[32px] animate-pulse"></div>
-            <div class="h-64 bg-gray-100 rounded-[32px] animate-pulse"></div>
-        </div>
+      <!-- Loading Skeleton -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {#each [1, 2] as _}
+          <div class="card animate-pulse">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full bg-gray-200"></div>
+              <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+            </div>
+            <div class="h-44 bg-gray-200 rounded-xl mb-3"></div>
+            <div class="h-3 bg-gray-200 rounded w-1/4"></div>
+          </div>
+        {/each}
+      </div>
     {:else if activities.length > 0}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {#each activities as activity}
-            <article class="bg-white rounded-[32px] shadow-lg p-4 md:p-5 border border-gray-100 transition-transform hover:scale-[1.01]">
-              <div class="flex items-center gap-3 mb-3">
-                  <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
-                      {activity.userName?.charAt(0) || '?'}
-                  </div>
-                  <h3 class="font-semibold text-gray-800 text-sm md:text-base">
-                      <span class="font-bold text-blue-600">{activity.userName}</span> completed {activity.missionTitle}!
-                  </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {#each activities as activity}
+          <article class="card-interactive">
+            <!-- User & Mission Info -->
+            <div class="flex items-center gap-3 mb-4">
+              <div 
+                class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
+                style="background: var(--color-secondary-light); color: var(--color-secondary);"
+              >
+                {activity.userName?.charAt(0) || '?'}
               </div>
-
-              <div class="overflow-hidden rounded-2xl mb-3 bg-gray-50 relative group">
-                {#if activity.imageUrl}
-                    <img src={resolvePhotoUrl(activity.imageUrl)} alt={activity.missionTitle} class="w-full h-44 md:h-56 object-cover transition-transform duration-500 group-hover:scale-105">
-                {:else}
-                    <div class="w-full h-44 md:h-56 flex items-center justify-center text-gray-400">
-                        No photo submitted
-                    </div>
-                {/if}
+              <div class="flex-1 min-w-0">
+                <p class="font-semibold text-gray-800 text-sm truncate">
+                  <span style="color: var(--color-secondary);">{activity.userName}</span> completed
+                </p>
+                <p class="text-xs text-gray-500 truncate">{activity.missionTitle}</p>
               </div>
+            </div>
 
-              <p class="text-xs md:text-sm text-gray-500 flex items-center gap-1">
-                  📅 {formatDate(activity.createdAt)}
-              </p>
-            </article>
-          {/each}
-        </div>
+            <!-- Photo -->
+            <div class="overflow-hidden rounded-xl mb-3 bg-gray-100 relative group">
+              {#if activity.imageUrl}
+                <img 
+                  src={resolvePhotoUrl(activity.imageUrl)} 
+                  alt={activity.missionTitle} 
+                  class="w-full h-44 object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              {:else}
+                <div class="w-full h-44 flex items-center justify-center text-gray-400">
+                  📷 No photo
+                </div>
+              {/if}
+            </div>
+
+            <!-- Date -->
+            <p class="text-helper flex items-center gap-1">
+              📅 {formatDate(activity.createdAt)}
+            </p>
+          </article>
+        {/each}
+      </div>
     {:else}
-        <div class="text-center py-12 bg-gray-50 rounded-[32px] border border-dashed border-gray-300">
-            <p class="text-4xl mb-2">📭</p>
-            <p class="text-gray-600 font-medium">No recent activities found.</p>
-            {#if activityFilter === 'mine'}
-                <p class="text-gray-400 text-sm mt-1">Complete some missions to see them here!</p>
-            {/if}
-        </div>
+      <!-- Empty State -->
+      <div class="card text-center py-12" style="border: 2px dashed var(--color-border);">
+        <p class="text-4xl mb-3">📭</p>
+        <p class="font-medium text-gray-600 mb-1">No recent activities</p>
+        {#if activityFilter === 'mine'}
+          <p class="text-helper">Complete some missions to see them here!</p>
+        {:else}
+          <p class="text-helper">Be the first to complete a mission!</p>
+        {/if}
+      </div>
     {/if}
-  </div>
+  </section>
+
+  <!-- ============================================
+       MILESTONE REWARD MODAL
+       ============================================ -->
+  {#if showMilestoneReward && milestoneReward}
+    <div 
+      class="modal-backdrop"
+      onclick={dismissMilestoneReward}
+      onkeydown={(e) => e.key === 'Escape' && dismissMilestoneReward()}
+      role="dialog"
+      aria-modal="true"
+      tabindex="0"
+    >
+      <div 
+        class="modal-content text-center animate-bounce-in max-w-sm"
+        onclick={(e) => e.stopPropagation()}
+        onkeydown={(e) => e.stopPropagation()}
+        role="document"
+        tabindex="-1"
+      >
+        <div class="p-8">
+          <div class="text-6xl mb-4">🔥</div>
+          <h2 class="heading-2 mb-2">{milestoneReward.streakDay}-day streak!</h2>
+          <div class="mb-4">
+            <Badge variant="accent" size="lg">🪙 +{milestoneReward.coinsEarned} coins</Badge>
+          </div>
+          <p class="text-gray-500 text-lg mb-6">{milestoneReward.message}</p>
+          <Button onclick={dismissMilestoneReward} class="w-full">
+            Awesome! 🎉
+          </Button>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- ============================================
+       STREAK RESET MODAL
+       ============================================ -->
+  {#if showStreakReset && streakResetInfo}
+    <div 
+      class="modal-backdrop"
+      onclick={dismissStreakReset}
+      onkeydown={(e) => e.key === 'Escape' && dismissStreakReset()}
+      role="dialog"
+      aria-modal="true"
+      tabindex="0"
+    >
+      <div 
+        class="modal-content text-center animate-bounce-in max-w-sm"
+        onclick={(e) => e.stopPropagation()}
+        onkeydown={(e) => e.stopPropagation()}
+        role="document"
+        tabindex="-1"
+      >
+        <div class="p-8">
+          <div class="text-6xl mb-4">💪</div>
+          <h2 class="heading-2 mb-2">Welcome back!</h2>
+          <p class="text-gray-500 mb-4">Your streak has reset, but that's okay!</p>
+          <div class="mb-4">
+            <Badge variant="secondary">Previous: {streakResetInfo.previousStreak} days</Badge>
+          </div>
+          <p class="text-gray-600 text-lg mb-6">Let's start fresh together! 🌱</p>
+          <Button onclick={dismissStreakReset} class="w-full">
+            Let's go!
+          </Button>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- ============================================
+       LOGOUT MODAL
+       ============================================ -->
+  <LogoutModal 
+    open={showLogoutModal} 
+    onCancel={() => { showLogoutModal = false; }} 
+    onConfirm={logout}
+  />
   
-  <LogoutModal open={showLogoutModal} onCancel={() => { showLogoutModal = false; }} onConfirm={logout}/>
   <ScrollToTopButton />
 </div>
