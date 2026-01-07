@@ -72,6 +72,11 @@
     originalY: number;
     originalWidth: number;
     originalHeight: number;
+    // Track current values during drag (for visual feedback)
+    currentX: number;
+    currentY: number;
+    currentWidth: number;
+    currentHeight: number;
   } | null>(null);
 
   let selectedSectorId = $state<string | null>(null);
@@ -120,6 +125,10 @@
       originalY: sector.gridY,
       originalWidth: sector.gridWidth,
       originalHeight: sector.gridHeight,
+      currentX: sector.gridX,
+      currentY: sector.gridY,
+      currentWidth: sector.gridWidth,
+      currentHeight: sector.gridHeight,
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -132,25 +141,34 @@
     const deltaX = Math.round((e.clientX - dragState.startX) / CELL_SIZE);
     const deltaY = Math.round((e.clientY - dragState.startY) / CELL_SIZE);
 
-    const sector = sectors.find((s) => s.id === dragState!.sectorId);
-    if (!sector) return;
-
     if (dragState.type === 'move') {
-      const newX = Math.max(0, Math.min(mapWidth - sector.gridWidth, dragState.originalX + deltaX));
-      const newY = Math.max(0, Math.min(mapHeight - sector.gridHeight, dragState.originalY + deltaY));
-      if (newX !== sector.gridX || newY !== sector.gridY) {
-        onSectorMove?.(sector.id, newX, newY);
-      }
+      const newX = Math.max(0, Math.min(mapWidth - dragState.originalWidth, dragState.originalX + deltaX));
+      const newY = Math.max(0, Math.min(mapHeight - dragState.originalHeight, dragState.originalY + deltaY));
+      // Update local drag state for visual feedback only - no API call
+      dragState.currentX = newX;
+      dragState.currentY = newY;
     } else if (dragState.type === 'resize') {
-      const newWidth = Math.max(2, Math.min(12, mapWidth - sector.gridX, dragState.originalWidth + deltaX));
-      const newHeight = Math.max(2, Math.min(10, mapHeight - sector.gridY, dragState.originalHeight + deltaY));
-      if (newWidth !== sector.gridWidth || newHeight !== sector.gridHeight) {
-        onSectorResize?.(sector.id, newWidth, newHeight);
-      }
+      const newWidth = Math.max(2, Math.min(12, mapWidth - dragState.originalX, dragState.originalWidth + deltaX));
+      const newHeight = Math.max(2, Math.min(10, mapHeight - dragState.originalY, dragState.originalHeight + deltaY));
+      // Update local drag state for visual feedback only - no API call
+      dragState.currentWidth = newWidth;
+      dragState.currentHeight = newHeight;
     }
   }
 
   function handleMouseUp() {
+    if (dragState) {
+      // Only call API when drag is complete
+      if (dragState.type === 'move') {
+        if (dragState.currentX !== dragState.originalX || dragState.currentY !== dragState.originalY) {
+          onSectorMove?.(dragState.sectorId, dragState.currentX, dragState.currentY);
+        }
+      } else if (dragState.type === 'resize') {
+        if (dragState.currentWidth !== dragState.originalWidth || dragState.currentHeight !== dragState.originalHeight) {
+          onSectorResize?.(dragState.sectorId, dragState.currentWidth, dragState.currentHeight);
+        }
+      }
+    }
     dragState = null;
     window.removeEventListener('mousemove', handleMouseMove);
     window.removeEventListener('mouseup', handleMouseUp);
@@ -436,8 +454,14 @@
         {@const config = getConfig(sector.type)}
         {@const isSelected = selectedSectorId === sector.id}
         {@const isDragging = dragState?.sectorId === sector.id}
+        {@const displayX = isDragging ? dragState!.currentX : sector.gridX}
+        {@const displayY = isDragging ? dragState!.currentY : sector.gridY}
+        {@const displayWidth = isDragging ? dragState!.currentWidth : sector.gridWidth}
+        {@const displayHeight = isDragging ? dragState!.currentHeight : sector.gridHeight}
         <div
-          class="absolute rounded-xl transition-all duration-100 group"
+          class="absolute rounded-xl transition-all group"
+          class:duration-100={!isDragging}
+          class:duration-0={isDragging}
           class:cursor-grab={editable && !isDragging}
           class:cursor-grabbing={isDragging}
           class:cursor-pointer={!editable}
@@ -448,10 +472,10 @@
           class:z-20={isSelected || isDragging}
           class:z-10={!isSelected && !isDragging}
           style="
-            left: {sector.gridX * CELL_SIZE}px;
-            top: {sector.gridY * CELL_SIZE}px;
-            width: {sector.gridWidth * CELL_SIZE}px;
-            height: {sector.gridHeight * CELL_SIZE}px;
+            left: {displayX * CELL_SIZE}px;
+            top: {displayY * CELL_SIZE}px;
+            width: {displayWidth * CELL_SIZE}px;
+            height: {displayHeight * CELL_SIZE}px;
             background: linear-gradient(145deg, {config.bgColor} 0%, white 100%);
             border: 3px solid {config.color};
           "
@@ -465,11 +489,11 @@
         >
           <div class="absolute inset-0 flex flex-col items-center justify-center p-1 overflow-hidden">
             <div class="transition-transform" class:scale-110={isSelected}
-              style="font-size: {Math.max(24, Math.min(40, sector.gridHeight * CELL_SIZE / 3))}px;">
+              style="font-size: {Math.max(24, Math.min(40, displayHeight * CELL_SIZE / 3))}px;">
               {config.icon}
             </div>
             <div class="font-bold text-center leading-tight px-1 truncate w-full"
-              style="color: {config.color}; font-size: {Math.max(10, Math.min(14, sector.gridWidth * CELL_SIZE / 8))}px;">
+              style="color: {config.color}; font-size: {Math.max(10, Math.min(14, displayWidth * CELL_SIZE / 8))}px;">
               {sector.name}
             </div>
             {#if sector.missions && sector.missions.length > 0}
