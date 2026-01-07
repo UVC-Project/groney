@@ -114,6 +114,17 @@
       return new Date(dateString).toLocaleDateString('en-GB');
   }
 
+  // Helper function to resolve photo URLs (handles both relative API paths and absolute URLs)
+  function resolvePhotoUrl(photoUrl: string | null): string | null {
+    if (!photoUrl) return null;
+    // If it's a relative path starting with /api, prepend API_BASE_URL
+    if (photoUrl.startsWith('/api/')) {
+      return `${API_BASE_URL}${photoUrl}`;
+    }
+    // Otherwise return as-is (for absolute URLs)
+    return photoUrl;
+  }
+
   // Track if the messages have already been shown
   let rewardShown = false;
   let resetShown = false;
@@ -526,7 +537,7 @@
 
               <div class="overflow-hidden rounded-2xl mb-3 bg-gray-50 relative group">
                 {#if activity.imageUrl}
-                    <img src={activity.imageUrl} alt={activity.missionTitle} class="w-full h-44 md:h-56 object-cover transition-transform duration-500 group-hover:scale-105">
+                    <img src={resolvePhotoUrl(activity.imageUrl)} alt={activity.missionTitle} class="w-full h-44 md:h-56 object-cover transition-transform duration-500 group-hover:scale-105">
                 {:else}
                     <div class="w-full h-44 md:h-56 flex items-center justify-center text-gray-400">
                         No photo submitted
