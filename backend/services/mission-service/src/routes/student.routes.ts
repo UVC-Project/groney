@@ -546,7 +546,7 @@ router.get('/activities/class', requireStudent, async (req: Request, res: Respon
                 id: sub.id,
                 userName: sub.user.firstName,
                 missionTitle: mission.title,
-                imageUrl: (sub as any).imageUrl || null,
+                imageUrl: sub.photoUrl || null,
                 createdAt: sub.updatedAt
             }))
         );
