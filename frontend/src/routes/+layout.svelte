@@ -6,8 +6,12 @@
   import { get } from 'svelte/store';
   import type { Snippet } from 'svelte';
   import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { user } from '$lib/stores/auth';
+  import { goto } from '$app/navigation';
+  import { user } from '$lib/stores/auth';
+
+  // ✅ ADDED
+  import PageIntroModal from '$lib/components/PageIntroModal.svelte';
+  import { pageIntros } from '$lib/config/pageIntros';
 
   let { children }: { children: Snippet } = $props();
 
@@ -17,47 +21,95 @@
   );
   let showBottomNav = $derived(!isTeacherRoute && !isAuthRoute);
 
-  // We can just use the store value directly with the $ syntax in the template or derived logic.
-  // Converting store to state for derived usage:
-  // However, mixing legacy stores and runes: best to just use $selectedBackground directly in derived.
-  let isMobileNavVisible = $state(false); // Example state
-  
-  // Directly access store value automatically reactive
+  let isMobileNavVisible = $state(false);
   let bgClass = $derived($selectedBackground.className);
 
-	const PUBLIC_ROUTES = [
-		'/login',
-		'/register',
-		'/forgot-password',
-		'/reset-password'
-	];
+  const PUBLIC_ROUTES = [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password'
+  ];
 
-	const AUTH_ONLY_ROUTES = [
-		'/login',
-		'/register',
-		'/forgot-password',
-		'/reset-password'
-	];
+  const AUTH_ONLY_ROUTES = [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password'
+  ];
 
-	function isPublicRoute(path: string) {
-		return PUBLIC_ROUTES.some(
-			(route) => path === route || path.startsWith(route + '/')
-		);
-	}
+  function isPublicRoute(path: string) {
+    return PUBLIC_ROUTES.some(
+      (route) => path === route || path.startsWith(route + '/')
+    );
+  }
 
-	onMount(() => {
-		const currentUser = get(user);
-		const path = window.location.pathname;
+  // ✅ ADDED: intro modal state
+  let showIntro = $state(false);
+  let studentName = $state('');
+  let isStudent = $state(false);
+  let intro = $derived(pageIntros[page.url.pathname]);
 
-		if (!currentUser && !isPublicRoute(path)) {
-			goto('/login');
-			return;
-		}
+  onMount(() => {
+    const currentUser = get(user);
+    const path = window.location.pathname;
+
+    if (!currentUser && !isPublicRoute(path)) {
+      goto('/login');
+      return;
+    }
 
     if (currentUser && isPublicRoute(path)) {
-			goto('/');
-		}
-	});
+      goto('/');
+    }
+
+    // ✅ ADDED: determine student + name for intros
+    try {
+      const role = (
+        (currentUser as any)?.role ??
+        localStorage.getItem('role') ??
+        ''
+      ).toString().toUpperCase();
+
+      studentName =
+        (currentUser as any)?.username ??
+        (currentUser as any)?.name ??
+        (currentUser as any)?.firstName ??
+        (currentUser as any)?.email ??
+        '';
+
+      // fallback to localStorage auth if needed
+      if (!studentName) {
+        const authData = localStorage.getItem('auth');
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          const u = parsed?.user;
+          studentName =
+            u?.username ?? u?.name ?? u?.firstName ?? u?.email ?? '';
+        }
+      }
+
+      isStudent = role === 'STUDENT';
+    } catch (e) {
+      console.warn('Intro user parse error:', e);
+    }
+  });
+
+  // ✅ ADDED: show intro per page (map/shop/wardrobe/wiki/...)
+  $effect(() => {
+    const path = page.url.pathname;
+
+    if (isAuthRoute) {
+      showIntro = false;
+      return;
+    }
+
+    if (isStudent && pageIntros[path]) {
+      showIntro = true;
+    } else {
+      showIntro = false;
+    }
+  });
 </script>
 
 <div class={`min-h-screen ${bgClass}`}>
@@ -68,4 +120,16 @@
   {#if showBottomNav}
     <BottomNav />
   {/if}
+
+  <!-- ✅ ADDED -->
+  <PageIntroModal
+    open={showIntro}
+    studentName={studentName}
+    title={intro?.title ?? ''}
+    subtitle={intro?.subtitle ?? ''}
+    bullets={intro?.bullets ?? []}
+    tipText={intro?.tipText ?? ''}
+    emoji={intro?.emoji ?? '👋'}
+    onClose={() => (showIntro = false)}
+  />
 </div>

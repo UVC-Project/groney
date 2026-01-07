@@ -10,15 +10,12 @@
   import { get } from 'svelte/store';
   import { MASCOT_ENGINE_URL, API_BASE_URL } from '$lib/config';
   import { milestoneRewardStore, clearMilestoneReward, streakResetStore, clearStreakReset } from '$lib/stores/auth';
-  import StudentIntroModal from '$lib/components/StudentIntroModal.svelte';
 
 
   // Groeny gifs for different states
   import NormalGif from '$lib/assets/images/groney-gif/normal.gif';
 
   let { data }: { data: PageData } = $props();
-  let showStudentIntro = $state(false);
-  let studentName = $state('');
 
   let displayName = $state<string>(''); 
   let showLogoutModal = $state(false);
@@ -144,11 +141,7 @@
         user?.firstName ??
         user?.email ??
         '';
-
-        if (role === 'STUDENT') {
-        showStudentIntro = true; // show every time student lands on home
     }
-  }
   } catch (e) {
     console.warn('Failed to parse auth from localStorage', e);
     displayName = '';
@@ -339,11 +332,6 @@
     goto('/login');
   }
 </script>
-<StudentIntroModal
-  open={showStudentIntro}
-  studentName={studentName}
-  onClose={() => (showStudentIntro = false)}
-/>
 <div class="container mx-auto px-4 py-10">
 
   <!-- Welcome -->
