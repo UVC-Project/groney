@@ -27,14 +27,14 @@ export default {
           dark: '#5FA8D3',
         },
         'grass-green': {
-          DEFAULT: '#10B981',
-          light: '#D1FAE5',
-          dark: '#059669',
+          DEFAULT: '#7CFC00',
+          light: '#A3FF4D',
+          dark: '#5CB300',
         },
         'sunshine-yellow': {
-          DEFAULT: '#F59E0B',
-          light: '#FEF3C7',
-          dark: '#D97706',
+          DEFAULT: '#FFD700',
+          light: '#FFE44D',
+          dark: '#CCB000',
         },
         'earth-brown': {
           DEFAULT: '#8B4513',
@@ -42,9 +42,9 @@ export default {
           dark: '#654321',
         },
         'flower-pink': {
-          DEFAULT: '#EC4899',
-          light: '#FCE7F3',
-          dark: '#DB2777',
+          DEFAULT: '#FF69B4',
+          light: '#FF8DC7',
+          dark: '#E75480',
         },
         // Stat colors (matching CSS variables)
         'stat-thirst': '#3B82F6',
