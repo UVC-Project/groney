@@ -132,7 +132,7 @@
   // Decoration type configurations (visual-only elements)
   const decorationConfig: Record<string, { color: string; bgColor: string; icon: string; label: string }> = {
     BUILDING: { color: '#64748b', bgColor: '#e2e8f0', icon: '🏫', label: 'Building' },
-    PAVEMENT: { color: '#78716c', bgColor: '#d6d3d1', icon: '🟫', label: 'Pavement' },
+    PAVEMENT: { color: '#78716c', bgColor: '#d6d3d1', icon: '👣', label: 'Path' },
     PARKING: { color: '#525252', bgColor: '#d4d4d4', icon: '🅿️', label: 'Parking' },
     FENCE: { color: '#92400e', bgColor: '#fef3c7', icon: '🚧', label: 'Fence' },
     ENTRANCE: { color: '#0891b2', bgColor: '#cffafe', icon: '🚪', label: 'Entrance' },
@@ -147,6 +147,183 @@
 
   function getDecorationConfig(type: string) {
     return decorationConfig[type?.toUpperCase()] || decorationConfig.BUILDING;
+  }
+
+  // Check if two rectangles touch on any edge and return the overlap range
+  function getEdgeOverlaps(
+    a: { x: number; y: number; w: number; h: number },
+    b: { x: number; y: number; w: number; h: number }
+  ): { 
+    top: { start: number; end: number } | null;
+    right: { start: number; end: number } | null;
+    bottom: { start: number; end: number } | null;
+    left: { start: number; end: number } | null;
+  } {
+    const result = { top: null as any, right: null as any, bottom: null as any, left: null as any };
+    
+    // Top: b is directly above a
+    if (b.y + b.h === a.y) {
+      const overlapStart = Math.max(a.x, b.x);
+      const overlapEnd = Math.min(a.x + a.w, b.x + b.w);
+      if (overlapStart < overlapEnd) {
+        result.top = { start: overlapStart - a.x, end: overlapEnd - a.x };
+      }
+    }
+    // Bottom: b is directly below a
+    if (a.y + a.h === b.y) {
+      const overlapStart = Math.max(a.x, b.x);
+      const overlapEnd = Math.min(a.x + a.w, b.x + b.w);
+      if (overlapStart < overlapEnd) {
+        result.bottom = { start: overlapStart - a.x, end: overlapEnd - a.x };
+      }
+    }
+    // Left: b is directly to the left of a
+    if (b.x + b.w === a.x) {
+      const overlapStart = Math.max(a.y, b.y);
+      const overlapEnd = Math.min(a.y + a.h, b.y + b.h);
+      if (overlapStart < overlapEnd) {
+        result.left = { start: overlapStart - a.y, end: overlapEnd - a.y };
+      }
+    }
+    // Right: b is directly to the right of a
+    if (a.x + a.w === b.x) {
+      const overlapStart = Math.max(a.y, b.y);
+      const overlapEnd = Math.min(a.y + a.h, b.y + b.h);
+      if (overlapStart < overlapEnd) {
+        result.right = { start: overlapStart - a.y, end: overlapEnd - a.y };
+      }
+    }
+    
+    return result;
+  }
+
+  // Get all border overlaps for a decoration, including corner overlaps
+  function getDecorationOverlaps(decoration: MapDecoration, allDecorations: MapDecoration[]): {
+    top: Array<{ start: number; end: number }>;
+    right: Array<{ start: number; end: number }>;
+    bottom: Array<{ start: number; end: number }>;
+    left: Array<{ start: number; end: number }>;
+    corners: { topLeft: boolean; topRight: boolean; bottomLeft: boolean; bottomRight: boolean };
+  } {
+    const overlaps = { 
+      top: [] as Array<{ start: number; end: number }>,
+      right: [] as Array<{ start: number; end: number }>,
+      bottom: [] as Array<{ start: number; end: number }>,
+      left: [] as Array<{ start: number; end: number }>,
+      corners: { topLeft: false, topRight: false, bottomLeft: false, bottomRight: false }
+    };
+    
+    const currentRect = {
+      x: decoration.gridX,
+      y: decoration.gridY,
+      w: decoration.gridWidth,
+      h: decoration.gridHeight
+    };
+    
+    // Track which edges have overlaps at their endpoints
+    let topStartCovered = false, topEndCovered = false;
+    let bottomStartCovered = false, bottomEndCovered = false;
+    let leftStartCovered = false, leftEndCovered = false;
+    let rightStartCovered = false, rightEndCovered = false;
+    
+    for (const other of allDecorations) {
+      if (other.id === decoration.id) continue;
+      if (other.type !== decoration.type) continue;
+      
+      const otherRect = {
+        x: other.gridX,
+        y: other.gridY,
+        w: other.gridWidth,
+        h: other.gridHeight
+      };
+      
+      const edges = getEdgeOverlaps(currentRect, otherRect);
+      if (edges.top) {
+        overlaps.top.push(edges.top);
+        if (edges.top.start === 0) topStartCovered = true;
+        if (edges.top.end === currentRect.w) topEndCovered = true;
+      }
+      if (edges.right) {
+        overlaps.right.push(edges.right);
+        if (edges.right.start === 0) rightStartCovered = true;
+        if (edges.right.end === currentRect.h) rightEndCovered = true;
+      }
+      if (edges.bottom) {
+        overlaps.bottom.push(edges.bottom);
+        if (edges.bottom.start === 0) bottomStartCovered = true;
+        if (edges.bottom.end === currentRect.w) bottomEndCovered = true;
+      }
+      if (edges.left) {
+        overlaps.left.push(edges.left);
+        if (edges.left.start === 0) leftStartCovered = true;
+        if (edges.left.end === currentRect.h) leftEndCovered = true;
+      }
+    }
+    
+    // Determine corner overlaps - corners need filling when two perpendicular edges are covered at that corner
+    // Top-left corner: top edge starts at 0 AND left edge starts at 0
+    overlaps.corners.topLeft = topStartCovered && leftStartCovered;
+    // Top-right corner: top edge ends at width AND right edge starts at 0
+    overlaps.corners.topRight = topEndCovered && rightStartCovered;
+    // Bottom-left corner: bottom edge starts at 0 AND left edge ends at height
+    overlaps.corners.bottomLeft = bottomStartCovered && leftEndCovered;
+    // Bottom-right corner: bottom edge ends at width AND right edge ends at height
+    overlaps.corners.bottomRight = bottomEndCovered && rightEndCovered;
+    
+    return overlaps;
+  }
+
+  // Check if entire edge is covered (for border-radius decisions)
+  function isEdgeFullyCovered(overlaps: Array<{ start: number; end: number }>, edgeLength: number): boolean {
+    if (overlaps.length === 0) return false;
+    // Merge overlapping ranges and check if they cover 0 to edgeLength
+    const sorted = [...overlaps].sort((a, b) => a.start - b.start);
+    let covered = 0;
+    for (const range of sorted) {
+      if (range.start <= covered) {
+        covered = Math.max(covered, range.end);
+      }
+    }
+    return covered >= edgeLength;
+  }
+
+  // Calculate visible segments for an edge by subtracting overlaps from the full length
+  function getUncoveredSegments(totalLength: number, overlaps: Array<{ start: number; end: number }>): Array<{ start: number; end: number }> {
+    // 1. Sort overlaps by start
+    const sorted = [...overlaps].sort((a, b) => a.start - b.start);
+    
+    // 2. Merge overlapping intervals
+    const merged: Array<{ start: number; end: number }> = [];
+    if (sorted.length > 0) {
+      let current = sorted[0];
+      for (let i = 1; i < sorted.length; i++) {
+        const next = sorted[i];
+        if (next.start <= current.end) {
+          current.end = Math.max(current.end, next.end);
+        } else {
+          merged.push(current);
+          current = next;
+        }
+      }
+      merged.push(current);
+    }
+    
+    // 3. Compute gaps (uncovered segments)
+    const result: Array<{ start: number; end: number }> = [];
+    let currentPos = 0;
+    
+    for (const overlap of merged) {
+      if (overlap.start > currentPos) {
+        result.push({ start: currentPos, end: overlap.start });
+      }
+      currentPos = Math.max(currentPos, overlap.end);
+    }
+    
+    if (currentPos < totalLength) {
+      result.push({ start: currentPos, end: totalLength });
+    }
+    
+    return result;
   }
 
   // Palette tab state
@@ -219,8 +396,9 @@
       dragState.currentX = newX;
       dragState.currentY = newY;
     } else if (dragState.type === 'resize') {
-      const newWidth = Math.max(1, Math.min(12, mapWidth - dragState.originalX, dragState.originalWidth + deltaX));
-      const newHeight = Math.max(1, Math.min(10, mapHeight - dragState.originalY, dragState.originalHeight + deltaY));
+      // No arbitrary size limits - only constrained by map boundaries
+      const newWidth = Math.max(1, Math.min(mapWidth - dragState.originalX, dragState.originalWidth + deltaX));
+      const newHeight = Math.max(1, Math.min(mapHeight - dragState.originalY, dragState.originalHeight + deltaY));
       // Update local drag state for visual feedback only - no API call
       dragState.currentWidth = newWidth;
       dragState.currentHeight = newHeight;
@@ -413,40 +591,56 @@
 
   <!-- Add Elements Palette (edit mode only) -->
   {#if editable}
-    <div class="mb-4 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-      <div class="flex items-center gap-4 mb-3">
+    <div class="mb-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <!-- Tab Headers -->
+      <div class="flex border-b border-slate-200">
         <button
-          class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
-          class:bg-emerald-100={paletteTab === 'sectors'}
+          class="flex-1 px-4 py-3 text-sm font-semibold transition-colors relative"
+          class:bg-emerald-50={paletteTab === 'sectors'}
           class:text-emerald-700={paletteTab === 'sectors'}
           class:text-slate-500={paletteTab !== 'sectors'}
+          class:hover:bg-slate-50={paletteTab !== 'sectors'}
           onclick={() => paletteTab = 'sectors'}
         >
-          🌳 Sectors
+          <span class="flex items-center justify-center gap-2">
+            🌳 Add Sectors
+          </span>
+          {#if paletteTab === 'sectors'}
+            <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500"></div>
+          {/if}
         </button>
         <button
-          class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
-          class:bg-slate-200={paletteTab === 'decorations'}
+          class="flex-1 px-4 py-3 text-sm font-semibold transition-colors relative"
+          class:bg-slate-100={paletteTab === 'decorations'}
           class:text-slate-700={paletteTab === 'decorations'}
           class:text-slate-500={paletteTab !== 'decorations'}
+          class:hover:bg-slate-50={paletteTab !== 'decorations'}
           onclick={() => paletteTab = 'decorations'}
         >
-          🏫 Decorations
+          <span class="flex items-center justify-center gap-2">
+            🏫 Add Decorations
+          </span>
+          {#if paletteTab === 'decorations'}
+            <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-500"></div>
+          {/if}
         </button>
-        <p class="text-xs text-slate-400 ml-auto">Drag to place on map</p>
       </div>
       
-      {#if paletteTab === 'sectors'}
-        <div class="flex flex-wrap gap-2">
-          {#each Object.entries(sectorConfig) as [type, config]}
-            <div
-              draggable="true"
-              ondragstart={(e) => handlePaletteDragStart(e, undefined, type)}
-              class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
-              style="background-color: {config.bgColor}; border-color: {config.color};"
-              role="button"
-              tabindex="0"
-            >
+      <!-- Tab Content -->
+      <div class="p-4">
+        <p class="text-xs text-slate-400 mb-3">Drag items to place on map</p>
+        
+        {#if paletteTab === 'sectors'}
+          <div class="flex flex-wrap gap-2">
+            {#each Object.entries(sectorConfig) as [type, config]}
+              <div
+                draggable="true"
+                ondragstart={(e) => handlePaletteDragStart(e, undefined, type)}
+                class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
+                style="background-color: {config.bgColor}; border-color: {config.color};"
+                role="button"
+                tabindex="0"
+              >
               <span class="text-xl">{config.icon}</span>
               <span class="text-sm font-semibold" style="color: {config.color};">{config.label}</span>
             </div>
@@ -469,6 +663,7 @@
           {/each}
         </div>
       {/if}
+      </div>
     </div>
   {/if}
   
@@ -622,8 +817,28 @@
         {@const displayY = isDragging ? dragState!.currentY : decoration.gridY}
         {@const displayWidth = isDragging ? dragState!.currentWidth : decoration.gridWidth}
         {@const displayHeight = isDragging ? dragState!.currentHeight : decoration.gridHeight}
+        
+        {@const overlaps = getDecorationOverlaps(decoration, decorations)}
+        
+        <!-- Calculate visible border segments -->
+        {@const visibleTop = getUncoveredSegments(displayWidth, overlaps.top)}
+        {@const visibleBottom = getUncoveredSegments(displayWidth, overlaps.bottom)}
+        {@const visibleLeft = getUncoveredSegments(displayHeight, overlaps.left)}
+        {@const visibleRight = getUncoveredSegments(displayHeight, overlaps.right)}
+        
+        <!-- Determine rounded corners -->
+        <!-- A corner is rounded ONLY if it's a visible endpoint of both adjacent edges -->
+        <!-- Top-Left: Top starts at 0 AND Left starts at 0 -->
+        {@const roundTL = visibleTop.some(s => s.start === 0) && visibleLeft.some(s => s.start === 0)}
+        <!-- Top-Right: Top ends at width AND Right starts at 0 -->
+        {@const roundTR = visibleTop.some(s => s.end === displayWidth) && visibleRight.some(s => s.start === 0)}
+        <!-- Bottom-Left: Bottom starts at 0 AND Left ends at height -->
+        {@const roundBL = visibleBottom.some(s => s.start === 0) && visibleLeft.some(s => s.end === displayHeight)}
+        <!-- Bottom-Right: Bottom ends at width AND Right ends at height -->
+        {@const roundBR = visibleBottom.some(s => s.end === displayWidth) && visibleRight.some(s => s.end === displayHeight)}
+
         <div
-          class="absolute rounded-lg transition-all group"
+          class="absolute transition-all group"
           class:duration-100={!isDragging}
           class:duration-0={isDragging}
           class:cursor-grab={editable && !isDragging}
@@ -631,17 +846,19 @@
           class:ring-2={isSelected}
           class:ring-slate-400={isSelected}
           class:shadow-lg={isSelected || isDragging}
-          class:shadow-md={!isSelected && !isDragging}
           class:z-15={isSelected || isDragging}
           class:z-5={!isSelected && !isDragging}
           style="
+            box-sizing: border-box;
             left: {displayX * CELL_SIZE}px;
             top: {displayY * CELL_SIZE}px;
             width: {displayWidth * CELL_SIZE}px;
             height: {displayHeight * CELL_SIZE}px;
             background: {config.bgColor};
-            border: 2px solid {config.color};
-            opacity: 0.9;
+            border-top-left-radius: {roundTL ? '8px' : '0'};
+            border-top-right-radius: {roundTR ? '8px' : '0'};
+            border-bottom-left-radius: {roundBL ? '8px' : '0'};
+            border-bottom-right-radius: {roundBR ? '8px' : '0'};
           "
           onclick={(e) => handleDecorationClick(e, decoration)}
           onmousedown={(e) => editable && handleDecorationMouseDown(e, decoration, 'move')}
@@ -649,6 +866,72 @@
           tabindex="0"
           aria-label="{config.label} decoration"
         >
+          <!-- Custom Borders -->
+          
+          <!-- Top Border Segments -->
+          {#each visibleTop as segment}
+            <div 
+              class="absolute pointer-events-none"
+              style="
+                top: 0;
+                left: {segment.start * CELL_SIZE}px;
+                width: {(segment.end - segment.start) * CELL_SIZE}px;
+                height: 2px;
+                background: {config.color};
+                border-top-left-radius: {segment.start === 0 && roundTL ? '8px' : '0'};
+                border-top-right-radius: {segment.end === displayWidth && roundTR ? '8px' : '0'};
+              "
+            ></div>
+          {/each}
+
+          <!-- Bottom Border Segments -->
+          {#each visibleBottom as segment}
+            <div 
+              class="absolute pointer-events-none"
+              style="
+                bottom: 0;
+                left: {segment.start * CELL_SIZE}px;
+                width: {(segment.end - segment.start) * CELL_SIZE}px;
+                height: 2px;
+                background: {config.color};
+                border-bottom-left-radius: {segment.start === 0 && roundBL ? '8px' : '0'};
+                border-bottom-right-radius: {segment.end === displayWidth && roundBR ? '8px' : '0'};
+              "
+            ></div>
+          {/each}
+
+          <!-- Left Border Segments -->
+          {#each visibleLeft as segment}
+            <div 
+              class="absolute pointer-events-none"
+              style="
+                left: 0;
+                top: {segment.start * CELL_SIZE}px;
+                height: {(segment.end - segment.start) * CELL_SIZE}px;
+                width: 2px;
+                background: {config.color};
+                border-top-left-radius: {segment.start === 0 && roundTL ? '8px' : '0'};
+                border-bottom-left-radius: {segment.end === displayHeight && roundBL ? '8px' : '0'};
+              "
+            ></div>
+          {/each}
+
+          <!-- Right Border Segments -->
+          {#each visibleRight as segment}
+            <div 
+              class="absolute pointer-events-none"
+              style="
+                right: 0;
+                top: {segment.start * CELL_SIZE}px;
+                height: {(segment.end - segment.start) * CELL_SIZE}px;
+                width: 2px;
+                background: {config.color};
+                border-top-right-radius: {segment.start === 0 && roundTR ? '8px' : '0'};
+                border-bottom-right-radius: {segment.end === displayHeight && roundBR ? '8px' : '0'};
+              "
+            ></div>
+          {/each}
+
           <div class="absolute inset-0 flex flex-col items-center justify-center p-1 overflow-hidden">
             <div style="font-size: {Math.max(16, Math.min(28, displayHeight * CELL_SIZE / 3))}px;">
               {config.icon}
