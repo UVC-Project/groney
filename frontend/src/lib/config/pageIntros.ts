@@ -57,7 +57,7 @@ export const pageIntros: Record<string, IntroContent> = {
 
   '/supplies': {
     emoji: '🌿',
-    title: 'Welcome to Suppliers',
+    title: 'Welcome to Supplies',
     subtitle: 'Find resources and suppliers that support your green schoolyard.',
     bullets: [
       'Discover tools/materials for green maintenance.',
