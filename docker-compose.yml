@@ -173,11 +173,13 @@ services:
       DATABASE_URL: postgresql://groney_user:${POSTGRES_PASSWORD:-groney_password}@postgres:5432/groney
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
       S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000}
     depends_on:
       postgres:
         condition: service_healthy
       minio:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./backend/services/submission-service:/app
       - ./prisma:/app/prisma:ro
