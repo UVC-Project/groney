@@ -49,6 +49,27 @@ export type SectorType =
 	| 'OTHER'
 	| 'CHICKENS';
 
+export type DecorationType =
+	| 'BUILDING'
+	| 'PAVEMENT'
+	| 'PARKING'
+	| 'FENCE'
+	| 'ENTRANCE'
+	| 'BENCH'
+	| 'TRASH_BIN'
+	| 'BIKE_RACK';
+
+export interface MapDecoration {
+	id: string;
+	classId: string;
+	type: DecorationType;
+	gridX: number;
+	gridY: number;
+	gridWidth: number;
+	gridHeight: number;
+	label?: string;
+}
+
 export interface Sector {
 	id: string;
 	name: string;
@@ -105,6 +126,7 @@ export interface TeacherDashboardData {
 	missions: Mission[];
 	submissions: Submission[];
 	supplyRequests: TeacherSupplyRequest[];
+	decorations: MapDecoration[];
 	error?: string;
 }
 

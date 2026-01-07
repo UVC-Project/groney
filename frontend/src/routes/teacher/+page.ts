@@ -97,14 +97,16 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectorsResponse,
 			missionsResponse,
 			submissionsResponse,
-			supplyRequestsResponse
+			supplyRequestsResponse,
+			decorationsResponse
 		] = await Promise.all([
 			authenticatedFetch(classEndpoint),
 			authenticatedFetch('/api/teacher/classes'),
 			authenticatedFetch(`/api/teacher/sectors${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
 			authenticatedFetch(`/api/teacher/missions${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
 			authenticatedFetch(`/api/teacher/submissions${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
-			supplyRequestsPromise
+			supplyRequestsPromise,
+			authenticatedFetch(`/api/teacher/decorations${selectedClassId ? `?classId=${selectedClassId}` : ''}`)
 		]);
 
 		console.log('📊 API Response Status:', {
@@ -113,7 +115,8 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectors: sectorsResponse.status,
 			missions: missionsResponse.status,
 			submissions: submissionsResponse.status,
-			supplyRequests: supplyRequestsResponse.status
+			supplyRequests: supplyRequestsResponse.status,
+			decorations: decorationsResponse.status
 		});
 
 		// Handle 404 for class (teacher hasn't created a class yet) - this is not an error
@@ -144,6 +147,7 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 		const missions = missionsResponse.ok ? await missionsResponse.json() : [];
 		const submissions = submissionsResponse.ok ? await submissionsResponse.json() : [];
 		const supplyRequests = supplyRequestsResponse.ok ? await supplyRequestsResponse.json() : [];
+		const decorations = decorationsResponse.ok ? await decorationsResponse.json() : [];
 
 		console.log('✅ Loaded data:', {
 			currentClass: currentClass ? 'Found' : 'None',
@@ -151,7 +155,8 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectors: sectors.length,
 			missions: missions.length,
 			submissions: submissions.length,
-			supplyRequests: supplyRequests.length
+			supplyRequests: supplyRequests.length,
+			decorations: decorations.length
 		});
 
 		return {
@@ -160,7 +165,8 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectors,
 			missions,
 			submissions,
-			supplyRequests
+			supplyRequests,
+			decorations
 		};
 	} catch (error) {
 		console.error('❌ Error loading teacher dashboard data:', error);
@@ -174,6 +180,7 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			missions: [],
 			submissions: [],
 			supplyRequests: [],
+			decorations: [],
 			error: error instanceof Error ? error.message : 'Failed to load dashboard data'
 		};
 	}

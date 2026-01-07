@@ -60,6 +60,7 @@ model Class {
   members ClassUser[]
   mascot      Mascot?
   sectors     Sector[]
+  decorations MapDecoration[]
   activities  Activity[]
   submissions Submission[]
   purchases   Purchase[]
@@ -68,6 +69,36 @@ model Class {
 
   @@index([classCode])
   @@map("classes")
+}
+
+// Map decoration model (visual-only elements like buildings, paths)
+model MapDecoration {
+  id         String         @id @default(cuid())
+  classId    String
+  type       DecorationType
+  gridX      Int
+  gridY      Int
+  gridWidth  Int            @default(2)
+  gridHeight Int            @default(2)
+  label      String?        // Optional custom label
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@map("map_decorations")
+}
+
+enum DecorationType {
+  BUILDING
+  PAVEMENT
+  PARKING
+  FENCE
+  ENTRANCE
+  BENCH
+  TRASH_BIN
+  BIKE_RACK
 }
 
 model ClassUser {

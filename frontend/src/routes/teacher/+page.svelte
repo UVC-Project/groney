@@ -95,6 +95,7 @@
   let currentClassData = $derived(data.currentClass || null);
   let allClassesData = $derived(data.allClasses || []);
   let sectorsData = $derived(data.sectors || []);
+  let decorationsData = $derived(data.decorations || []);
   let loadError = $derived(data.error);
 
   // Local state for data that can be modified optimistically
@@ -700,6 +701,106 @@
   function closeSectorEditDialog() {
     editingSector = null;
     editingSectorName = '';
+  }
+
+  // ==================== DECORATION HANDLERS ====================
+
+  async function handleAddDecoration(type: string, x: number, y: number) {
+    const classId = localStorage.getItem('teacher_selected_class_id') || currentClassData?.id;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/decorations${classId ? `?classId=${classId}` : ''}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          type,
+          gridX: x,
+          gridY: y,
+          gridWidth: 2,
+          gridHeight: 2,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to create decoration');
+      }
+
+      showToast('Decoration added! 🏫', 'success');
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to add decoration:', error);
+      showToast('Failed to add decoration. Please try again.', 'error');
+    }
+  }
+
+  async function handleDecorationMove(decorationId: string, x: number, y: number) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/decorations/${decorationId}/position`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ gridX: x, gridY: y }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update decoration position');
+      }
+
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to move decoration:', error);
+      showToast('Failed to update decoration position', 'error');
+    }
+  }
+
+  async function handleDecorationResize(decorationId: string, width: number, height: number) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/decorations/${decorationId}/position`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ gridWidth: width, gridHeight: height }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update decoration size');
+      }
+
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to resize decoration:', error);
+      showToast('Failed to update decoration size', 'error');
+    }
+  }
+
+  async function handleDecorationDelete(decorationId: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/decorations/${decorationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete decoration');
+      }
+
+      showToast('Decoration removed 🗑️', 'success');
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to delete decoration:', error);
+      showToast('Failed to delete decoration', 'error');
+    }
   }
 
   function handleLogout() {
@@ -1949,6 +2050,7 @@
           {#if sectorsData.length > 0 || isMapEditMode}
             <MapBuilder
               sectors={mapSectorsData}
+              decorations={decorationsData}
               mapWidth={currentClassData.mapWidth || 20}
               mapHeight={currentClassData.mapHeight || 16}
               editable={isMapEditMode}
@@ -1962,6 +2064,10 @@
               onSectorDelete={handleDeleteSector}
               onSectorRemoveFromMap={handleSectorRemoveFromMap}
               onSectorEdit={handleSectorEdit}
+              onAddDecoration={handleAddDecoration}
+              onDecorationMove={handleDecorationMove}
+              onDecorationResize={handleDecorationResize}
+              onDecorationDelete={handleDecorationDelete}
             />
           {:else}
             <!-- Empty State -->

@@ -9,8 +9,19 @@
     color?: string;
   }
 
+  interface MapDecoration {
+    id: string;
+    type: string;
+    gridX: number;
+    gridY: number;
+    gridWidth: number;
+    gridHeight: number;
+    label?: string;
+  }
+
   interface Props {
     sectors: MapSector[];
+    decorations?: MapDecoration[];
     mapWidth: number;
     mapHeight: number;
     editable?: boolean;
@@ -24,10 +35,16 @@
     onSectorDelete?: (sectorId: string) => void;
     onSectorRemoveFromMap?: (sectorId: string) => void;
     onSectorEdit?: (sector: MapSector) => void;
+    // Decoration handlers
+    onAddDecoration?: (type: string, x: number, y: number) => void;
+    onDecorationMove?: (decorationId: string, x: number, y: number) => void;
+    onDecorationResize?: (decorationId: string, width: number, height: number) => void;
+    onDecorationDelete?: (decorationId: string) => void;
   }
 
   let {
     sectors = [],
+    decorations = [],
     mapWidth = 20,
     mapHeight = 16,
     editable = false,
@@ -41,6 +58,10 @@
     onSectorDelete,
     onSectorRemoveFromMap,
     onSectorEdit,
+    onAddDecoration,
+    onDecorationMove,
+    onDecorationResize,
+    onDecorationDelete,
   }: Props = $props();
 
   // Split sectors into placed and unplaced
@@ -64,7 +85,8 @@
   });
 
   let dragState = $state<{
-    sectorId: string;
+    sectorId?: string;
+    decorationId?: string;
     type: 'move' | 'resize';
     startX: number;
     startY: number;
@@ -80,11 +102,13 @@
   } | null>(null);
 
   let selectedSectorId = $state<string | null>(null);
+  let selectedDecorationId = $state<string | null>(null);
   
-  // Drag state for placing sectors
+  // Drag state for placing sectors/decorations
   let placingDrag = $state<{
     sectorId?: string;
     type?: string;
+    decorationType?: string;
     isNew: boolean;
   } | null>(null);
   let dropPreview = $state<{ x: number; y: number } | null>(null);
@@ -105,9 +129,28 @@
     CHICKENS: { color: '#d97706', bgColor: '#fef3c7', icon: '🐔', label: 'Chickens' },
   };
 
+  // Decoration type configurations (visual-only elements)
+  const decorationConfig: Record<string, { color: string; bgColor: string; icon: string; label: string }> = {
+    BUILDING: { color: '#64748b', bgColor: '#e2e8f0', icon: '🏫', label: 'Building' },
+    PAVEMENT: { color: '#78716c', bgColor: '#d6d3d1', icon: '🟫', label: 'Pavement' },
+    PARKING: { color: '#525252', bgColor: '#d4d4d4', icon: '🅿️', label: 'Parking' },
+    FENCE: { color: '#92400e', bgColor: '#fef3c7', icon: '🚧', label: 'Fence' },
+    ENTRANCE: { color: '#0891b2', bgColor: '#cffafe', icon: '🚪', label: 'Entrance' },
+    BENCH: { color: '#a16207', bgColor: '#fef9c3', icon: '🪑', label: 'Bench' },
+    TRASH_BIN: { color: '#166534', bgColor: '#dcfce7', icon: '🗑️', label: 'Trash Bin' },
+    BIKE_RACK: { color: '#1d4ed8', bgColor: '#dbeafe', icon: '🚲', label: 'Bike Rack' },
+  };
+
   function getConfig(type: string) {
     return sectorConfig[type?.toUpperCase()] || sectorConfig.OTHER;
   }
+
+  function getDecorationConfig(type: string) {
+    return decorationConfig[type?.toUpperCase()] || decorationConfig.BUILDING;
+  }
+
+  // Palette tab state
+  let paletteTab = $state<'sectors' | 'decorations'>('sectors');
 
   // Drag handlers for moving/resizing placed sectors
   function handleMouseDown(e: MouseEvent, sector: MapSector, type: 'move' | 'resize') {
@@ -116,6 +159,7 @@
     e.stopPropagation();
 
     selectedSectorId = sector.id;
+    selectedDecorationId = null;
     dragState = {
       sectorId: sector.id,
       type,
@@ -135,6 +179,33 @@
     window.addEventListener('mouseup', handleMouseUp);
   }
 
+  // Drag handlers for decorations
+  function handleDecorationMouseDown(e: MouseEvent, decoration: MapDecoration, type: 'move' | 'resize') {
+    if (!editable) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    selectedDecorationId = decoration.id;
+    selectedSectorId = null;
+    dragState = {
+      decorationId: decoration.id,
+      type,
+      startX: e.clientX,
+      startY: e.clientY,
+      originalX: decoration.gridX,
+      originalY: decoration.gridY,
+      originalWidth: decoration.gridWidth,
+      originalHeight: decoration.gridHeight,
+      currentX: decoration.gridX,
+      currentY: decoration.gridY,
+      currentWidth: decoration.gridWidth,
+      currentHeight: decoration.gridHeight,
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }
+
   function handleMouseMove(e: MouseEvent) {
     if (!dragState) return;
 
@@ -148,8 +219,8 @@
       dragState.currentX = newX;
       dragState.currentY = newY;
     } else if (dragState.type === 'resize') {
-      const newWidth = Math.max(2, Math.min(12, mapWidth - dragState.originalX, dragState.originalWidth + deltaX));
-      const newHeight = Math.max(2, Math.min(10, mapHeight - dragState.originalY, dragState.originalHeight + deltaY));
+      const newWidth = Math.max(1, Math.min(12, mapWidth - dragState.originalX, dragState.originalWidth + deltaX));
+      const newHeight = Math.max(1, Math.min(10, mapHeight - dragState.originalY, dragState.originalHeight + deltaY));
       // Update local drag state for visual feedback only - no API call
       dragState.currentWidth = newWidth;
       dragState.currentHeight = newHeight;
@@ -161,11 +232,19 @@
       // Only call API when drag is complete
       if (dragState.type === 'move') {
         if (dragState.currentX !== dragState.originalX || dragState.currentY !== dragState.originalY) {
-          onSectorMove?.(dragState.sectorId, dragState.currentX, dragState.currentY);
+          if (dragState.sectorId) {
+            onSectorMove?.(dragState.sectorId, dragState.currentX, dragState.currentY);
+          } else if (dragState.decorationId) {
+            onDecorationMove?.(dragState.decorationId, dragState.currentX, dragState.currentY);
+          }
         }
       } else if (dragState.type === 'resize') {
         if (dragState.currentWidth !== dragState.originalWidth || dragState.currentHeight !== dragState.originalHeight) {
-          onSectorResize?.(dragState.sectorId, dragState.currentWidth, dragState.currentHeight);
+          if (dragState.sectorId) {
+            onSectorResize?.(dragState.sectorId, dragState.currentWidth, dragState.currentHeight);
+          } else if (dragState.decorationId) {
+            onDecorationResize?.(dragState.decorationId, dragState.currentWidth, dragState.currentHeight);
+          }
         }
       }
     }
@@ -177,7 +256,19 @@
   function handleSectorClick(e: MouseEvent, sector: MapSector) {
     e.stopPropagation();
     selectedSectorId = sector.id;
+    selectedDecorationId = null;
     onSectorClick?.(sector);
+    
+    // Focus the grid container to enable keyboard events
+    if (editable) {
+      gridRef?.focus();
+    }
+  }
+
+  function handleDecorationClick(e: MouseEvent, decoration: MapDecoration) {
+    e.stopPropagation();
+    selectedDecorationId = decoration.id;
+    selectedSectorId = null;
     
     // Focus the grid container to enable keyboard events
     if (editable) {
@@ -195,19 +286,35 @@
   }
 
   function handleGridClick() {
-    if (editable) selectedSectorId = null;
+    if (editable) {
+      selectedSectorId = null;
+      selectedDecorationId = null;
+    }
   }
 
   // Keyboard event handler for the entire map
   function handleMapKeydown(e: KeyboardEvent) {
-    if (!editable || !selectedSectorId) return;
+    if (!editable) return;
     
     if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
-      const sector = placedSectors.find(s => s.id === selectedSectorId);
-      if (sector) {
-        handleRemoveSectorFromMap(sector);
+      if (selectedSectorId) {
+        const sector = placedSectors.find(s => s.id === selectedSectorId);
+        if (sector) {
+          handleRemoveSectorFromMap(sector);
+        }
+      } else if (selectedDecorationId) {
+        handleDeleteDecoration(selectedDecorationId);
       }
+    }
+  }
+
+  function handleDeleteDecoration(decorationId: string) {
+    const decoration = decorations.find(d => d.id === decorationId);
+    const confirmed = confirm(`Delete this ${getDecorationConfig(decoration?.type || '').label}?`);
+    if (confirmed) {
+      onDecorationDelete?.(decorationId);
+      selectedDecorationId = null;
     }
   }
 
@@ -219,20 +326,12 @@
     }
   }
 
-  function handleDeleteSector(sector: MapSector) {
-    const confirmed = confirm(`Permanently delete "${sector.name}"?\n\nThis will also delete all missions in this sector. This action cannot be undone.`);
-    if (confirmed) {
-      onSectorDelete?.(sector.id);
-      selectedSectorId = null;
-    }
-  }
-
   // Drag handlers for placing sectors from palette
-  function handlePaletteDragStart(e: DragEvent, sectorId?: string, type?: string) {
+  function handlePaletteDragStart(e: DragEvent, sectorId?: string, type?: string, decorationType?: string) {
     if (!e.dataTransfer) return;
-    e.dataTransfer.setData('application/json', JSON.stringify({ sectorId, type }));
+    e.dataTransfer.setData('application/json', JSON.stringify({ sectorId, type, decorationType }));
     e.dataTransfer.effectAllowed = 'move';
-    placingDrag = { sectorId, type, isNew: !sectorId };
+    placingDrag = { sectorId, type, decorationType, isNew: !sectorId };
   }
 
   function handleGridDragOver(e: DragEvent) {
@@ -243,8 +342,8 @@
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const x = Math.floor((e.clientX - rect.left) / CELL_SIZE);
     const y = Math.floor((e.clientY - rect.top) / CELL_SIZE);
-    const clampedX = Math.max(0, Math.min(mapWidth - 3, x));
-    const clampedY = Math.max(0, Math.min(mapHeight - 3, y));
+    const clampedX = Math.max(0, Math.min(mapWidth - 2, x));
+    const clampedY = Math.max(0, Math.min(mapHeight - 2, y));
     dropPreview = { x: clampedX, y: clampedY };
   }
 
@@ -262,6 +361,9 @@
       if (data.sectorId) {
         // Placing an existing unplaced sector
         onPlaceSector?.(data.sectorId, dropPreview.x, dropPreview.y);
+      } else if (data.decorationType) {
+        // Creating a new decoration
+        onAddDecoration?.(data.decorationType, dropPreview.x, dropPreview.y);
       } else if (data.type) {
         // Creating a new sector
         onAddSector?.(data.type, dropPreview.x, dropPreview.y);
@@ -308,8 +410,68 @@
       </div>
     </div>
   {/if}
+
+  <!-- Add Elements Palette (edit mode only) -->
+  {#if editable}
+    <div class="mb-4 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+      <div class="flex items-center gap-4 mb-3">
+        <button
+          class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+          class:bg-emerald-100={paletteTab === 'sectors'}
+          class:text-emerald-700={paletteTab === 'sectors'}
+          class:text-slate-500={paletteTab !== 'sectors'}
+          onclick={() => paletteTab = 'sectors'}
+        >
+          🌳 Sectors
+        </button>
+        <button
+          class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+          class:bg-slate-200={paletteTab === 'decorations'}
+          class:text-slate-700={paletteTab === 'decorations'}
+          class:text-slate-500={paletteTab !== 'decorations'}
+          onclick={() => paletteTab = 'decorations'}
+        >
+          🏫 Decorations
+        </button>
+        <p class="text-xs text-slate-400 ml-auto">Drag to place on map</p>
+      </div>
+      
+      {#if paletteTab === 'sectors'}
+        <div class="flex flex-wrap gap-2">
+          {#each Object.entries(sectorConfig) as [type, config]}
+            <div
+              draggable="true"
+              ondragstart={(e) => handlePaletteDragStart(e, undefined, type)}
+              class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
+              style="background-color: {config.bgColor}; border-color: {config.color};"
+              role="button"
+              tabindex="0"
+            >
+              <span class="text-xl">{config.icon}</span>
+              <span class="text-sm font-semibold" style="color: {config.color};">{config.label}</span>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <div class="flex flex-wrap gap-2">
+          {#each Object.entries(decorationConfig) as [type, config]}
+            <div
+              draggable="true"
+              ondragstart={(e) => handlePaletteDragStart(e, undefined, undefined, type)}
+              class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
+              style="background-color: {config.bgColor}; border-color: {config.color};"
+              role="button"
+              tabindex="0"
+            >
+              <span class="text-xl">{config.icon}</span>
+              <span class="text-sm font-semibold" style="color: {config.color};">{config.label}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  {/if}
   
-  <!-- Grid Size Controls (only in edit mode) -->
   <!-- Edit Controls & Hints -->
   {#if editable}
     <div class="mb-2 flex items-center justify-between gap-4 text-xs text-slate-500">
@@ -429,25 +591,91 @@
       <!-- Drop Preview -->
       {#if dropPreview && placingDrag}
         {@const currentDrag = placingDrag}
-        {@const config = currentDrag.sectorId 
-          ? getConfig(unplacedSectors.find(s => s.id === currentDrag.sectorId)?.type || 'OTHER')
-          : getConfig(currentDrag.type || 'OTHER')}
+        {@const config = currentDrag.decorationType 
+          ? getDecorationConfig(currentDrag.decorationType)
+          : currentDrag.sectorId 
+            ? getConfig(unplacedSectors.find(s => s.id === currentDrag.sectorId)?.type || 'OTHER')
+            : getConfig(currentDrag.type || 'OTHER')}
         <div
           class="absolute rounded-xl border-2 border-dashed pointer-events-none animate-pulse z-30"
           style="
             left: {dropPreview.x * CELL_SIZE}px;
             top: {dropPreview.y * CELL_SIZE}px;
-            width: {3 * CELL_SIZE}px;
-            height: {3 * CELL_SIZE}px;
+            width: {2 * CELL_SIZE}px;
+            height: {2 * CELL_SIZE}px;
             background-color: {config.bgColor}80;
             border-color: {config.color};
           "
         >
           <div class="absolute inset-0 flex items-center justify-center">
-            <span class="text-3xl opacity-60">{config.icon}</span>
+            <span class="text-2xl opacity-60">{config.icon}</span>
           </div>
         </div>
       {/if}
+
+      <!-- Decorations (rendered below sectors) -->
+      {#each decorations as decoration (decoration.id)}
+        {@const config = getDecorationConfig(decoration.type)}
+        {@const isSelected = selectedDecorationId === decoration.id}
+        {@const isDragging = dragState?.decorationId === decoration.id}
+        {@const displayX = isDragging ? dragState!.currentX : decoration.gridX}
+        {@const displayY = isDragging ? dragState!.currentY : decoration.gridY}
+        {@const displayWidth = isDragging ? dragState!.currentWidth : decoration.gridWidth}
+        {@const displayHeight = isDragging ? dragState!.currentHeight : decoration.gridHeight}
+        <div
+          class="absolute rounded-lg transition-all group"
+          class:duration-100={!isDragging}
+          class:duration-0={isDragging}
+          class:cursor-grab={editable && !isDragging}
+          class:cursor-grabbing={isDragging}
+          class:ring-2={isSelected}
+          class:ring-slate-400={isSelected}
+          class:shadow-lg={isSelected || isDragging}
+          class:shadow-md={!isSelected && !isDragging}
+          class:z-15={isSelected || isDragging}
+          class:z-5={!isSelected && !isDragging}
+          style="
+            left: {displayX * CELL_SIZE}px;
+            top: {displayY * CELL_SIZE}px;
+            width: {displayWidth * CELL_SIZE}px;
+            height: {displayHeight * CELL_SIZE}px;
+            background: {config.bgColor};
+            border: 2px solid {config.color};
+            opacity: 0.9;
+          "
+          onclick={(e) => handleDecorationClick(e, decoration)}
+          onmousedown={(e) => editable && handleDecorationMouseDown(e, decoration, 'move')}
+          role="button"
+          tabindex="0"
+          aria-label="{config.label} decoration"
+        >
+          <div class="absolute inset-0 flex flex-col items-center justify-center p-1 overflow-hidden">
+            <div style="font-size: {Math.max(16, Math.min(28, displayHeight * CELL_SIZE / 3))}px;">
+              {config.icon}
+            </div>
+            {#if decoration.label || displayWidth >= 3}
+              <div class="text-center leading-tight px-1 truncate w-full font-medium"
+                style="color: {config.color}; font-size: {Math.max(8, Math.min(11, displayWidth * CELL_SIZE / 10))}px;">
+                {decoration.label || config.label}
+              </div>
+            {/if}
+          </div>
+
+          {#if editable && isSelected}
+            <div
+              class="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-slate-500 rounded-full cursor-se-resize flex items-center justify-center shadow-lg border-2 border-white hover:bg-slate-600 z-30"
+              onmousedown={(e) => { e.stopPropagation(); handleDecorationMouseDown(e, decoration, 'resize'); }}
+              role="button"
+              aria-label="Resize"
+              tabindex="0"
+            >
+              <svg class="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 20h16M20 4v16" />
+              </svg>
+            </div>
+          {/if}
+        </div>
+      {/each}
 
       <!-- Placed Sectors -->
       {#each placedSectors as sector (sector.id)}
@@ -521,12 +749,12 @@
       {/each}
 
       <!-- Empty state -->
-      {#if placedSectors.length === 0}
+      {#if placedSectors.length === 0 && decorations.length === 0}
         <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div class="text-center p-6 bg-white/70 rounded-2xl backdrop-blur-sm">
             <div class="text-4xl mb-2">🗺️</div>
             <p class="text-slate-600 font-medium text-sm">
-              {editable ? 'Drag sectors from above to build your map' : 'No sectors placed on map yet'}
+              {editable ? 'Drag sectors or decorations to build your map' : 'No elements placed on map yet'}
             </p>
           </div>
         </div>
