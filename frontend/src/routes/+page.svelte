@@ -8,7 +8,7 @@
   import { goto } from '$app/navigation';
   import { onMount, onDestroy } from 'svelte';
   import { get } from 'svelte/store';
-  import { MASCOT_ENGINE_URL } from '$lib/config';
+  import { MASCOT_ENGINE_URL, API_BASE_URL } from '$lib/config';
   import { milestoneRewardStore, clearMilestoneReward, streakResetStore, clearStreakReset } from '$lib/stores/auth';
 
   // Groeny gifs for different states
@@ -33,6 +33,12 @@
   // Polling interval in milliseconds (5 seconds for testing, increase for production)
   const POLL_INTERVAL = 5000;
 
+  // Activity feed
+  type ActivityFilter = 'all' | 'mine';
+  let activityFilter = $state<ActivityFilter>('all');
+  let activities = $state<any[]>([]);
+  let isLoadingActivities = $state(false);
+
   // Fetch latest mascot data
   async function fetchMascot() {
     try {
@@ -56,6 +62,54 @@
     } catch (err) {
       console.error('Error polling mascot:', err);
     }
+  }
+
+  // Fetch activities when filter changes
+  async function fetchActivities() {
+    isLoadingActivities = true;
+    try {
+        let userId = '';
+        const authData = localStorage.getItem('auth');
+        let userRole = 'STUDENT'; 
+        
+        if (authData) {
+            const parsed = JSON.parse(authData);
+            userId = parsed?.user?.id;
+        }
+
+        // URL construction (Logic remains the same)
+        const endpoint = activityFilter === 'mine'
+            ? `${API_BASE_URL}/api/student/activities`
+            : `${API_BASE_URL}/api/student/activities/class?classId=${liveMascot.classId}`;
+
+        const res = await fetch(endpoint, {
+            headers: {
+                'x-user-id': userId,
+                'x-user-role': userRole,
+            }
+        });
+
+        if (res.ok) {
+            activities = await res.json();
+        } else {
+            console.warn('Failed to fetch activities, using mock data');
+            activities = []; 
+        }
+    } catch (err) {
+        console.error('Error loading activities:', err);
+    } finally {
+        isLoadingActivities = false;
+    }
+  }
+
+  // Reactively fetch when filter changes
+  $effect(() => {
+      fetchActivities();
+  });
+  
+  // Helper to format dates
+  function formatDate(dateString: string) {
+      return new Date(dateString).toLocaleDateString('en-GB');
   }
 
   // Track if the messages have already been shown
@@ -404,6 +458,72 @@
     </div>
   </div>
 
+  <!-- Activity Feed -->
+   <div class="max-w-5xl mx-auto mt-10 mb-20">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800">Recent activities</h2>
+      
+      <div class="bg-gray-100 p-1 rounded-xl inline-flex self-start sm:self-auto">
+        <button 
+          class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 {activityFilter === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
+          onclick={() => activityFilter = 'all'}
+        >
+          🏫 Whole Class
+        </button>
+        <button 
+          class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 {activityFilter === 'mine' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
+          onclick={() => activityFilter = 'mine'}
+        >
+          👤 My Activity
+        </button>
+      </div>
+    </div>
+
+    {#if isLoadingActivities}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div class="h-64 bg-gray-100 rounded-[32px] animate-pulse"></div>
+            <div class="h-64 bg-gray-100 rounded-[32px] animate-pulse"></div>
+        </div>
+    {:else if activities.length > 0}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          {#each activities as activity}
+            <article class="bg-white rounded-[32px] shadow-lg p-4 md:p-5 border border-gray-100 transition-transform hover:scale-[1.01]">
+              <div class="flex items-center gap-3 mb-3">
+                  <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                      {activity.userName?.charAt(0) || '?'}
+                  </div>
+                  <h3 class="font-semibold text-gray-800 text-sm md:text-base">
+                      <span class="font-bold text-blue-600">{activity.userName}</span> completed {activity.missionTitle}!
+                  </h3>
+              </div>
+
+              <div class="overflow-hidden rounded-2xl mb-3 bg-gray-50 relative group">
+                {#if activity.imageUrl}
+                    <img src={activity.imageUrl} alt={activity.missionTitle} class="w-full h-44 md:h-56 object-cover transition-transform duration-500 group-hover:scale-105">
+                {:else}
+                    <div class="w-full h-44 md:h-56 flex items-center justify-center text-gray-400">
+                        No photo submitted
+                    </div>
+                {/if}
+              </div>
+
+              <p class="text-xs md:text-sm text-gray-500 flex items-center gap-1">
+                  📅 {formatDate(activity.createdAt)}
+              </p>
+            </article>
+          {/each}
+        </div>
+    {:else}
+        <div class="text-center py-12 bg-gray-50 rounded-[32px] border border-dashed border-gray-300">
+            <p class="text-4xl mb-2">📭</p>
+            <p class="text-gray-600 font-medium">No recent activities found.</p>
+            {#if activityFilter === 'mine'}
+                <p class="text-gray-400 text-sm mt-1">Complete some missions to see them here!</p>
+            {/if}
+        </div>
+    {/if}
+  </div>
+  
   <LogoutModal open={showLogoutModal} onCancel={() => { showLogoutModal = false; }} onConfirm={logout}/>
   <ScrollToTopButton />
 </div>

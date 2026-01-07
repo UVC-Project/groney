@@ -451,4 +451,116 @@ router.get('/my-missions', requireStudent, async (req: Request, res: Response) =
 	}
 });
 
+// GET /api/student/activities - Get completed activities for the current user
+router.get('/activities', requireStudent, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId; 
+
+        // Find missions that THIS user has completed
+        const missions = await prisma.mission.findMany({
+            where: {
+                submissions: {
+                    some: {
+                        userId: userId,
+                        status: 'COMPLETED'
+                    }
+                }
+            },
+            include: {
+                // Include the relevant submissions to get the date/proof
+                submissions: {
+                    where: {
+                        userId: userId,
+                        status: 'COMPLETED'
+                    },
+                    orderBy: { updatedAt: 'desc' },
+                    include: {
+                        user: { select: { firstName: true, lastName: true } }
+                    }
+                }
+            }
+        });
+
+        // Flatten the nested structure into a single list of activities
+        const activities = missions.flatMap(mission => 
+            mission.submissions.map(sub => ({
+                id: sub.id,
+                userName: sub.user.firstName, 
+                missionTitle: mission.title,
+                imageUrl: sub.photoUrl || null,
+                createdAt: sub.updatedAt
+            }))
+        );
+
+        // Sort by most recent
+        activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        // Limit to recent 10
+        res.json(activities.slice(0, 10));
+
+    } catch (error) {
+        console.error('Error fetching user activities:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// GET /api/student/activities/class - Get completed activities for the whole class
+router.get('/activities/class', requireStudent, async (req: Request, res: Response) => {
+    try {
+        const classId = req.query.classId as string;
+
+        if (!classId) {
+            return res.status(400).json({ error: 'Bad Request', message: 'Class ID required' });
+        }
+
+        // Find missions in this class that ANYONE has completed
+        const missions = await prisma.mission.findMany({
+            where: {
+                sector: { classId: classId }, // Ensure mission belongs to class
+                submissions: {
+                    some: {
+                        classId: classId,
+                        status: 'COMPLETED'
+                    }
+                }
+            },
+            include: {
+                submissions: {
+                    where: {
+                        classId: classId,
+                        status: 'COMPLETED'
+                    },
+                    orderBy: { updatedAt: 'desc' },
+                    // Limit submissions per mission to avoid fetching thousands of old records
+                    take: 5, 
+                    include: {
+                        user: { select: { firstName: true, lastName: true } }
+                    }
+                }
+            }
+        });
+
+        // Flatten
+        const activities = missions.flatMap(mission => 
+            mission.submissions.map(sub => ({
+                id: sub.id,
+                userName: sub.user.firstName,
+                missionTitle: mission.title,
+                imageUrl: sub.photoUrl || null,
+                createdAt: sub.updatedAt
+            }))
+        );
+
+        // Sort by Date
+        activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        // Limit to recent 20
+        res.json(activities.slice(0, 20));
+
+    } catch (error) {
+        console.error('Error fetching class activities:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 export default router;
