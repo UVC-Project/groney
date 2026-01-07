@@ -8,6 +8,52 @@ const prisma: PrismaClient = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey';
 const JWT_EXPIRES_IN = '7d';
 
+// Streak milestone rewards: day -> coins
+const STREAK_MILESTONES: Record<number, number> = {
+	3: 2,
+	5: 5,
+	7: 7,
+	14: 10,
+	30: 15,
+	60: 25,
+	90: 40,
+	180: 75,
+	365: 150,
+};
+
+// Motivational messages for milestone rewards
+const MILESTONE_MESSAGES: string[] = [
+	"You're on fire!",
+	"Great consistency!",
+	"Grooney is proud of you!",
+	"Keep the streak alive!",
+	"Awesome job showing up!",
+];
+
+/**
+ * Get coin reward for a streak milestone, or 0 if not a milestone
+ */
+function getMilestoneReward(streakDay: number): number {
+	return STREAK_MILESTONES[streakDay] || 0;
+}
+
+/**
+ * Get a random motivational message for milestone rewards
+ */
+function getRandomMilestoneMessage(): string {
+	const index = Math.floor(Math.random() * MILESTONE_MESSAGES.length);
+	return MILESTONE_MESSAGES[index];
+}
+
+
+//Milesetone reward event data for the UI
+
+interface MilestoneRewardEvent {
+	streakDay: number;
+	coinsEarned: number;
+	message: string;
+}
+
 //Get today's date in Amsterdam timezone as a date object 
 function getAmsterdamToday(): Date {
 	const now = new Date();
@@ -139,12 +185,53 @@ export default class LoginController {
 
 			// Calculate streak for students
 			let streakData: StreakResult | null = null;
+			let milestoneRewardEvent: MilestoneRewardEvent | null = null;
 			if (user.role === 'STUDENT') {
 				streakData = LoginController.calculateStreak(
 					user.lastLoginDate,
 					user.currentStreak,
 					user.longestStreak
 				);
+
+				// Determine if streak changed (not already logged in today)
+				const streakChanged = streakData.currentStreak !== user.currentStreak;
+				
+				// Determine new lastMilestoneReached value
+				let newLastMilestoneReached = user.lastMilestoneReached;
+				
+				// If streak was broken/reset, reset milestone tracking
+				if (streakData.streakBroken || (streakChanged && streakData.currentStreak === 1)) {
+					newLastMilestoneReached = 0;
+				}
+				
+				// Check if current streak is a milestone and hasn't been rewarded yet
+				const milestoneReward = getMilestoneReward(streakData.currentStreak);
+				const shouldRewardMilestone = streakChanged && 
+					milestoneReward > 0 && 
+					streakData.currentStreak > newLastMilestoneReached;
+				
+				// Grant milestone coins to the class mascot
+				if (shouldRewardMilestone && user.classMember.length > 0) {
+					const classId = user.classMember[0].classId;
+					await prisma.mascot.updateMany({
+						where: { classId },
+						data: {
+							coins: {
+								increment: milestoneReward,
+							},
+						},
+					});
+					newLastMilestoneReached = streakData.currentStreak;
+					
+					// Create milestone reward event for the UI
+					milestoneRewardEvent = {
+						streakDay: streakData.currentStreak,
+						coinsEarned: milestoneReward,
+						message: getRandomMilestoneMessage(),
+					};
+					
+					console.log(`🎉 Streak milestone ${streakData.currentStreak} days reached by ${user.username}! Awarded ${milestoneReward} coins.`);
+				}
 
 				// Update user's streak data in database
 				await prisma.user.update({
@@ -153,6 +240,7 @@ export default class LoginController {
 						currentStreak: streakData.currentStreak,
 						longestStreak: streakData.longestStreak,
 						lastLoginDate: getAmsterdamToday(),
+						lastMilestoneReached: newLastMilestoneReached,
 					},
 				});
 			}
@@ -180,6 +268,11 @@ export default class LoginController {
 
 			const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
+			// Include previous streak if it was broken (for UI to show reset message)
+			const streakResetInfo = streakData?.streakBroken ? {
+				previousStreak: user.currentStreak,
+			} : null;
+
 			return res.json({
 				message: 'Login successful',
 				token,
@@ -198,6 +291,14 @@ export default class LoginController {
 						longest: streakData.longestStreak,
 						broken: streakData.streakBroken,
 					},
+				}),
+				// Include milestone reward event if earned
+				...(milestoneRewardEvent && {
+					milestoneReward: milestoneRewardEvent,
+				}),
+				// Include streak reset info if streak was broken
+				...(streakResetInfo && {
+					streakReset: streakResetInfo,
 				}),
 			});
 		} catch (err: unknown) {
