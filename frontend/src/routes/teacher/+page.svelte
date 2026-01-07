@@ -231,6 +231,17 @@
     }, 3000);
   }
 
+  // Helper function to resolve photo URLs (handles both relative API paths and absolute URLs)
+  function resolvePhotoUrl(photoUrl: string | null): string {
+    if (!photoUrl) return 'https://picsum.photos/400/300'; // Fallback placeholder
+    // If it's a relative path starting with /api, prepend API_BASE_URL
+    if (photoUrl.startsWith('/api/')) {
+      return `${API_BASE_URL}${photoUrl}`;
+    }
+    // Otherwise return as-is (for absolute URLs)
+    return photoUrl;
+  }
+
   // Group missions by sector
   let missionsBySector = $derived(
     sectorsData.map((sector) => {
@@ -1855,7 +1866,7 @@
                   <!-- Submission Photo -->
                   <div class="relative aspect-video bg-slate-100">
                     <img
-                      src={submission.photoUrl}
+                      src={resolvePhotoUrl(submission.photoUrl)}
                       alt="{submission.mission.title} by {submission.student.firstName}"
                       class="w-full h-full object-cover"
                     />
@@ -1938,7 +1949,7 @@
                     <!-- Photo Thumbnail -->
                     <div class="relative w-full sm:w-48 h-48 sm:h-auto bg-slate-100 flex-shrink-0">
                       <img
-                        src={submission.photoUrl}
+                        src={resolvePhotoUrl(submission.photoUrl)}
                         alt="{submission.mission.title} by {submission.student.firstName}"
                         class="w-full h-full object-cover"
                       />

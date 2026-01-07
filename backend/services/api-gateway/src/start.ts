@@ -8,6 +8,7 @@ import authRoutes from './routes/authRoutes';
 import studentRoutes from './routes/studentRoutes';
 import supplyRoutes from './routes/supplyRoutes';
 import mascotRoutes from './routes/mascotRoutes';
+import filesRoutes from './routes/filesRoutes';
 
 
 config();
@@ -22,6 +23,7 @@ app.use(morgan('dev'));
 app.use('/api/auth', authRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/student', studentRoutes);
+app.use('/api/files', filesRoutes);
 
 // 2. Body Parser for standard API routes
 app.use(express.json());
