@@ -232,8 +232,8 @@
   }
 
   // Helper function to resolve photo URLs (handles both relative API paths and absolute URLs)
-  function resolvePhotoUrl(photoUrl: string | null): string {
-    if (!photoUrl) return 'https://picsum.photos/400/300'; // Fallback placeholder
+  function resolvePhotoUrl(photoUrl: string | null): string | null {
+    if (!photoUrl) return null; // No fallback - let UI handle missing photos
     // If it's a relative path starting with /api, prepend API_BASE_URL
     if (photoUrl.startsWith('/api/')) {
       return `${API_BASE_URL}${photoUrl}`;
@@ -1492,6 +1492,11 @@
           >
             <span class="text-lg transition-transform group-hover:scale-110">{tab.icon}</span>
             <span class="text-sm sm:text-base font-semibold">{tab.label}</span>
+            {#if tab.id === 'submissions' && submissionsData.length > 0}
+              <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-red-500 rounded-full shadow-sm">
+                {submissionsData.length > 99 ? '99+' : submissionsData.length}
+              </span>
+            {/if}
             {#if activeTab === tab.id}
               <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"></div>
             {/if}
@@ -1865,11 +1870,18 @@
                 <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
                   <!-- Submission Photo -->
                   <div class="relative aspect-video bg-slate-100">
-                    <img
-                      src={resolvePhotoUrl(submission.photoUrl)}
-                      alt="{submission.mission.title} by {submission.student.firstName}"
-                      class="w-full h-full object-cover"
-                    />
+                    {#if submission.photoUrl}
+                      <img
+                        src={resolvePhotoUrl(submission.photoUrl)}
+                        alt="{submission.mission.title} by {submission.student.firstName}"
+                        class="w-full h-full object-cover"
+                      />
+                    {:else}
+                      <div class="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                        <span class="text-4xl mb-2">📷</span>
+                        <span class="text-sm font-medium">Awaiting photo upload</span>
+                      </div>
+                    {/if}
                     <div class="absolute top-3 right-3 px-3 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
                       Pending Review
                     </div>
@@ -1948,11 +1960,18 @@
                   <div class="flex flex-col sm:flex-row">
                     <!-- Photo Thumbnail -->
                     <div class="relative w-full sm:w-48 h-48 sm:h-auto bg-slate-100 flex-shrink-0">
-                      <img
-                        src={resolvePhotoUrl(submission.photoUrl)}
-                        alt="{submission.mission.title} by {submission.student.firstName}"
-                        class="w-full h-full object-cover"
-                      />
+                      {#if submission.photoUrl}
+                        <img
+                          src={resolvePhotoUrl(submission.photoUrl)}
+                          alt="{submission.mission.title} by {submission.student.firstName}"
+                          class="w-full h-full object-cover"
+                        />
+                      {:else}
+                        <div class="w-full h-full min-h-[120px] flex flex-col items-center justify-center text-slate-400">
+                          <span class="text-3xl mb-1">📷</span>
+                          <span class="text-xs font-medium">Awaiting photo</span>
+                        </div>
+                      {/if}
                       <div class="absolute top-2 right-2 px-2 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
                         Pending
                       </div>

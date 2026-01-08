@@ -197,4 +197,62 @@ router.get('/submissions/:submissionId', requireStudent, async (req: Request, re
   }
 });
 
+// GET /api/student/submissions/recent-decisions - Get recently reviewed submissions (approved/rejected)
+router.get('/submissions-recent-decisions', requireStudent, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const since = req.query.since as string | undefined;
+
+    // Default to last 24 hours if no 'since' provided
+    const sinceDate = since ? new Date(since) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const submissions = await prisma.submission.findMany({
+      where: {
+        userId,
+        status: { in: ['COMPLETED', 'REJECTED'] },
+        updatedAt: { gte: sinceDate },
+      },
+      include: {
+        mission: {
+          select: {
+            id: true,
+            title: true,
+            xpReward: true,
+            coinReward: true,
+            thirstBoost: true,
+            hungerBoost: true,
+            happinessBoost: true,
+            cleanlinessBoost: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    res.json(
+      submissions.map((s) => ({
+        id: s.id,
+        missionId: s.missionId,
+        missionTitle: s.mission.title,
+        status: s.status.toLowerCase(),
+        xpReward: s.mission.xpReward,
+        coinReward: s.mission.coinReward,
+        thirstBoost: s.mission.thirstBoost,
+        hungerBoost: s.mission.hungerBoost,
+        happinessBoost: s.mission.happinessBoost,
+        cleanlinessBoost: s.mission.cleanlinessBoost,
+        reviewedAt: s.updatedAt.toISOString(),
+      }))
+    );
+  } catch (error) {
+    console.error('Error fetching recent decisions:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch recent decisions',
+    });
+  }
+});
+
 export default router;

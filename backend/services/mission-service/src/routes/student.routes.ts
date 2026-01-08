@@ -208,6 +208,7 @@ router.get('/sectors', requireStudent, async (req: Request, res: Response) => {
 							missionStatus,
 							isUrgent,
 							myPendingSubmissionId: myPendingSubmission?.id || null,
+							mySubmissionHasPhoto: myPendingSubmission?.photoUrl ? true : false,
 							takenBy: otherPendingSubmission ? {
 								firstName: otherPendingSubmission.user.firstName,
 								lastName: otherPendingSubmission.user.lastName,

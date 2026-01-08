@@ -129,6 +129,86 @@
   let rewardShown = false;
   let resetShown = false;
 
+  // Mission decision notifications
+  type MissionDecision = {
+    id: string;
+    missionTitle: string;
+    status: 'completed' | 'rejected';
+    xpReward: number;
+    coinReward: number;
+    reviewedAt: string;
+  };
+  let missionDecisions = $state<MissionDecision[]>([]);
+  let currentDecisionIndex = $state(0);
+  let showDecisionNotification = $state(false);
+
+  // Fetch recent mission decisions
+  async function fetchRecentDecisions() {
+    try {
+      const authData = localStorage.getItem('auth');
+      if (!authData) return;
+      
+      const parsed = JSON.parse(authData);
+      const userId = parsed?.user?.id;
+      const userRole = parsed?.user?.role || 'STUDENT';
+      const token = parsed?.token;
+      
+      if (!userId) return;
+
+      // Get last seen timestamp from localStorage
+      const lastSeenKey = `missionDecisions_lastSeen_${userId}`;
+      const lastSeen = localStorage.getItem(lastSeenKey);
+      
+      const url = lastSeen 
+        ? `${API_BASE_URL}/api/student/recent-decisions?since=${encodeURIComponent(lastSeen)}`
+        : `${API_BASE_URL}/api/student/recent-decisions`;
+
+      const res = await fetch(url, {
+        headers: {
+          'x-user-id': userId,
+          'x-user-role': userRole,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (res.ok) {
+        const decisions = await res.json();
+        if (decisions.length > 0) {
+          missionDecisions = decisions;
+          currentDecisionIndex = 0;
+          showDecisionNotification = true;
+          
+          // Update last seen to now
+          localStorage.setItem(lastSeenKey, new Date().toISOString());
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching mission decisions:', err);
+    }
+  }
+
+  function dismissDecisionNotification() {
+    if (currentDecisionIndex < missionDecisions.length - 1) {
+      // Show next notification
+      currentDecisionIndex++;
+    } else {
+      // All notifications shown
+      showDecisionNotification = false;
+      missionDecisions = [];
+      currentDecisionIndex = 0;
+    }
+  }
+
+  // Auto-dismiss after 5 seconds
+  $effect(() => {
+    if (showDecisionNotification) {
+      const timeout = setTimeout(() => {
+        dismissDecisionNotification();
+      }, 5000);
+      return () => clearTimeout(timeout);
+    }
+  });
+
   // Start polling on mount and check for milestone reward / streak reset
   onMount(() => {
     // ✅ Read logged-in user's display name from localStorage
@@ -158,6 +238,9 @@
     displayName = '';
   }
     pollInterval = setInterval(fetchMascot, POLL_INTERVAL);
+    
+    // Fetch recent mission decisions on page load
+    fetchRecentDecisions();
     
     // Check current value immediately (in case reward was set before component mounted)
     const currentReward = get(milestoneRewardStore);
@@ -433,6 +516,57 @@
         >
           Let's go!
         </button>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Mission Decision Notification -->
+  {#if showDecisionNotification && missionDecisions.length > 0}
+    {@const decision = missionDecisions[currentDecisionIndex]}
+    <div class="fixed top-4 right-4 left-4 sm:left-auto sm:w-96 z-50 animate-slide-down">
+      <div class="bg-white rounded-2xl shadow-2xl border-2 {decision.status === 'completed' ? 'border-green-300' : 'border-red-300'} overflow-hidden">
+        <!-- Header -->
+        <div class="px-4 py-3 {decision.status === 'completed' ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-red-500 to-rose-500'}">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">{decision.status === 'completed' ? '🎉' : '😔'}</span>
+              <span class="font-bold text-white">
+                {decision.status === 'completed' ? 'Mission Approved!' : 'Mission Rejected'}
+              </span>
+            </div>
+            <button 
+              onclick={dismissDecisionNotification}
+              class="text-white/80 hover:text-white transition-colors"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="p-4">
+          <p class="font-semibold text-gray-800 mb-2">{decision.missionTitle}</p>
+          
+          {#if decision.status === 'completed'}
+            <div class="flex flex-wrap gap-2">
+              <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">
+                ⭐ +{decision.xpReward} XP
+              </span>
+              <span class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-semibold">
+                🪙 +{decision.coinReward} Coins
+              </span>
+            </div>
+          {:else}
+            <p class="text-gray-500 text-sm">Try again with a clearer photo!</p>
+          {/if}
+          
+          {#if missionDecisions.length > 1}
+            <p class="text-xs text-gray-400 mt-3">
+              {currentDecisionIndex + 1} of {missionDecisions.length} notifications
+            </p>
+          {/if}
+        </div>
       </div>
     </div>
   {/if}
