@@ -97,14 +97,16 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectorsResponse,
 			missionsResponse,
 			submissionsResponse,
-			supplyRequestsResponse
+			supplyRequestsResponse,
+			decorationsResponse
 		] = await Promise.all([
 			authenticatedFetch(classEndpoint),
 			authenticatedFetch('/api/teacher/classes'),
 			authenticatedFetch(`/api/teacher/sectors${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
 			authenticatedFetch(`/api/teacher/missions${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
 			authenticatedFetch(`/api/teacher/submissions${selectedClassId ? `?classId=${selectedClassId}` : ''}`),
-			supplyRequestsPromise
+			supplyRequestsPromise,
+			authenticatedFetch(`/api/teacher/decorations${selectedClassId ? `?classId=${selectedClassId}` : ''}`)
 		]);
 
 		console.log('📊 API Response Status:', {
@@ -113,12 +115,32 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectors: sectorsResponse.status,
 			missions: missionsResponse.status,
 			submissions: submissionsResponse.status,
-			supplyRequests: supplyRequestsResponse.status
+			supplyRequests: supplyRequestsResponse.status,
+			decorations: decorationsResponse.status
 		});
 
+		// Parse allClasses first since we might need it as fallback
+		const allClasses = allClassesResponse.ok ? await allClassesResponse.json() : [];
+		
 		// Handle 404 for class (teacher hasn't created a class yet) - this is not an error
-		const currentClass =
+		let currentClass =
 			classResponse.ok && classResponse.status !== 404 ? await classResponse.json() : null;
+		
+		// If no current class but we have classes in the list, use the first one
+		// This handles the case where a new teacher just registered and has a class
+		// but no selectedClassId in localStorage yet
+		if (!currentClass && allClasses.length > 0) {
+			console.log('📍 No current class selected, using first class from list:', allClasses[0].id);
+			// Store the class ID for future requests
+			if (browser) {
+				localStorage.setItem('teacher_selected_class_id', allClasses[0].id);
+			}
+			// Fetch the full class data
+			const fallbackClassResponse = await authenticatedFetch(`/api/teacher/class?classId=${allClasses[0].id}`);
+			if (fallbackClassResponse.ok) {
+				currentClass = await fallbackClassResponse.json();
+			}
+		}
 
 		// Check other critical requests
 		if (!allClassesResponse.ok && allClassesResponse.status !== 404) {
@@ -139,11 +161,12 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 		}
 
 		// Parse all responses (handle 404s gracefully)
-		const allClasses = allClassesResponse.ok ? await allClassesResponse.json() : [];
+		// Note: allClasses is already parsed above
 		const sectors = sectorsResponse.ok ? await sectorsResponse.json() : [];
 		const missions = missionsResponse.ok ? await missionsResponse.json() : [];
 		const submissions = submissionsResponse.ok ? await submissionsResponse.json() : [];
 		const supplyRequests = supplyRequestsResponse.ok ? await supplyRequestsResponse.json() : [];
+		const decorations = decorationsResponse.ok ? await decorationsResponse.json() : [];
 
 		console.log('✅ Loaded data:', {
 			currentClass: currentClass ? 'Found' : 'None',
@@ -151,7 +174,8 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectors: sectors.length,
 			missions: missions.length,
 			submissions: submissions.length,
-			supplyRequests: supplyRequests.length
+			supplyRequests: supplyRequests.length,
+			decorations: decorations.length
 		});
 
 		return {
@@ -160,7 +184,8 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			sectors,
 			missions,
 			submissions,
-			supplyRequests
+			supplyRequests,
+			decorations
 		};
 	} catch (error) {
 		console.error('❌ Error loading teacher dashboard data:', error);
@@ -174,6 +199,7 @@ export const load: PageLoad = async ({ fetch, url }): Promise<TeacherDashboardDa
 			missions: [],
 			submissions: [],
 			supplyRequests: [],
+			decorations: [],
 			error: error instanceof Error ? error.message : 'Failed to load dashboard data'
 		};
 	}

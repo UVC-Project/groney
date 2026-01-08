@@ -70,6 +70,22 @@
     }
   }
 
+  /* Slide-down animation for notifications */
+  .animate-slide-down {
+    animation: slide-down 0.3s ease-out;
+  }
+
+  @keyframes slide-down {
+    0% {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   /* On mobile, slide up from bottom */
   @media (max-width: 639px) {
     .animate-bounce-in {

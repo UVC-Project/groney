@@ -8,14 +8,16 @@
   import { goto } from '$app/navigation';
   import { onMount, onDestroy } from 'svelte';
   import { get } from 'svelte/store';
-  import { MASCOT_ENGINE_URL } from '$lib/config';
+  import { MASCOT_ENGINE_URL, API_BASE_URL } from '$lib/config';
   import { milestoneRewardStore, clearMilestoneReward, streakResetStore, clearStreakReset } from '$lib/stores/auth';
+
 
   // Groeny gifs for different states
   import NormalGif from '$lib/assets/images/groney-gif/normal.gif';
 
   let { data }: { data: PageData } = $props();
 
+  let displayName = $state<string>(''); 
   let showLogoutModal = $state(false);
   let showMilestoneReward = $state(false);
   let milestoneReward = $state<{ streakDay: number; coinsEarned: number; message: string } | null>(null);
@@ -32,6 +34,12 @@
 
   // Polling interval in milliseconds (5 seconds for testing, increase for production)
   const POLL_INTERVAL = 5000;
+
+  // Activity feed
+  type ActivityFilter = 'all' | 'mine';
+  let activityFilter = $state<ActivityFilter>('all');
+  let activities = $state<any[]>([]);
+  let isLoadingActivities = $state(false);
 
   // Fetch latest mascot data
   async function fetchMascot() {
@@ -58,13 +66,181 @@
     }
   }
 
+  // Fetch activities when filter changes
+  async function fetchActivities() {
+    isLoadingActivities = true;
+    try {
+        let userId = '';
+        const authData = localStorage.getItem('auth');
+        let userRole = 'STUDENT'; 
+        
+        if (authData) {
+            const parsed = JSON.parse(authData);
+            userId = parsed?.user?.id;
+        }
+
+        // URL construction (Logic remains the same)
+        const endpoint = activityFilter === 'mine'
+            ? `${API_BASE_URL}/api/student/activities`
+            : `${API_BASE_URL}/api/student/activities/class?classId=${liveMascot.classId}`;
+
+        const res = await fetch(endpoint, {
+            headers: {
+                'x-user-id': userId,
+                'x-user-role': userRole,
+            }
+        });
+
+        if (res.ok) {
+            activities = await res.json();
+        } else {
+            console.warn('Failed to fetch activities, using mock data');
+            activities = []; 
+        }
+    } catch (err) {
+        console.error('Error loading activities:', err);
+    } finally {
+        isLoadingActivities = false;
+    }
+  }
+
+  // Reactively fetch when filter changes
+  $effect(() => {
+      fetchActivities();
+  });
+  
+  // Helper to format dates
+  function formatDate(dateString: string) {
+      return new Date(dateString).toLocaleDateString('en-GB');
+  }
+
+  // Helper function to resolve photo URLs (handles both relative API paths and absolute URLs)
+  function resolvePhotoUrl(photoUrl: string | null): string | null {
+    if (!photoUrl) return null;
+    // If it's a relative path starting with /api, prepend API_BASE_URL
+    if (photoUrl.startsWith('/api/')) {
+      return `${API_BASE_URL}${photoUrl}`;
+    }
+    // Otherwise return as-is (for absolute URLs)
+    return photoUrl;
+  }
+
   // Track if the messages have already been shown
   let rewardShown = false;
   let resetShown = false;
 
+  // Mission decision notifications
+  type MissionDecision = {
+    id: string;
+    missionTitle: string;
+    status: 'completed' | 'rejected';
+    xpReward: number;
+    coinReward: number;
+    reviewedAt: string;
+  };
+  let missionDecisions = $state<MissionDecision[]>([]);
+  let currentDecisionIndex = $state(0);
+  let showDecisionNotification = $state(false);
+
+  // Fetch recent mission decisions
+  async function fetchRecentDecisions() {
+    try {
+      const authData = localStorage.getItem('auth');
+      if (!authData) return;
+      
+      const parsed = JSON.parse(authData);
+      const userId = parsed?.user?.id;
+      const userRole = parsed?.user?.role || 'STUDENT';
+      const token = parsed?.token;
+      
+      if (!userId) return;
+
+      // Get last seen timestamp from localStorage
+      const lastSeenKey = `missionDecisions_lastSeen_${userId}`;
+      const lastSeen = localStorage.getItem(lastSeenKey);
+      
+      const url = lastSeen 
+        ? `${API_BASE_URL}/api/student/recent-decisions?since=${encodeURIComponent(lastSeen)}`
+        : `${API_BASE_URL}/api/student/recent-decisions`;
+
+      const res = await fetch(url, {
+        headers: {
+          'x-user-id': userId,
+          'x-user-role': userRole,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (res.ok) {
+        const decisions = await res.json();
+        if (decisions.length > 0) {
+          missionDecisions = decisions;
+          currentDecisionIndex = 0;
+          showDecisionNotification = true;
+          
+          // Update last seen to now
+          localStorage.setItem(lastSeenKey, new Date().toISOString());
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching mission decisions:', err);
+    }
+  }
+
+  function dismissDecisionNotification() {
+    if (currentDecisionIndex < missionDecisions.length - 1) {
+      // Show next notification
+      currentDecisionIndex++;
+    } else {
+      // All notifications shown
+      showDecisionNotification = false;
+      missionDecisions = [];
+      currentDecisionIndex = 0;
+    }
+  }
+
+  // Auto-dismiss after 5 seconds
+  $effect(() => {
+    if (showDecisionNotification) {
+      const timeout = setTimeout(() => {
+        dismissDecisionNotification();
+      }, 5000);
+      return () => clearTimeout(timeout);
+    }
+  });
+
   // Start polling on mount and check for milestone reward / streak reset
   onMount(() => {
+    // ✅ Read logged-in user's display name from localStorage
+  try {
+    const authData = localStorage.getItem('auth');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      const user = parsed?.user;
+
+        const role = (
+        parsed?.role ??
+        user?.role ??
+        localStorage.getItem('role') ??
+        ''
+      ).toString().toUpperCase();
+
+      // Pick the best available field (adjust if needed)
+      displayName =
+        user?.username ??
+        user?.name ??
+        user?.firstName ??
+        user?.email ??
+        '';
+    }
+  } catch (e) {
+    console.warn('Failed to parse auth from localStorage', e);
+    displayName = '';
+  }
     pollInterval = setInterval(fetchMascot, POLL_INTERVAL);
+    
+    // Fetch recent mission decisions on page load
+    fetchRecentDecisions();
     
     // Check current value immediately (in case reward was set before component mounted)
     const currentReward = get(milestoneRewardStore);
@@ -250,13 +426,12 @@
     goto('/login');
   }
 </script>
-
 <div class="container mx-auto px-4 py-10">
 
   <!-- Welcome -->
   <div class="flex justify-between items-center mb-6">
     <p class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white text-sm font-medium text-gray-800 shadow-lg">
-      Welcome!
+      Welcome{displayName ? `, ${displayName}` : ''}!
     </p>
     <div class="flex items-center gap-4">
       <BackgroundPicker />
@@ -345,6 +520,57 @@
     </div>
   {/if}
 
+  <!-- Mission Decision Notification -->
+  {#if showDecisionNotification && missionDecisions.length > 0}
+    {@const decision = missionDecisions[currentDecisionIndex]}
+    <div class="fixed top-4 right-4 left-4 sm:left-auto sm:w-96 z-50 animate-slide-down">
+      <div class="bg-white rounded-2xl shadow-2xl border-2 {decision.status === 'completed' ? 'border-green-300' : 'border-red-300'} overflow-hidden">
+        <!-- Header -->
+        <div class="px-4 py-3 {decision.status === 'completed' ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-red-500 to-rose-500'}">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">{decision.status === 'completed' ? '🎉' : '😔'}</span>
+              <span class="font-bold text-white">
+                {decision.status === 'completed' ? 'Mission Approved!' : 'Mission Rejected'}
+              </span>
+            </div>
+            <button 
+              onclick={dismissDecisionNotification}
+              class="text-white/80 hover:text-white transition-colors"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="p-4">
+          <p class="font-semibold text-gray-800 mb-2">{decision.missionTitle}</p>
+          
+          {#if decision.status === 'completed'}
+            <div class="flex flex-wrap gap-2">
+              <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">
+                ⭐ +{decision.xpReward} XP
+              </span>
+              <span class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-semibold">
+                🪙 +{decision.coinReward} Coins
+              </span>
+            </div>
+          {:else}
+            <p class="text-gray-500 text-sm">Try again with a clearer photo!</p>
+          {/if}
+          
+          {#if missionDecisions.length > 1}
+            <p class="text-xs text-gray-400 mt-3">
+              {currentDecisionIndex + 1} of {missionDecisions.length} notifications
+            </p>
+          {/if}
+        </div>
+      </div>
+    </div>
+  {/if}
+
   <!-- Level + coins + streak -->
   <div class="flex justify-center gap-3 mb-6">
     <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg">🎖️ {level}</div>
@@ -404,6 +630,72 @@
     </div>
   </div>
 
+  <!-- Activity Feed -->
+   <div class="max-w-5xl mx-auto mt-10 mb-20">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800">Recent activities</h2>
+      
+      <div class="bg-gray-100 p-1 rounded-xl inline-flex self-start sm:self-auto">
+        <button 
+          class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 {activityFilter === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
+          onclick={() => activityFilter = 'all'}
+        >
+          🏫 Whole Class
+        </button>
+        <button 
+          class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 {activityFilter === 'mine' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
+          onclick={() => activityFilter = 'mine'}
+        >
+          👤 My Activity
+        </button>
+      </div>
+    </div>
+
+    {#if isLoadingActivities}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div class="h-64 bg-gray-100 rounded-[32px] animate-pulse"></div>
+            <div class="h-64 bg-gray-100 rounded-[32px] animate-pulse"></div>
+        </div>
+    {:else if activities.length > 0}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          {#each activities as activity}
+            <article class="bg-white rounded-[32px] shadow-lg p-4 md:p-5 border border-gray-100 transition-transform hover:scale-[1.01]">
+              <div class="flex items-center gap-3 mb-3">
+                  <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                      {activity.userName?.charAt(0) || '?'}
+                  </div>
+                  <h3 class="font-semibold text-gray-800 text-sm md:text-base">
+                      <span class="font-bold text-blue-600">{activity.userName}</span> completed {activity.missionTitle}!
+                  </h3>
+              </div>
+
+              <div class="overflow-hidden rounded-2xl mb-3 bg-gray-50 relative group">
+                {#if activity.imageUrl}
+                    <img src={resolvePhotoUrl(activity.imageUrl)} alt={activity.missionTitle} class="w-full h-44 md:h-56 object-cover transition-transform duration-500 group-hover:scale-105">
+                {:else}
+                    <div class="w-full h-44 md:h-56 flex items-center justify-center text-gray-400">
+                        No photo submitted
+                    </div>
+                {/if}
+              </div>
+
+              <p class="text-xs md:text-sm text-gray-500 flex items-center gap-1">
+                  📅 {formatDate(activity.createdAt)}
+              </p>
+            </article>
+          {/each}
+        </div>
+    {:else}
+        <div class="text-center py-12 bg-gray-50 rounded-[32px] border border-dashed border-gray-300">
+            <p class="text-4xl mb-2">📭</p>
+            <p class="text-gray-600 font-medium">No recent activities found.</p>
+            {#if activityFilter === 'mine'}
+                <p class="text-gray-400 text-sm mt-1">Complete some missions to see them here!</p>
+            {/if}
+        </div>
+    {/if}
+  </div>
+  
   <LogoutModal open={showLogoutModal} onCancel={() => { showLogoutModal = false; }} onConfirm={logout}/>
   <ScrollToTopButton />
 </div>

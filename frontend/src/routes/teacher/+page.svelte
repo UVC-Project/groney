@@ -95,6 +95,7 @@
   let currentClassData = $derived(data.currentClass || null);
   let allClassesData = $derived(data.allClasses || []);
   let sectorsData = $derived(data.sectors || []);
+  let decorationsData = $derived(data.decorations || []);
   let loadError = $derived(data.error);
 
   // Local state for data that can be modified optimistically
@@ -139,6 +140,9 @@
   let editingSector = $state<{ id: string; name: string; type: string } | null>(null);
   let editingSectorName = $state<string>('');
   let editSectorInputRef = $state<HTMLInputElement | null>(null);
+  
+  // Confirmation dialog state
+  let confirmAction = $state<{ type: 'remove' | 'delete' | 'removeSector' | 'deleteDecoration'; sectorId?: string; decorationId?: string; sectorName?: string; decorationName?: string } | null>(null);
 
   // Toast notification state
   let toastMessage = $state<string>('');
@@ -227,6 +231,17 @@
     }, 3000);
   }
 
+  // Helper function to resolve photo URLs (handles both relative API paths and absolute URLs)
+  function resolvePhotoUrl(photoUrl: string | null): string | null {
+    if (!photoUrl) return null; // No fallback - let UI handle missing photos
+    // If it's a relative path starting with /api, prepend API_BASE_URL
+    if (photoUrl.startsWith('/api/')) {
+      return `${API_BASE_URL}${photoUrl}`;
+    }
+    // Otherwise return as-is (for absolute URLs)
+    return photoUrl;
+  }
+
   // Group missions by sector
   let missionsBySector = $derived(
     sectorsData.map((sector) => {
@@ -259,10 +274,6 @@
     })
   );
 
-  // Debug: log when sectors data changes
-  $effect(() => {
-    console.log('📍 Sectors data updated:', sectorsData.length, 'sectors');
-  });
 
   // Sector color hex values for styling
   function getSectorColorHex(type: string): string {
@@ -677,29 +688,147 @@
   // Handler for removing sector from map via edit dialog
   async function handleSectorEditRemove() {
     if (!editingSector) return;
+    
+    const sectorId = editingSector.id;
+    const sectorName = editingSector.name;
 
-    const confirmed = confirm(`Remove "${editingSector.name}" from the map?\n\nThe sector will be moved back to the palette and can be placed again later.`);
-    if (confirmed) {
-      await handleSectorRemoveFromMap(editingSector.id);
-      closeSectorEditDialog();
+    // Show confirm BEFORE closing dialog
+    if (!confirm(`Remove "${sectorName}" from the map?\n\nThe sector will be moved back to the palette and can be placed again later.`)) {
+      return;
     }
+    
+    closeSectorEditDialog();
+    await handleSectorRemoveFromMap(sectorId);
   }
 
   // Handler for deleting sector via edit dialog
   async function handleSectorEditDelete() {
     if (!editingSector) return;
-
-    const confirmed = confirm(`Permanently delete "${editingSector.name}"?\n\nThis will also delete all missions in this sector. This action cannot be undone.`);
-    if (confirmed) {
-      await handleDeleteSector(editingSector.id);
-      closeSectorEditDialog();
+    const sectorId = editingSector.id;
+    const sectorName = editingSector.name;
+    
+    // Show confirm BEFORE closing dialog
+    if (!confirm(`Permanently delete "${sectorName}"?\n\nThis will also delete all missions in this sector. This action cannot be undone.`)) {
+      return;
     }
+    
+    closeSectorEditDialog();
+    await handleDeleteSectorDirect(sectorId);
   }
 
   // Close the sector edit dialog
   function closeSectorEditDialog() {
     editingSector = null;
     editingSectorName = '';
+  }
+
+  // ==================== DECORATION HANDLERS ====================
+
+  async function handleAddDecoration(type: string, x: number, y: number) {
+    const classId = localStorage.getItem('teacher_selected_class_id') || currentClassData?.id;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/decorations${classId ? `?classId=${classId}` : ''}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          type,
+          gridX: x,
+          gridY: y,
+          gridWidth: 2,
+          gridHeight: 2,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to create decoration');
+      }
+
+      showToast('Decoration added! 🏫', 'success');
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to add decoration:', error);
+      showToast('Failed to add decoration. Please try again.', 'error');
+    }
+  }
+
+  async function handleDecorationMove(decorationId: string, x: number, y: number) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/decorations/${decorationId}/position`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ gridX: x, gridY: y }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update decoration position');
+      }
+
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to move decoration:', error);
+      showToast('Failed to update decoration position', 'error');
+    }
+  }
+
+  async function handleDecorationResize(decorationId: string, width: number, height: number) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/decorations/${decorationId}/position`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ gridWidth: width, gridHeight: height }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update decoration size');
+      }
+
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to resize decoration:', error);
+      showToast('Failed to update decoration size', 'error');
+    }
+  }
+
+  async function handleDecorationDelete(decorationId: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/decorations/${decorationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete decoration');
+      }
+
+      showToast('Decoration removed 🗑️', 'success');
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to delete decoration:', error);
+      showToast('Failed to delete decoration', 'error');
+    }
+  }
+
+  // Handler for keyboard delete confirmation requests from MapBuilder
+  function handleMapConfirmRequest(type: 'removeSector' | 'deleteDecoration', id: string, name: string) {
+    if (type === 'removeSector') {
+      confirmAction = { type: 'removeSector', sectorId: id, sectorName: name };
+    } else {
+      confirmAction = { type: 'deleteDecoration', decorationId: id, decorationName: name };
+    }
   }
 
   function handleLogout() {
@@ -1087,13 +1216,25 @@
     const sector = sectorsData.find(s => s.id === sectorId);
     const sectorName = sector?.name || 'Unknown sector';
 
-    const confirmed = confirm(`Are you sure you want to delete "${sectorName}"? This will also delete all missions in this sector.`);
-    if (!confirmed) return;
+    if (!confirm(`Are you sure you want to delete "${sectorName}"? This will also delete all missions in this sector.`)) {
+      return;
+    }
 
+    await handleDeleteSectorDirect(sectorId);
+  }
+
+  // Direct delete without confirm (for use when confirm already shown)
+  async function handleDeleteSectorDirect(sectorId: string) {
+    if (deletingSectorId) return;
+    
     deletingSectorId = sectorId;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors/${sectorId}`, {
+      // Get current class ID from localStorage or current class data
+      const classId = localStorage.getItem('teacher_selected_class_id') || currentClassData?.id;
+      const url = `${API_BASE_URL}/api/teacher/sectors/${sectorId}${classId ? `?classId=${classId}` : ''}`;
+      
+      const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           ...getAuthHeaders(),
@@ -1105,13 +1246,10 @@
         throw new Error(errorData.message || 'Failed to delete sector');
       }
 
-      const result = await response.json();
-      console.log('Deleted sector:', result);
-
       showToast(`Sector deleted successfully!`, 'success');
       await invalidateAll();
     } catch (error) {
-      console.error('❌ Failed to delete sector:', error);
+      console.error('Failed to delete sector:', error);
       showToast('Failed to delete sector. Please try again.', 'error');
     } finally {
       deletingSectorId = null;
@@ -1354,6 +1492,11 @@
           >
             <span class="text-lg transition-transform group-hover:scale-110">{tab.icon}</span>
             <span class="text-sm sm:text-base font-semibold">{tab.label}</span>
+            {#if tab.id === 'submissions' && submissionsData.length > 0}
+              <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-red-500 rounded-full shadow-sm">
+                {submissionsData.length > 99 ? '99+' : submissionsData.length}
+              </span>
+            {/if}
             {#if activeTab === tab.id}
               <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"></div>
             {/if}
@@ -1727,11 +1870,18 @@
                 <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
                   <!-- Submission Photo -->
                   <div class="relative aspect-video bg-slate-100">
-                    <img
-                      src={submission.photoUrl}
-                      alt="{submission.mission.title} by {submission.student.firstName}"
-                      class="w-full h-full object-cover"
-                    />
+                    {#if submission.photoUrl}
+                      <img
+                        src={resolvePhotoUrl(submission.photoUrl)}
+                        alt="{submission.mission.title} by {submission.student.firstName}"
+                        class="w-full h-full object-cover"
+                      />
+                    {:else}
+                      <div class="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                        <span class="text-4xl mb-2">📷</span>
+                        <span class="text-sm font-medium">Awaiting photo upload</span>
+                      </div>
+                    {/if}
                     <div class="absolute top-3 right-3 px-3 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
                       Pending Review
                     </div>
@@ -1810,11 +1960,18 @@
                   <div class="flex flex-col sm:flex-row">
                     <!-- Photo Thumbnail -->
                     <div class="relative w-full sm:w-48 h-48 sm:h-auto bg-slate-100 flex-shrink-0">
-                      <img
-                        src={submission.photoUrl}
-                        alt="{submission.mission.title} by {submission.student.firstName}"
-                        class="w-full h-full object-cover"
-                      />
+                      {#if submission.photoUrl}
+                        <img
+                          src={resolvePhotoUrl(submission.photoUrl)}
+                          alt="{submission.mission.title} by {submission.student.firstName}"
+                          class="w-full h-full object-cover"
+                        />
+                      {:else}
+                        <div class="w-full h-full min-h-[120px] flex flex-col items-center justify-center text-slate-400">
+                          <span class="text-3xl mb-1">📷</span>
+                          <span class="text-xs font-medium">Awaiting photo</span>
+                        </div>
+                      {/if}
                       <div class="absolute top-2 right-2 px-2 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
                         Pending
                       </div>
@@ -1949,6 +2106,7 @@
           {#if sectorsData.length > 0 || isMapEditMode}
             <MapBuilder
               sectors={mapSectorsData}
+              decorations={decorationsData}
               mapWidth={currentClassData.mapWidth || 20}
               mapHeight={currentClassData.mapHeight || 16}
               editable={isMapEditMode}
@@ -1962,6 +2120,11 @@
               onSectorDelete={handleDeleteSector}
               onSectorRemoveFromMap={handleSectorRemoveFromMap}
               onSectorEdit={handleSectorEdit}
+              onAddDecoration={handleAddDecoration}
+              onDecorationMove={handleDecorationMove}
+              onDecorationResize={handleDecorationResize}
+              onDecorationDelete={handleDecorationDelete}
+              onRequestConfirm={handleMapConfirmRequest}
             />
           {:else}
             <!-- Empty State -->
@@ -2328,77 +2491,205 @@
 
 <!-- Sector Edit Dialog -->
 {#if editingSector}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
   <div
     class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
     onclick={closeSectorEditDialog}
-    onkeydown={(e) => e.key === 'Escape' && closeSectorEditDialog()}
     role="presentation"
-    tabindex="-1"
   >
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
     <div
       class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
       onclick={(e) => e.stopPropagation()}
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-sector-dialog-title"
-      tabindex="0"
     >
       <div class="flex items-center gap-3 mb-4">
         <span class="text-2xl">{getSectorDisplay(editingSector.type).icon}</span>
         <h3 id="edit-sector-dialog-title" class="text-lg font-bold text-slate-800">Edit Sector</h3>
       </div>
 
-      <form onsubmit={(e) => { e.preventDefault(); handleSectorEditSubmit(); }}>
-        <div class="mb-4">
-          <label for="edit-sector-name" class="block text-sm font-medium text-slate-700 mb-2">
-            Sector Name
-          </label>
-          <input
-            id="edit-sector-name"
-            bind:this={editSectorInputRef}
-            bind:value={editingSectorName}
-            type="text"
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            placeholder="Enter sector name"
-            required
-            minlength="2"
-            maxlength="50"
-          />
-        </div>
+      <!-- Name input -->
+      <div class="mb-4">
+        <label for="edit-sector-name" class="block text-sm font-medium text-slate-700 mb-2">
+          Sector Name
+        </label>
+        <input
+          id="edit-sector-name"
+          bind:this={editSectorInputRef}
+          bind:value={editingSectorName}
+          type="text"
+          class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          placeholder="Enter sector name"
+        />
+      </div>
 
-        <div class="flex items-center gap-3">
-          <button
-            type="submit"
-            class="flex-1 px-4 py-2 bg-emerald-500 text-white font-medium rounded-lg hover:bg-emerald-600 transition-colors"
-            disabled={!editingSectorName.trim()}
-          >
-            Save Changes
-          </button>
+      <!-- Action buttons - NOT inside a form -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          class="flex-1 px-4 py-2 bg-emerald-500 text-white font-medium rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50"
+          disabled={!editingSectorName.trim()}
+          onclick={handleSectorEditSubmit}
+        >
+          Save Changes
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
+          onclick={closeSectorEditDialog}
+        >
+          Cancel
+        </button>
+      </div>
+      
+      <!-- Danger zone - separate section -->
+      <div class="mt-4 pt-4 border-t border-slate-200">
+        <p class="text-xs text-slate-500 mb-2">Danger Zone</p>
+        <div class="flex gap-2">
           <button
             type="button"
-            onclick={closeSectorEditDialog}
-            class="px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onclick={handleSectorEditRemove}
             class="px-4 py-2 bg-amber-100 text-amber-700 font-medium rounded-lg hover:bg-amber-200 transition-colors"
-            title="Remove from map"
+            onclick={() => {
+              const sectorId = editingSector?.id;
+              const sectorName = editingSector?.name;
+              if (sectorId && sectorName) {
+                confirmAction = { type: 'remove', sectorId, sectorName };
+              }
+            }}
           >
-            📤 Remove
+            📤 Remove from Map
           </button>
           <button
             type="button"
-            onclick={handleSectorEditDelete}
             class="px-4 py-2 bg-red-100 text-red-700 font-medium rounded-lg hover:bg-red-200 transition-colors"
-            title="Delete permanently"
+            onclick={() => {
+              const sectorId = editingSector?.id;
+              const sectorName = editingSector?.name;
+              if (sectorId && sectorName) {
+                confirmAction = { type: 'delete', sectorId, sectorName };
+              }
+            }}
           >
-            🗑️ Delete
+            🗑️ Delete Permanently
           </button>
         </div>
-      </form>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Confirmation Dialog -->
+{#if confirmAction}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
+  <div
+    class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4"
+    onclick={() => confirmAction = null}
+    role="presentation"
+  >
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
+    <div
+      class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6"
+      onclick={(e) => e.stopPropagation()}
+      role="alertdialog"
+      aria-modal="true"
+    >
+      {#if confirmAction.type === 'delete'}
+        <div class="text-center">
+          <div class="text-5xl mb-4">🗑️</div>
+          <h3 class="text-xl font-bold text-slate-800 mb-2">Delete Sector?</h3>
+          <p class="text-slate-600 mb-6">
+            Are you sure you want to permanently delete "<strong>{confirmAction.sectorName}</strong>"?
+            <br/><span class="text-red-600 text-sm">This will also delete all missions in this sector.</span>
+          </p>
+          <div class="flex gap-3">
+            <button
+              type="button"
+              class="flex-1 px-4 py-3 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
+              onclick={() => confirmAction = null}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="flex-1 px-4 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition-colors"
+              onclick={async () => {
+                const sectorId = confirmAction?.sectorId;
+                confirmAction = null;
+                closeSectorEditDialog();
+                if (sectorId) {
+                  await handleDeleteSectorDirect(sectorId);
+                }
+              }}
+            >
+              Yes, Delete
+            </button>
+          </div>
+        </div>
+      {:else if confirmAction.type === 'remove' || confirmAction.type === 'removeSector'}
+        <div class="text-center">
+          <div class="text-5xl mb-4">📤</div>
+          <h3 class="text-xl font-bold text-slate-800 mb-2">Remove from Map?</h3>
+          <p class="text-slate-600 mb-6">
+            Remove "<strong>{confirmAction.sectorName}</strong>" from the map?
+            <br/><span class="text-slate-500 text-sm">The sector will be moved back to the palette.</span>
+          </p>
+          <div class="flex gap-3">
+            <button
+              type="button"
+              class="flex-1 px-4 py-3 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
+              onclick={() => confirmAction = null}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="flex-1 px-4 py-3 bg-amber-500 text-white font-medium rounded-lg hover:bg-amber-600 transition-colors"
+              onclick={async () => {
+                const sectorId = confirmAction?.sectorId;
+                confirmAction = null;
+                closeSectorEditDialog();
+                if (sectorId) {
+                  await handleSectorRemoveFromMap(sectorId);
+                }
+              }}
+            >
+              Yes, Remove
+            </button>
+          </div>
+        </div>
+      {:else if confirmAction.type === 'deleteDecoration'}
+        <div class="text-center">
+          <div class="text-5xl mb-4">🗑️</div>
+          <h3 class="text-xl font-bold text-slate-800 mb-2">Delete Decoration?</h3>
+          <p class="text-slate-600 mb-6">
+            Delete this <strong>{confirmAction.decorationName}</strong>?
+          </p>
+          <div class="flex gap-3">
+            <button
+              type="button"
+              class="flex-1 px-4 py-3 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
+              onclick={() => confirmAction = null}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="flex-1 px-4 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition-colors"
+              onclick={async () => {
+                const decorationId = confirmAction?.decorationId;
+                confirmAction = null;
+                if (decorationId) {
+                  await handleDecorationDelete(decorationId);
+                }
+              }}
+            >
+              Yes, Delete
+            </button>
+          </div>
+        </div>
+      {/if}
     </div>
   </div>
 {/if}
