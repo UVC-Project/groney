@@ -64,11 +64,12 @@ router.get('/submissions', requireTeacher, async (req: Request, res: Response) =
 			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
 		}
 
-		// Get all pending submissions for this class
+		// Get all pending submissions for this class that have photos uploaded
 		const submissions = await prisma.submission.findMany({
 			where: {
 				classId,
 				status: 'PENDING',
+				photoUrl: { not: null }, // Only show submissions with photos
 			},
 			include: {
 				mission: {

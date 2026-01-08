@@ -154,7 +154,8 @@
 	function getMissionAction(mission: any): { label: string; action: 'accept' | 'submit' | 'none'; disabled: boolean } {
 		switch (mission.missionStatus) {
 			case 'my_active':
-            	if (mission.myPendingSubmissionId) {
+            	// Only show "Under Review" if they've actually uploaded a photo
+            	if (mission.myPendingSubmissionId && mission.mySubmissionHasPhoto) {
                 	return { label: '⏳ Under Review', action: 'none', disabled: true };
             	}
             	return { label: '📸 Submit Photo', action: 'submit', disabled: false };
@@ -261,12 +262,20 @@
 					<div class="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm mb-4">
 						✅ Max completions reached
 					</div>
-				{:else if selectedMission.myPendingSubmissionId}
+				{:else if selectedMission.myPendingSubmissionId && selectedMission.mySubmissionHasPhoto}
     				<div class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm mb-4 flex items-start gap-2">
     				    <span class="text-lg">📤</span>
     				    <div>
     				        <p class="font-bold">Submission Received</p>
     				        <p>You have already sent a photo. Please wait for your teacher to review it.</p>
+    				    </div>
+    				</div>
+				{:else if selectedMission.myPendingSubmissionId && !selectedMission.mySubmissionHasPhoto}
+    				<div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm mb-4 flex items-start gap-2">
+    				    <span class="text-lg">📷</span>
+    				    <div>
+    				        <p class="font-bold">Photo Required</p>
+    				        <p>You've accepted this mission. Upload a photo to complete it!</p>
     				    </div>
     				</div>
 				{/if}
