@@ -77,5 +77,28 @@ router.post(
 	})
 );
 
+// Get profile
+router.get(
+	'/profile',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/profile': '/api/auth/profile',
+		},
+	})
+);
+
+// Update profile
+router.put(
+	'/profile/update',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/profile/update': '/api/auth/profile/update',
+		},
+	})
+);
 
 export default router;

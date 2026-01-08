@@ -82,6 +82,11 @@
 						class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
 						placeholder="Enter your password"
 					/>
+				<a href="./forgot-password">
+					<p class="text-green-600 hover:text-green-500">
+						Forgot your password?
+					</p>
+				</a>
 				</div>
 
 				<button

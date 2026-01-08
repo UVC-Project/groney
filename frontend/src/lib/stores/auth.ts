@@ -291,6 +291,31 @@ function createAuthStore() {
 				};
 			}
 		},
+
+		async getProfile() {
+			const headers = this.getAuthHeaders();
+
+			const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+				headers,
+			});
+
+			return res.json();
+		},
+
+		async updateProfile(payload: any) {
+			const headers = {
+				...this.getAuthHeaders(),
+				'Content-Type': 'application/json',
+			};
+
+			const res = await fetch(`${API_BASE_URL}/api/auth/profile/update`, {
+				method: 'PUT',
+				headers,
+				body: JSON.stringify(payload),
+			});
+
+			return res.json();
+		},
 	};
 }
 
