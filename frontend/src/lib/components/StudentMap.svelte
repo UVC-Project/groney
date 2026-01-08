@@ -73,6 +73,22 @@
     )
   );
 
+  // Count cooldown missions
+  let myCooldownMissions = $derived(
+    placedSectors.reduce(
+      (sum, s) => sum + (s.missions?.filter((m) => m.missionStatus === 'cooldown').length || 0),
+      0
+    )
+  );
+
+  // Count taken missions
+  let myTakenMissions = $derived(
+    placedSectors.reduce(
+      (sum, s) => sum + (s.missions?.filter((m) => m.missionStatus === 'taken').length || 0),
+      0
+    )
+  );
+
   // Responsive cell size
   let containerRef = $state<HTMLDivElement | null>(null);
   let containerWidth = $state(800);
@@ -267,7 +283,7 @@
           📍 {placedSectors.length} area{placedSectors.length !== 1 ? 's' : ''}
         </div>
         <div class="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-sm font-semibold">
-          🎯 {totalMissions} mission{totalMissions !== 1 ? 's' : ''}
+          🎯 {totalMissions - (myActiveMissions + myCooldownMissions + myTakenMissions)} mission{totalMissions !== 1 ? 's' : ''}
         </div>
       </div>
     </div>
@@ -292,7 +308,8 @@
             {#each placedSectors as sector (sector.id)}
               {@const config = getConfig(sector.type)}
               {@const isSelected = selectedSector?.id === sector.id}
-              {@const missionCount = sector.missions?.length || 0}
+              {@const availableMissions = sector.missions?.filter(m => m.missionStatus === 'available') || []}
+              {@const missionCount = availableMissions.length}
               {@const sectorWidth = sector.gridWidth * CELL_SIZE}
               {@const sectorHeight = sector.gridHeight * CELL_SIZE}
               {@const isSmall = sectorWidth < 100 || sectorHeight < 100}
