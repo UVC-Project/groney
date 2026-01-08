@@ -6,13 +6,35 @@ const router = Router();
 const MISSION_SERVICE_URL = process.env.MISSION_SERVICE_URL || 'http://mission-service:3003';
 const SUBMISSION_SERVICE_URL = process.env.SUBMISSION_SERVICE_URL || 'http://submission-service:3004';
 
-// Proxy submission upload routes to submission-service
+// Proxy submission routes to submission-service
 // Must come before the general mission-service proxy
 router.use(
 	'/submissions',
 	createProxyMiddleware({
 		target: SUBMISSION_SERVICE_URL,
 		changeOrigin: true,
+		onProxyReq: (proxyReq, req, _res) => {
+			// Forward auth headers
+			const userId = req.headers['x-user-id'];
+			const userRole = req.headers['x-user-role'];
+			const auth = req.headers['authorization'];
+			
+			if (userId) proxyReq.setHeader('x-user-id', userId as string);
+			if (userRole) proxyReq.setHeader('x-user-role', userRole as string);
+			if (auth) proxyReq.setHeader('authorization', auth as string);
+		},
+	})
+);
+
+// Proxy recent-decisions route to submission-service
+router.use(
+	'/recent-decisions',
+	createProxyMiddleware({
+		target: SUBMISSION_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/student/recent-decisions': '/api/student/submissions-recent-decisions',
+		},
 		onProxyReq: (proxyReq, req, _res) => {
 			// Forward auth headers
 			const userId = req.headers['x-user-id'];

@@ -1492,6 +1492,11 @@
           >
             <span class="text-lg transition-transform group-hover:scale-110">{tab.icon}</span>
             <span class="text-sm sm:text-base font-semibold">{tab.label}</span>
+            {#if tab.id === 'submissions' && submissionsData.length > 0}
+              <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-red-500 rounded-full shadow-sm">
+                {submissionsData.length > 99 ? '99+' : submissionsData.length}
+              </span>
+            {/if}
             {#if activeTab === tab.id}
               <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"></div>
             {/if}
