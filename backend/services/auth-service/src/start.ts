@@ -5,6 +5,7 @@ import RegisterController from './app/Controllers/RegisterController';
 import LoginController from './app/Controllers/LoginController';
 import PasswordResetController from './app/Controllers/PasswordResetController';
 import ProfileController from './app/Controllers/ProfileController';
+import EmailVerificationController from './app/Controllers/EmailVerificationController';
 
 config();
 
@@ -41,6 +42,9 @@ app.post('/api/auth/password-reset/reset', PasswordResetController.resetPassword
 
 app.get('/api/auth/profile', ProfileController.getProfile);
 app.put('/api/auth/profile/update', ProfileController.updateProfile);
+
+app.get('/api/auth/verify-email', EmailVerificationController.verify);
+app.post('/api/auth/resend-verification', EmailVerificationController.resend);
 
 // Legacy routes (for backwards compatibility)
 app.post('/login', LoginController.login);

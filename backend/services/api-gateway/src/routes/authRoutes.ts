@@ -101,4 +101,27 @@ router.put(
 	})
 );
 
+// Email verification
+router.get(
+	'/verify-email',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/verify-email': '/api/auth/verify-email',
+		},
+	})
+);
+
+router.post(
+	'/resend-verification',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/resend-verification': '/api/auth/resend-verification',
+		},
+	})
+);
+
 export default router;

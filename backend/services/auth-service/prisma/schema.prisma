@@ -22,6 +22,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  emailVerified Boolean  @default(false)
+  emailVerificationToken String?
+  emailVerificationExp   DateTime?
+
   // Daily login streak tracking (for students)
   currentStreak        Int       @default(0)
   longestStreak        Int       @default(0)

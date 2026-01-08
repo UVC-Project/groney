@@ -26,10 +26,7 @@
   let bgClass = $derived($selectedBackground.className);
 
 	const PUBLIC_ROUTES = [
-		'/login',
-		'/register',
-		'/forgot-password',
-		'/reset-password'
+		'/verify-email'
 	];
 
 	const AUTH_ONLY_ROUTES = [

@@ -68,7 +68,7 @@ function getAmsterdamToday(): Date {
 	const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
 	const month = parseInt(parts.find(p => p.type === 'month')?.value || '1') - 1;
 	const day = parseInt(parts.find(p => p.type === 'day')?.value || '1');
-	
+
 	// Return a date representning midnight in Amsterdam (stored as UTC equivalent)
 	return new Date(Date.UTC(year, month, day));
 }
@@ -93,7 +93,7 @@ function toAmsterdamDay(date: Date): Date {
 	const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
 	const month = parseInt(parts.find(p => p.type === 'month')?.value || '1') - 1;
 	const day = parseInt(parts.find(p => p.type === 'day')?.value || '1');
-	
+
 	return new Date(Date.UTC(year, month, day));
 }
 
@@ -104,7 +104,7 @@ interface StreakResult {
 }
 
 export default class LoginController {
-//Calculate streak based on last login date 
+	//Calculate streak based on last login date 
 
 	static calculateStreak(
 		lastLoginDate: Date | null,
@@ -183,6 +183,12 @@ export default class LoginController {
 				return res.status(401).json({ message: 'Invalid username or password' });
 			}
 
+			if (user.role === 'TEACHER' && !user.emailVerified) {
+				return res.status(403).json({
+					message: 'Please verify your email before logging in',
+				});
+			}
+
 			// Calculate streak for students
 			let streakData: StreakResult | null = null;
 			let milestoneRewardEvent: MilestoneRewardEvent | null = null;
@@ -195,21 +201,21 @@ export default class LoginController {
 
 				// Determine if streak changed (not already logged in today)
 				const streakChanged = streakData.currentStreak !== user.currentStreak;
-				
+
 				// Determine new lastMilestoneReached value
 				let newLastMilestoneReached = user.lastMilestoneReached;
-				
+
 				// If streak was broken/reset, reset milestone tracking
 				if (streakData.streakBroken || (streakChanged && streakData.currentStreak === 1)) {
 					newLastMilestoneReached = 0;
 				}
-				
+
 				// Check if current streak is a milestone and hasn't been rewarded yet
 				const milestoneReward = getMilestoneReward(streakData.currentStreak);
-				const shouldRewardMilestone = streakChanged && 
-					milestoneReward > 0 && 
+				const shouldRewardMilestone = streakChanged &&
+					milestoneReward > 0 &&
 					streakData.currentStreak > newLastMilestoneReached;
-				
+
 				// Grant milestone coins to the class mascot
 				if (shouldRewardMilestone && user.classMember.length > 0) {
 					const classId = user.classMember[0].classId;
@@ -222,14 +228,14 @@ export default class LoginController {
 						},
 					});
 					newLastMilestoneReached = streakData.currentStreak;
-					
+
 					// Create milestone reward event for the UI
 					milestoneRewardEvent = {
 						streakDay: streakData.currentStreak,
 						coinsEarned: milestoneReward,
 						message: getRandomMilestoneMessage(),
 					};
-					
+
 					console.log(`🎉 Streak milestone ${streakData.currentStreak} days reached by ${user.username}! Awarded ${milestoneReward} coins.`);
 				}
 
