@@ -49,6 +49,16 @@ enum UserRole {
   TEACHER
 }
 
+model AuthLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
+
 model PasswordResetToken {
   id        String   @id @default(cuid())
   token     String   @unique

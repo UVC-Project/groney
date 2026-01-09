@@ -40,6 +40,7 @@ model User {
   activities         Activity[]
   supplyRequests     SupplyRequest[]
   PasswordResetToken PasswordResetToken[]
+  authLogs AuthLog[]
 
   @@map("users")
 }
@@ -47,6 +48,16 @@ model User {
 enum UserRole {
   STUDENT
   TEACHER
+}
+
+model AuthLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
 }
 
 model PasswordResetToken {

@@ -93,6 +93,24 @@ interface MilestoneRewardEvent {
 	message: string;
 }
 
+async function logAuthEvent(
+	action: string,
+	userId?: string,
+	req?: Request
+) {
+	try {
+		await prisma.authLog.create({
+			data: {
+				action,
+				userId,
+				ipAddress: req?.ip,
+			},
+		});
+	} catch (err) {
+		console.error('Auth log failed:', err);
+	}
+}
+
 //Get today's date in Amsterdam timezone as a date object 
 function getAmsterdamToday(): Date {
 	const now = new Date();
@@ -222,6 +240,7 @@ export default class LoginController {
 
 			if (!user) {
 				recordFailedLogin(loginKey);
+				await logAuthEvent('LOGIN_FAILED', undefined, req);
 				return res.status(401).json({ message: 'Invalid username or password' });
 			}
 
@@ -334,6 +353,8 @@ export default class LoginController {
 			const streakResetInfo = streakData?.streakBroken ? {
 				previousStreak: user.currentStreak,
 			} : null;
+
+			await logAuthEvent('LOGIN_SUCCESS', user.id, req);
 
 			return res.json({
 				message: 'Login successful',
