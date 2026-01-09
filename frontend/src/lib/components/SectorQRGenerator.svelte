@@ -46,16 +46,74 @@
     const dataUrl = qrCodes[type];
     if (!dataUrl) return;
 
-    const link = document.createElement('a');
-    link.download = `groney-qr-${type.toLowerCase()}.png`;
-    link.href = dataUrl;
-    link.click();
+    const info = sectorWikiContent[type];
+    
+    // Create a canvas to draw the styled card
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Card dimensions
+    const cardWidth = 300;
+    const cardHeight = 400;
+    const padding = 20;
+    const borderRadius = 16;
+    const borderWidth = 3;
+
+    canvas.width = cardWidth;
+    canvas.height = cardHeight;
+
+    // Draw white background with rounded corners
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(0, 0, cardWidth, cardHeight, borderRadius);
+    ctx.fill();
+
+    // Draw green border
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = borderWidth;
+    ctx.beginPath();
+    ctx.roundRect(borderWidth / 2, borderWidth / 2, cardWidth - borderWidth, cardHeight - borderWidth, borderRadius);
+    ctx.stroke();
+
+    // Load and draw the QR code image
+    const qrImage = new Image();
+    qrImage.onload = () => {
+      // Draw emoji (as text)
+      ctx.font = '48px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(info.emoji, cardWidth / 2, 60);
+
+      // Draw QR code
+      const qrSize = 180;
+      const qrX = (cardWidth - qrSize) / 2;
+      const qrY = 80;
+      ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+
+      // Draw title
+      ctx.fillStyle = '#333333';
+      ctx.font = 'bold 18px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(info.title, cardWidth / 2, 290);
+
+      // Draw "Scan me!" instruction
+      ctx.fillStyle = '#666666';
+      ctx.font = '14px Arial, sans-serif';
+      ctx.fillText('Scan me! 📱', cardWidth / 2, 320);
+
+      // Download the canvas as PNG
+      const link = document.createElement('a');
+      link.download = `groney-qr-${type.toLowerCase()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    };
+    qrImage.src = dataUrl;
   }
 
   function downloadAllQRs() {
     // Download each QR code with a small delay to prevent browser blocking
     sectorTypes.forEach((type, index) => {
-      setTimeout(() => downloadQR(type), index * 200);
+      setTimeout(() => downloadQR(type), index * 300);
     });
   }
 
