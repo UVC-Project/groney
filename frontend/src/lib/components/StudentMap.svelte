@@ -33,8 +33,19 @@
     color?: string;
   }
 
+  interface MapDecoration {
+    id: string;
+    classId: string;
+    type: string;
+    gridX: number;
+    gridY: number;
+    gridWidth: number;
+    gridHeight: number;
+  }
+
   interface Props {
     sectors: Sector[];
+    decorations?: MapDecoration[];
     mapWidth?: number;
     mapHeight?: number;
     onSectorClick?: (sector: Sector) => void;
@@ -43,6 +54,7 @@
 
   let {
     sectors = [],
+    decorations = [],
     mapWidth = 20,
     mapHeight = 16,
     onSectorClick,
@@ -183,6 +195,178 @@
     return sectorConfig[type?.toUpperCase()] || sectorConfig.OTHER;
   }
 
+  // Decoration type configurations (visual-only elements)
+  const decorationConfig: Record<string, { color: string; bgColor: string; icon: string; label: string }> = {
+    BUILDING: { color: '#64748b', bgColor: '#e2e8f0', icon: '🏫', label: 'Building' },
+    PAVEMENT: { color: '#78716c', bgColor: '#d6d3d1', icon: '👣', label: 'Path' },
+    PARKING: { color: '#525252', bgColor: '#d4d4d4', icon: '🅿️', label: 'Parking' },
+    FENCE: { color: '#92400e', bgColor: '#fef3c7', icon: '🚧', label: 'Fence' },
+    ENTRANCE: { color: '#0891b2', bgColor: '#cffafe', icon: '🚪', label: 'Entrance' },
+    BENCH: { color: '#a16207', bgColor: '#fef9c3', icon: '🪑', label: 'Bench' },
+    TRASH_BIN: { color: '#166534', bgColor: '#dcfce7', icon: '🗑️', label: 'Trash Bin' },
+    BIKE_RACK: { color: '#1d4ed8', bgColor: '#dbeafe', icon: '🚲', label: 'Bike Rack' },
+  };
+
+  function getDecorationConfig(type: string) {
+    return decorationConfig[type?.toUpperCase()] || decorationConfig.BUILDING;
+  }
+
+  // Check if two rectangles touch on any edge and return the overlap range
+  function getEdgeOverlaps(
+    a: { x: number; y: number; w: number; h: number },
+    b: { x: number; y: number; w: number; h: number }
+  ): { 
+    top: { start: number; end: number } | null;
+    right: { start: number; end: number } | null;
+    bottom: { start: number; end: number } | null;
+    left: { start: number; end: number } | null;
+  } {
+    const result = { top: null as any, right: null as any, bottom: null as any, left: null as any };
+    
+    // Top: b is directly above a
+    if (b.y + b.h === a.y) {
+      const overlapStart = Math.max(a.x, b.x);
+      const overlapEnd = Math.min(a.x + a.w, b.x + b.w);
+      if (overlapStart < overlapEnd) {
+        result.top = { start: overlapStart - a.x, end: overlapEnd - a.x };
+      }
+    }
+    // Bottom: b is directly below a
+    if (a.y + a.h === b.y) {
+      const overlapStart = Math.max(a.x, b.x);
+      const overlapEnd = Math.min(a.x + a.w, b.x + b.w);
+      if (overlapStart < overlapEnd) {
+        result.bottom = { start: overlapStart - a.x, end: overlapEnd - a.x };
+      }
+    }
+    // Left: b is directly to the left of a
+    if (b.x + b.w === a.x) {
+      const overlapStart = Math.max(a.y, b.y);
+      const overlapEnd = Math.min(a.y + a.h, b.y + b.h);
+      if (overlapStart < overlapEnd) {
+        result.left = { start: overlapStart - a.y, end: overlapEnd - a.y };
+      }
+    }
+    // Right: b is directly to the right of a
+    if (a.x + a.w === b.x) {
+      const overlapStart = Math.max(a.y, b.y);
+      const overlapEnd = Math.min(a.y + a.h, b.y + b.h);
+      if (overlapStart < overlapEnd) {
+        result.right = { start: overlapStart - a.y, end: overlapEnd - a.y };
+      }
+    }
+    
+    return result;
+  }
+
+  // Get all border overlaps for a decoration, including corner overlaps
+  function getDecorationOverlaps(decoration: MapDecoration, allDecorations: MapDecoration[]): {
+    top: Array<{ start: number; end: number }>;
+    right: Array<{ start: number; end: number }>;
+    bottom: Array<{ start: number; end: number }>;
+    left: Array<{ start: number; end: number }>;
+    corners: { topLeft: boolean; topRight: boolean; bottomLeft: boolean; bottomRight: boolean };
+  } {
+    const overlaps = { 
+      top: [] as Array<{ start: number; end: number }>,
+      right: [] as Array<{ start: number; end: number }>,
+      bottom: [] as Array<{ start: number; end: number }>,
+      left: [] as Array<{ start: number; end: number }>,
+      corners: { topLeft: false, topRight: false, bottomLeft: false, bottomRight: false }
+    };
+    
+    const currentRect = {
+      x: decoration.gridX,
+      y: decoration.gridY,
+      w: decoration.gridWidth,
+      h: decoration.gridHeight
+    };
+    
+    // Track which edges have overlaps at their endpoints
+    let topStartCovered = false, topEndCovered = false;
+    let bottomStartCovered = false, bottomEndCovered = false;
+    let leftStartCovered = false, leftEndCovered = false;
+    let rightStartCovered = false, rightEndCovered = false;
+    
+    for (const other of allDecorations) {
+      if (other.id === decoration.id) continue;
+      if (other.type !== decoration.type) continue;
+      
+      const otherRect = {
+        x: other.gridX,
+        y: other.gridY,
+        w: other.gridWidth,
+        h: other.gridHeight
+      };
+      
+      const edges = getEdgeOverlaps(currentRect, otherRect);
+      if (edges.top) {
+        overlaps.top.push(edges.top);
+        if (edges.top.start === 0) topStartCovered = true;
+        if (edges.top.end === currentRect.w) topEndCovered = true;
+      }
+      if (edges.right) {
+        overlaps.right.push(edges.right);
+        if (edges.right.start === 0) rightStartCovered = true;
+        if (edges.right.end === currentRect.h) rightEndCovered = true;
+      }
+      if (edges.bottom) {
+        overlaps.bottom.push(edges.bottom);
+        if (edges.bottom.start === 0) bottomStartCovered = true;
+        if (edges.bottom.end === currentRect.w) bottomEndCovered = true;
+      }
+      if (edges.left) {
+        overlaps.left.push(edges.left);
+        if (edges.left.start === 0) leftStartCovered = true;
+        if (edges.left.end === currentRect.h) leftEndCovered = true;
+      }
+    }
+    
+    // Determine corner overlaps
+    overlaps.corners.topLeft = topStartCovered && leftStartCovered;
+    overlaps.corners.topRight = topEndCovered && rightStartCovered;
+    overlaps.corners.bottomLeft = bottomStartCovered && leftEndCovered;
+    overlaps.corners.bottomRight = bottomEndCovered && rightEndCovered;
+    
+    return overlaps;
+  }
+
+  // Calculate visible segments for an edge by subtracting overlaps from the full length
+  function getUncoveredSegments(totalLength: number, overlaps: Array<{ start: number; end: number }>): Array<{ start: number; end: number }> {
+    const sorted = [...overlaps].sort((a, b) => a.start - b.start);
+    
+    const merged: Array<{ start: number; end: number }> = [];
+    if (sorted.length > 0) {
+      let current = { ...sorted[0] };
+      for (let i = 1; i < sorted.length; i++) {
+        const next = sorted[i];
+        if (next.start <= current.end) {
+          current.end = Math.max(current.end, next.end);
+        } else {
+          merged.push(current);
+          current = { ...next };
+        }
+      }
+      merged.push(current);
+    }
+    
+    const result: Array<{ start: number; end: number }> = [];
+    let currentPos = 0;
+    
+    for (const overlap of merged) {
+      if (overlap.start > currentPos) {
+        result.push({ start: currentPos, end: overlap.start });
+      }
+      currentPos = Math.max(currentPos, overlap.end);
+    }
+    
+    if (currentPos < totalLength) {
+      result.push({ start: currentPos, end: totalLength });
+    }
+    
+    return result;
+  }
+
   function handleSectorClick(sector: Sector) {
     selectedSector = sector;
     onSectorClick?.(sector);
@@ -304,6 +488,113 @@
               class="absolute inset-0 opacity-20 rounded-xl"
               style="background-image: radial-gradient(circle at 2px 2px, rgba(0,100,0,0.3) 1px, transparent 1px); background-size: 12px 12px;"
             ></div>
+
+            <!-- Decorations (rendered below sectors) -->
+            {#each decorations as decoration (decoration.id)}
+              {@const config = getDecorationConfig(decoration.type)}
+              {@const overlaps = getDecorationOverlaps(decoration, decorations)}
+              {@const visibleTop = getUncoveredSegments(decoration.gridWidth, overlaps.top)}
+              {@const visibleBottom = getUncoveredSegments(decoration.gridWidth, overlaps.bottom)}
+              {@const visibleLeft = getUncoveredSegments(decoration.gridHeight, overlaps.left)}
+              {@const visibleRight = getUncoveredSegments(decoration.gridHeight, overlaps.right)}
+              {@const roundTL = visibleTop.some(s => s.start === 0) && visibleLeft.some(s => s.start === 0)}
+              {@const roundTR = visibleTop.some(s => s.end === decoration.gridWidth) && visibleRight.some(s => s.start === 0)}
+              {@const roundBL = visibleBottom.some(s => s.start === 0) && visibleLeft.some(s => s.end === decoration.gridHeight)}
+              {@const roundBR = visibleBottom.some(s => s.end === decoration.gridWidth) && visibleRight.some(s => s.end === decoration.gridHeight)}
+              <div
+                class="absolute"
+                style="
+                  left: {decoration.gridX * CELL_SIZE}px;
+                  top: {decoration.gridY * CELL_SIZE}px;
+                  width: {decoration.gridWidth * CELL_SIZE}px;
+                  height: {decoration.gridHeight * CELL_SIZE}px;
+                  background: {config.bgColor};
+                  border-top-left-radius: {roundTL ? '8px' : '0'};
+                  border-top-right-radius: {roundTR ? '8px' : '0'};
+                  border-bottom-left-radius: {roundBL ? '8px' : '0'};
+                  border-bottom-right-radius: {roundBR ? '8px' : '0'};
+                  z-index: 5;
+                "
+                aria-label="{config.label}"
+              >
+                <!-- Top Border Segments -->
+                {#each visibleTop as segment}
+                  <div 
+                    class="absolute pointer-events-none"
+                    style="
+                      top: 0;
+                      left: {segment.start * CELL_SIZE}px;
+                      width: {(segment.end - segment.start) * CELL_SIZE}px;
+                      height: 2px;
+                      background: {config.color};
+                      border-top-left-radius: {segment.start === 0 && roundTL ? '8px' : '0'};
+                      border-top-right-radius: {segment.end === decoration.gridWidth && roundTR ? '8px' : '0'};
+                    "
+                  ></div>
+                {/each}
+
+                <!-- Bottom Border Segments -->
+                {#each visibleBottom as segment}
+                  <div 
+                    class="absolute pointer-events-none"
+                    style="
+                      bottom: 0;
+                      left: {segment.start * CELL_SIZE}px;
+                      width: {(segment.end - segment.start) * CELL_SIZE}px;
+                      height: 2px;
+                      background: {config.color};
+                      border-bottom-left-radius: {segment.start === 0 && roundBL ? '8px' : '0'};
+                      border-bottom-right-radius: {segment.end === decoration.gridWidth && roundBR ? '8px' : '0'};
+                    "
+                  ></div>
+                {/each}
+
+                <!-- Left Border Segments -->
+                {#each visibleLeft as segment}
+                  <div 
+                    class="absolute pointer-events-none"
+                    style="
+                      left: 0;
+                      top: {segment.start * CELL_SIZE}px;
+                      height: {(segment.end - segment.start) * CELL_SIZE}px;
+                      width: 2px;
+                      background: {config.color};
+                      border-top-left-radius: {segment.start === 0 && roundTL ? '8px' : '0'};
+                      border-bottom-left-radius: {segment.end === decoration.gridHeight && roundBL ? '8px' : '0'};
+                    "
+                  ></div>
+                {/each}
+
+                <!-- Right Border Segments -->
+                {#each visibleRight as segment}
+                  <div 
+                    class="absolute pointer-events-none"
+                    style="
+                      right: 0;
+                      top: {segment.start * CELL_SIZE}px;
+                      height: {(segment.end - segment.start) * CELL_SIZE}px;
+                      width: 2px;
+                      background: {config.color};
+                      border-top-right-radius: {segment.start === 0 && roundTR ? '8px' : '0'};
+                      border-bottom-right-radius: {segment.end === decoration.gridHeight && roundBR ? '8px' : '0'};
+                    "
+                  ></div>
+                {/each}
+
+                <!-- Icon and Label -->
+                <div class="absolute inset-0 flex flex-col items-center justify-center p-1 overflow-hidden pointer-events-none">
+                  <div class="opacity-60" style="font-size: {Math.max(16, Math.min(28, decoration.gridHeight * CELL_SIZE / 3))}px;">
+                    {config.icon}
+                  </div>
+                  {#if decoration.gridWidth >= 3}
+                    <div class="text-center leading-tight px-1 truncate w-full font-medium opacity-60"
+                      style="color: {config.color}; font-size: {Math.max(8, Math.min(11, decoration.gridWidth * CELL_SIZE / 10))}px;">
+                      {config.label}
+                    </div>
+                  {/if}
+                </div>
+              </div>
+            {/each}
 
             {#each placedSectors as sector (sector.id)}
               {@const config = getConfig(sector.type)}

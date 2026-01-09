@@ -10,12 +10,14 @@
 	let { data }: { data: PageData } = $props();
 
 	let sectors = $state(data.sectors);
+	let decorations = $state(data.decorations);
 	let mapWidth = $state(data.mapWidth);
 	let mapHeight = $state(data.mapHeight);
 
 	// Sync sectors when data changes
 	$effect(() => {
 		sectors = data.sectors;
+		decorations = data.decorations;
 	});
 
 	const STATUS_PRIORITY: Record<string, number> = {
@@ -176,6 +178,7 @@
 <div class="container mx-auto px-4 py-6 max-w-4xl">
 	<StudentMap
 		sectors={displaySectors}
+		{decorations}
 		{mapWidth}
 		{mapHeight}
 		onMissionClick={(mission, sector) => handleMissionClick(mission, sector)}

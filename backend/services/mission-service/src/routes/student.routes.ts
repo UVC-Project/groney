@@ -564,4 +564,32 @@ router.get('/activities/class', requireStudent, async (req: Request, res: Respon
     }
 });
 
+// GET /api/student/decorations - Get map decorations for student's class
+router.get('/decorations', requireStudent, async (req: Request, res: Response) => {
+	try {
+		const userId = (req as any).userId;
+		const classId = req.query.classId as string;
+
+		if (!classId) {
+			return res.status(400).json({ error: 'Bad Request', message: 'Class ID is required' });
+		}
+
+		// Verify user has access to this class
+		const hasAccess = await verifyClassAccess(userId, classId);
+		if (!hasAccess) {
+			return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to this class' });
+		}
+
+		const decorations = await prisma.mapDecoration.findMany({
+			where: { classId },
+			orderBy: { createdAt: 'asc' },
+		});
+
+		res.json(decorations);
+	} catch (error) {
+		console.error('Error fetching student decorations:', error);
+		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch decorations' });
+	}
+});
+
 export default router;
