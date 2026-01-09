@@ -203,6 +203,12 @@ export default class LoginController {
 				return res.status(400).json({ message: 'Missing username or password' });
 			}
 
+			if (isLoginBlocked(loginKey)) {
+				return res.status(429).json({
+					message: 'Too many failed login attempts. Please try again later.',
+				});
+			}
+
 			const user = await prisma.user.findUnique({
 				where: { username },
 				include: {
@@ -231,9 +237,9 @@ export default class LoginController {
 				});
 			}
 
-			if (isLoginBlocked(loginKey)) {
-				return res.status(429).json({
-					message: 'Too many failed login attempts. Please try again later.',
+			if (!user.isActive) {
+				return res.status(403).json({
+					message: 'Account is disabled. Please contact support.',
 				});
 			}
 
@@ -394,6 +400,12 @@ export default class LoginController {
 
 			if (!user) {
 				return res.status(401).json({ message: 'User not found' });
+			}
+
+			if (!user.isActive) {
+				return res.status(403).json({
+					message: 'Account is disabled',
+				});
 			}
 
 			const classes = user.classMember.map((cm) => ({
