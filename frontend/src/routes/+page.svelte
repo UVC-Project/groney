@@ -15,6 +15,9 @@
 
   // Groeny gifs for different states
   import NormalGif from '$lib/assets/images/groney-gif/normal.gif';
+  import SadGif from '$lib/assets/images/groney-gif/sad.gif';
+  import SickGif from '$lib/assets/images/groney-gif/Sick.gif';
+  import CryGif from '$lib/assets/images/groney-gif/cry.gif';
 
   let { data }: { data: PageData } = $props();
 
@@ -410,20 +413,25 @@
     'acc-sunglasses': '/src/lib/assets/images/groney-gif/sunglasses.gif'
   };
 
-  // State-based gifs (sad/sick versions)
-  // TODO: Add actual sad and sick gifs when available
+  // State-based gifs based on health percentage
+  // Health 51-100%: Normal, 25-50%: Sad, 1-24%: Sick
   const stateGifMap: Record<string, string> = {
     'normal': NormalGif,
-    'sad': NormalGif,    // Replace with sad gif when available
-    'sick': NormalGif,   // Replace with sick gif when available
+    'sad': SadGif,
+    'sick': SickGif,
   };
 
-  // Priority: equipped item → state-based default
+  // Priority: 
+  // - If sick/sad state → show health state GIF (overrides wardrobe)
+  // - If normal state → show wardrobe item if equipped, otherwise normal GIF
   let groenySrc = $derived(
-    (equippedHat && groenyGifMap[equippedHat]) ||
-    (equippedAccessory && groenyGifMap[equippedAccessory]) ||
-    stateGifMap[state] ||
-    NormalGif
+    state !== 'normal' 
+      ? (stateGifMap[state] || NormalGif)  // Sick/sad overrides wardrobe
+      : (
+          (equippedHat && groenyGifMap[equippedHat]) ||
+          (equippedAccessory && groenyGifMap[equippedAccessory]) ||
+          NormalGif
+        )
   );
 
   // Health color based on percentage
