@@ -221,6 +221,20 @@ npm run build
 
 ## 🐳 Docker Troubleshooting
 
+### New Package Added to a Service
+
+If a new npm package was added to a service (e.g., after pulling from main), rebuild with fresh volumes:
+
+```bash
+# Rebuild a specific service with new dependencies
+docker compose up -d --build -V auth-service
+
+# Or for any other service
+docker compose up -d --build -V <service-name>
+```
+
+The `-V` flag recreates anonymous volumes, ensuring `node_modules` is rebuilt.
+
 ### Prisma Client Issues in Docker
 
 If backend services fail with Prisma errors after `docker-compose up`:
