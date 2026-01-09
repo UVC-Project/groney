@@ -24,12 +24,9 @@
   let isMobileNavVisible = $state(false);
   let bgClass = $derived($selectedBackground.className);
 
-  const PUBLIC_ROUTES = [
-    '/login',
-    '/register',
-    '/forgot-password',
-    '/reset-password'
-  ];
+	const PUBLIC_ROUTES = [
+		'/verify-email'
+	];
 
   const AUTH_ONLY_ROUTES = [
     '/login',

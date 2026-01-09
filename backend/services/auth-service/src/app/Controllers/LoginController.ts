@@ -8,6 +8,16 @@ const prisma: PrismaClient = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey';
 const JWT_EXPIRES_IN = '7d';
 
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
+interface LoginAttempt {
+	count: number;
+	firstAttemptAt: number;
+}
+
+const loginAttempts = new Map<string, LoginAttempt>();
+
 // Streak milestone rewards: day -> coins
 const STREAK_MILESTONES: Record<number, number> = {
 	3: 2,
@@ -29,6 +39,35 @@ const MILESTONE_MESSAGES: string[] = [
 	"Keep the streak alive!",
 	"Awesome job showing up!",
 ];
+
+function recordFailedLogin(key: string) {
+	const now = Date.now();
+	const attempt = loginAttempts.get(key);
+
+	if (!attempt || now - attempt.firstAttemptAt > LOGIN_WINDOW_MS) {
+		loginAttempts.set(key, { count: 1, firstAttemptAt: now });
+	} else {
+		attempt.count += 1;
+	}
+}
+
+function isLoginBlocked(key: string): boolean {
+	const attempt = loginAttempts.get(key);
+	if (!attempt) return false;
+
+	const now = Date.now();
+	if (now - attempt.firstAttemptAt > LOGIN_WINDOW_MS) {
+		loginAttempts.delete(key);
+		return false;
+	}
+
+	return attempt.count >= MAX_LOGIN_ATTEMPTS;
+}
+
+function clearLoginAttempts(key: string) {
+	loginAttempts.delete(key);
+}
+
 
 /**
  * Get coin reward for a streak milestone, or 0 if not a milestone
@@ -54,6 +93,24 @@ interface MilestoneRewardEvent {
 	message: string;
 }
 
+async function logAuthEvent(
+	action: string,
+	userId?: string,
+	req?: Request
+) {
+	try {
+		await prisma.authLog.create({
+			data: {
+				action,
+				userId,
+				ipAddress: req?.ip,
+			},
+		});
+	} catch (err) {
+		console.error('Auth log failed:', err);
+	}
+}
+
 //Get today's date in Amsterdam timezone as a date object 
 function getAmsterdamToday(): Date {
 	const now = new Date();
@@ -68,7 +125,7 @@ function getAmsterdamToday(): Date {
 	const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
 	const month = parseInt(parts.find(p => p.type === 'month')?.value || '1') - 1;
 	const day = parseInt(parts.find(p => p.type === 'day')?.value || '1');
-	
+
 	// Return a date representning midnight in Amsterdam (stored as UTC equivalent)
 	return new Date(Date.UTC(year, month, day));
 }
@@ -93,7 +150,7 @@ function toAmsterdamDay(date: Date): Date {
 	const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
 	const month = parseInt(parts.find(p => p.type === 'month')?.value || '1') - 1;
 	const day = parseInt(parts.find(p => p.type === 'day')?.value || '1');
-	
+
 	return new Date(Date.UTC(year, month, day));
 }
 
@@ -104,7 +161,7 @@ interface StreakResult {
 }
 
 export default class LoginController {
-//Calculate streak based on last login date 
+	//Calculate streak based on last login date 
 
 	static calculateStreak(
 		lastLoginDate: Date | null,
@@ -158,9 +215,16 @@ export default class LoginController {
 	static async login(req: Request, res: Response) {
 		try {
 			const { username, password } = req.body;
+			const loginKey = username;
 
 			if (!username || !password) {
 				return res.status(400).json({ message: 'Missing username or password' });
+			}
+
+			if (isLoginBlocked(loginKey)) {
+				return res.status(429).json({
+					message: 'Too many failed login attempts. Please try again later.',
+				});
 			}
 
 			const user = await prisma.user.findUnique({
@@ -175,12 +239,28 @@ export default class LoginController {
 			});
 
 			if (!user) {
+				recordFailedLogin(loginKey);
+				await logAuthEvent('LOGIN_FAILED', undefined, req);
 				return res.status(401).json({ message: 'Invalid username or password' });
 			}
 
 			const match = await bcrypt.compare(password, user.password);
 			if (!match) {
+				recordFailedLogin(loginKey);
 				return res.status(401).json({ message: 'Invalid username or password' });
+			}
+
+			// Activiate on actual hostings.
+			// if (user.role === 'TEACHER' && !user.emailVerified) {
+			// 	return res.status(403).json({
+			// 		message: 'Please verify your email before logging in',
+			// 	});
+			// }
+
+			if (!user.isActive) {
+				return res.status(403).json({
+					message: 'Account is disabled. Please contact support.',
+				});
 			}
 
 			// Calculate streak for students
@@ -195,21 +275,21 @@ export default class LoginController {
 
 				// Determine if streak changed (not already logged in today)
 				const streakChanged = streakData.currentStreak !== user.currentStreak;
-				
+
 				// Determine new lastMilestoneReached value
 				let newLastMilestoneReached = user.lastMilestoneReached;
-				
+
 				// If streak was broken/reset, reset milestone tracking
 				if (streakData.streakBroken || (streakChanged && streakData.currentStreak === 1)) {
 					newLastMilestoneReached = 0;
 				}
-				
+
 				// Check if current streak is a milestone and hasn't been rewarded yet
 				const milestoneReward = getMilestoneReward(streakData.currentStreak);
-				const shouldRewardMilestone = streakChanged && 
-					milestoneReward > 0 && 
+				const shouldRewardMilestone = streakChanged &&
+					milestoneReward > 0 &&
 					streakData.currentStreak > newLastMilestoneReached;
-				
+
 				// Grant milestone coins to the class mascot
 				if (shouldRewardMilestone && user.classMember.length > 0) {
 					const classId = user.classMember[0].classId;
@@ -222,14 +302,14 @@ export default class LoginController {
 						},
 					});
 					newLastMilestoneReached = streakData.currentStreak;
-					
+
 					// Create milestone reward event for the UI
 					milestoneRewardEvent = {
 						streakDay: streakData.currentStreak,
 						coinsEarned: milestoneReward,
 						message: getRandomMilestoneMessage(),
 					};
-					
+
 					console.log(`🎉 Streak milestone ${streakData.currentStreak} days reached by ${user.username}! Awarded ${milestoneReward} coins.`);
 				}
 
@@ -266,12 +346,16 @@ export default class LoginController {
 				classId: primaryClassId,
 			};
 
+			clearLoginAttempts(loginKey);
+
 			const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
 			// Include previous streak if it was broken (for UI to show reset message)
 			const streakResetInfo = streakData?.streakBroken ? {
 				previousStreak: user.currentStreak,
 			} : null;
+
+			await logAuthEvent('LOGIN_SUCCESS', user.id, req);
 
 			return res.json({
 				message: 'Login successful',
@@ -338,6 +422,12 @@ export default class LoginController {
 
 			if (!user) {
 				return res.status(401).json({ message: 'User not found' });
+			}
+
+			if (!user.isActive) {
+				return res.status(403).json({
+					message: 'Account is disabled',
+				});
 			}
 
 			const classes = user.classMember.map((cm) => ({

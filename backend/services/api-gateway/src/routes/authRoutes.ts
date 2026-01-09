@@ -53,4 +53,75 @@ router.post(
 	})
 );
 
+// Request new password
+router.post(
+	'/password-reset/request',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/password-reset/request': '/api/auth/password-reset/request',
+		},
+	})
+);
+
+// Reset password
+router.post(
+	'/password-reset/reset',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/password-reset/reset': '/api/auth/password-reset/reset',
+		},
+	})
+);
+
+// Get profile
+router.get(
+	'/profile',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/profile': '/api/auth/profile',
+		},
+	})
+);
+
+// Update profile
+router.put(
+	'/profile/update',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/profile/update': '/api/auth/profile/update',
+		},
+	})
+);
+
+// Email verification
+router.get(
+	'/verify-email',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/verify-email': '/api/auth/verify-email',
+		},
+	})
+);
+
+router.post(
+	'/resend-verification',
+	createProxyMiddleware({
+		target: AUTH_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/auth/resend-verification': '/api/auth/resend-verification',
+		},
+	})
+);
+
 export default router;

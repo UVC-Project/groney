@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { PrismaClient, UserRole } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import { sendVerifyEmail } from '../../utils/VerifyEmailMailer';
 
 const prisma: PrismaClient = new PrismaClient();
 
@@ -57,6 +59,9 @@ export default class RegisterController {
 				existingClass = await prisma.class.findUnique({ where: { classCode } });
 			}
 
+			const verificationToken = crypto.randomBytes(32).toString('hex');
+			const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
 			// Create teacher, class, membership, and mascot in a transaction
 			const result = await prisma.$transaction(async (tx) => {
 				const teacher = await tx.user.create({
@@ -67,8 +72,13 @@ export default class RegisterController {
 						email,
 						password: hashed,
 						role: UserRole.TEACHER,
+						emailVerified: false,
+						emailVerificationToken: verificationToken,
+						emailVerificationExp: verificationExpiry,
 					},
 				});
+
+				await sendVerifyEmail(email, verificationToken);
 
 				const cls = await tx.class.create({
 					data: {
@@ -103,6 +113,7 @@ export default class RegisterController {
 				return { teacher, cls };
 			});
 
+
 			return res.status(201).json({
 				message: 'Teacher registered successfully',
 				user: {
@@ -110,7 +121,7 @@ export default class RegisterController {
 					firstName: result.teacher.firstName,
 					lastName: result.teacher.lastName,
 					username: result.teacher.username,
-					// email: result.teacher.email,
+					email: result.teacher.email,
 					role: result.teacher.role,
 				},
 				class: {

@@ -2,17 +2,14 @@ export class TokenBlacklist {
     private static blacklist = new Set<string>();
 
     /**
-     * It adds a token to a list
-     * @param token 
+     * Add a token to the blacklist
      */
     static add(token: string) {
         this.blacklist.add(token);
     }
 
     /**
-     * Checks if token already exist
-     * @param token 
-     * @returns string
+     * Check if a token is blacklisted
      */
     static has(token: string): boolean {
         return this.blacklist.has(token);
