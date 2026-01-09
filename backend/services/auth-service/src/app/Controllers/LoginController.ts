@@ -250,11 +250,12 @@ export default class LoginController {
 				return res.status(401).json({ message: 'Invalid username or password' });
 			}
 
-			if (user.role === 'TEACHER' && !user.emailVerified) {
-				return res.status(403).json({
-					message: 'Please verify your email before logging in',
-				});
-			}
+			// Activiate on actual hostings.
+			// if (user.role === 'TEACHER' && !user.emailVerified) {
+			// 	return res.status(403).json({
+			// 		message: 'Please verify your email before logging in',
+			// 	});
+			// }
 
 			if (!user.isActive) {
 				return res.status(403).json({
