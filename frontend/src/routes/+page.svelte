@@ -427,16 +427,18 @@
     goto('/login');
   }
 </script>
-<div class="container mx-auto px-4 py-10">
+<div class="container mx-auto px-4 py-10 relative">
 
-  <!-- Welcome + Weather -->
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-      <p class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white text-sm font-medium text-gray-800 shadow-lg">
-        Welcome{displayName ? `, ${displayName}` : ''}!
-      </p>
-      <WeatherWidget />
-    </div>
+  <!-- Weather Widget - Absolute positioned -->
+  <div class="absolute top-24 right-4 z-10 hidden sm:block">
+    <WeatherWidget />
+  </div>
+
+  <!-- Welcome + Controls -->
+  <div class="flex justify-between items-center mb-6">
+    <p class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white text-sm font-medium text-gray-800 shadow-lg">
+      Welcome{displayName ? `, ${displayName}` : ''}!
+    </p>
     <div class="flex items-center gap-4">
       <BackgroundPicker />
       <button
