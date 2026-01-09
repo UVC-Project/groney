@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { API_BASE_URL } from '$lib/config';
+
   let email = '';
   let message = '';
   let loading = false;
@@ -7,7 +9,7 @@
     loading = true;
     message = '';
 
-    const res = await fetch('http://localhost:3000/api/auth/resend-verification', {
+    const res = await fetch(`${API_BASE_URL}/api/auth/resend-verification`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),

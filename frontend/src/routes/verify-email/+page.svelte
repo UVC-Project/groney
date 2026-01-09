@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { API_BASE_URL } from '$lib/config';
 
 	let message = 'Verifying your email…';
 
@@ -14,7 +15,7 @@
 
 		try {
 			const res = await fetch(
-				`http://localhost:3000/api/auth/verify-email?token=${encodeURIComponent(token)}`
+				`${API_BASE_URL}/api/auth/verify-email?token=${encodeURIComponent(token)}`
 			);
 
 			const data = await res.json();
