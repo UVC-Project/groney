@@ -9,16 +9,11 @@
 
 	let { data }: { data: PageData } = $props();
 
-	let sectors = $state(data.sectors);
-	let decorations = $state(data.decorations);
-	let mapWidth = $state(data.mapWidth);
-	let mapHeight = $state(data.mapHeight);
-
-	// Sync sectors when data changes
-	$effect(() => {
-		sectors = data.sectors;
-		decorations = data.decorations;
-	});
+	// Use $derived to properly track data changes
+	let sectors = $derived(data.sectors);
+	let decorations = $derived(data.decorations);
+	let mapWidth = $derived(data.mapWidth);
+	let mapHeight = $derived(data.mapHeight);
 
 	const STATUS_PRIORITY: Record<string, number> = {
 		'my_active': 0,
@@ -126,16 +121,6 @@
 			}
 
 			const missionId = selectedMission.id;
-
-			sectors = sectors.map(s => {
-				if (s.id === selectedSector.id) {
-					return {
-						...s,
-						missions: s.missions.filter((m: any) => m.id !== missionId)
-					};
-				}
-				return s;
-			});
 
 			successMessage = 'Mission accepted! Go complete it and come back to submit.';
 			

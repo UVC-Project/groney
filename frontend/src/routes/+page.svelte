@@ -30,8 +30,20 @@
   let streakResetTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Live mascot data (updated via polling)
-  let liveMascot = $state<MascotData>(data.mascot);
+  // Initialize with empty object, will be set from data in effect
+  let liveMascot = $state<MascotData | null>(null);
   let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+  // Initialize liveMascot from data when component mounts or data changes
+  $effect(() => {
+    if (data.mascot && !liveMascot) {
+      liveMascot = data.mascot;
+      // Set classId once for activity fetching (won't change during session)
+      if (!classIdForActivities && data.mascot.classId) {
+        classIdForActivities = data.mascot.classId;
+      }
+    }
+  });
 
   // Polling interval in milliseconds (5 seconds for testing, increase for production)
   const POLL_INTERVAL = 5000;
@@ -41,6 +53,9 @@
   let activityFilter = $state<ActivityFilter>('all');
   let activities = $state<any[]>([]);
   let isLoadingActivities = $state(false);
+  
+  // Store classId separately to avoid re-fetching activities when mascot polls
+  let classIdForActivities = $state<string | null>(null);
 
   // Fetch latest mascot data
   async function fetchMascot() {
@@ -80,10 +95,16 @@
             userId = parsed?.user?.id;
         }
 
-        // URL construction (Logic remains the same)
+        // Use stable classId (not liveMascot) to avoid re-fetching on mascot poll
+        const classId = classIdForActivities;
+        if (!classId && activityFilter !== 'mine') {
+            activities = [];
+            return;
+        }
+        
         const endpoint = activityFilter === 'mine'
             ? `${API_BASE_URL}/api/student/activities`
-            : `${API_BASE_URL}/api/student/activities/class?classId=${liveMascot.classId}`;
+            : `${API_BASE_URL}/api/student/activities/class?classId=${classId}`;
 
         const res = await fetch(endpoint, {
             headers: {
@@ -105,9 +126,16 @@
     }
   }
 
-  // Reactively fetch when filter changes
+  // Reactively fetch when filter changes or classId becomes available
   $effect(() => {
-      fetchActivities();
+      // Track filter and classId to trigger re-fetch appropriately
+      const currentFilter = activityFilter;
+      const currentClassId = classIdForActivities;
+      
+      // Only fetch if we have a classId (or filter is 'mine')
+      if (currentClassId || currentFilter === 'mine') {
+        fetchActivities();
+      }
   });
   
   // Helper to format dates
@@ -357,22 +385,22 @@
     }
   }
 
-  // Use live data
-  let coins = $derived(liveMascot.coins);
-  let level = $derived(liveMascot.level);
-  let health = $derived(liveMascot.health);
-  let state = $derived(liveMascot.state);
-  let levelProgress = $derived(liveMascot.levelProgress);
+  // Use live data (with fallbacks for when liveMascot is null during initial load)
+  let coins = $derived(liveMascot?.coins ?? 0);
+  let level = $derived(liveMascot?.level ?? 1);
+  let health = $derived(liveMascot?.health ?? 100);
+  let state = $derived(liveMascot?.state ?? 'normal');
+  let levelProgress = $derived(liveMascot?.levelProgress ?? { current: 0, required: 100, percentage: 0 });
 
   // Stats
-  let thirst = $derived(liveMascot.thirst);
-  let hunger = $derived(liveMascot.hunger);
-  let happiness = $derived(liveMascot.happiness);
-  let cleanliness = $derived(liveMascot.cleanliness);
+  let thirst = $derived(liveMascot?.thirst ?? 100);
+  let hunger = $derived(liveMascot?.hunger ?? 100);
+  let happiness = $derived(liveMascot?.happiness ?? 100);
+  let cleanliness = $derived(liveMascot?.cleanliness ?? 100);
 
   // Equipped items
-  let equippedHat = $derived(liveMascot.equippedHat);
-  let equippedAccessory = $derived(liveMascot.equippedAccessory);
+  let equippedHat = $derived(liveMascot?.equippedHat);
+  let equippedAccessory = $derived(liveMascot?.equippedAccessory);
 
   // DB-based item IDs → gifs (with equipped items)
   const groenyGifMap: Record<string, string> = {
