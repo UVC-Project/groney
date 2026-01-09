@@ -1,15 +1,46 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
   import { getSectorWikiContent, allSectorTypes } from '$lib/data/sectorWikiContent';
   import PageWrapper from '$lib/components/PageWrapper.svelte';
+  import type { PageData } from './$types';
+
+  let { data }: { data: PageData } = $props();
 
   let sectorType = $derived($page.params.type?.toUpperCase() || '');
   let content = $derived(getSectorWikiContent(sectorType));
+
+  // Missions from the load function
+  let missions = $derived(data.missions || []);
+  let isLoggedIn = $derived(data.isLoggedIn || false);
 
   // For accordion sections
   let openFacts = $state(true);
   let openActivities = $state(false);
   let openCare = $state(false);
+  let openMissions = $state(true);
+
+  // Get status display info
+  function getMissionStatusDisplay(status: string) {
+    switch (status) {
+      case 'available':
+        return { label: 'Available', color: 'bg-green-100 text-green-700', icon: '🎯' };
+      case 'my_active':
+        return { label: 'Your Mission', color: 'bg-blue-100 text-blue-700', icon: '📋' };
+      case 'taken':
+        return { label: 'In Progress', color: 'bg-orange-100 text-orange-700', icon: '🔒' };
+      case 'cooldown':
+        return { label: 'Cooldown', color: 'bg-gray-100 text-gray-600', icon: '⏱️' };
+      case 'max_reached':
+        return { label: 'Completed', color: 'bg-purple-100 text-purple-700', icon: '✅' };
+      default:
+        return { label: 'Available', color: 'bg-green-100 text-green-700', icon: '🎯' };
+    }
+  }
+
+  function goToMap() {
+    goto('/map');
+  }
 </script>
 
 <svelte:head>
@@ -160,6 +191,98 @@
           </div>
         {/if}
       </div>
+
+      <!-- Related Missions Section -->
+      {#if isLoggedIn}
+        <div class="bg-white rounded-2xl shadow-lg mb-6 overflow-hidden">
+          <button 
+            class="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 transition-colors"
+            onclick={() => openMissions = !openMissions}
+          >
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🎯</span>
+              <h2 class="text-xl font-bold text-gray-800">Missions Here</h2>
+              {#if missions.length > 0}
+                <span class="px-2 py-0.5 text-xs font-bold rounded-full text-white" style="background-color: {content.color};">
+                  {missions.length}
+                </span>
+              {/if}
+            </div>
+            <span class={`text-xl transition-transform duration-300 ${openMissions ? 'rotate-180' : ''}`}>
+              ⬇️
+            </span>
+          </button>
+          
+          {#if openMissions}
+            <div class="px-5 pb-5">
+              {#if missions.length > 0}
+                <div class="space-y-3">
+                  {#each missions as mission, i}
+                    {@const statusDisplay = getMissionStatusDisplay(mission.missionStatus || 'available')}
+                    <button
+                      onclick={goToMap}
+                      class="w-full text-left p-4 rounded-xl border-2 hover:shadow-md transition-all hover:scale-[1.01]"
+                      style="border-color: {content.color}30; animation: slideIn 0.3s ease-out {i * 0.1}s both;"
+                    >
+                      <div class="flex items-start justify-between gap-3">
+                        <div class="flex-1">
+                          <div class="flex items-center gap-2 mb-1">
+                            <h3 class="font-bold text-gray-800">{mission.title}</h3>
+                            <span class="px-2 py-0.5 text-xs font-semibold rounded-full {statusDisplay.color}">
+                              {statusDisplay.icon} {statusDisplay.label}
+                            </span>
+                          </div>
+                          <p class="text-gray-600 text-sm line-clamp-2">{mission.description}</p>
+                          {#if mission.sectorName}
+                            <p class="text-xs text-gray-400 mt-1">📍 {mission.sectorName}</p>
+                          {/if}
+                        </div>
+                        <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-semibold">
+                            ⭐ +{mission.xpReward} XP
+                          </span>
+                          <span class="px-2 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-semibold">
+                            🪙 +{mission.coinReward}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  {/each}
+                </div>
+                <p class="text-center text-sm text-gray-500 mt-4">
+                  Tap a mission to go to the map and start it! 🗺️
+                </p>
+              {:else}
+                <div class="text-center py-6">
+                  <div class="text-4xl mb-3">🔍</div>
+                  <p class="text-gray-600">No missions available in this sector right now.</p>
+                  <p class="text-sm text-gray-400 mt-1">Check back later or ask your teacher!</p>
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {:else}
+        <!-- Not logged in - show login prompt -->
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 mb-6 border border-blue-200">
+          <div class="flex items-start gap-4">
+            <span class="text-3xl">🔐</span>
+            <div>
+              <h3 class="font-bold text-gray-800 mb-1">Want to see missions?</h3>
+              <p class="text-gray-600 text-sm mb-3">
+                Log in to see available missions for this sector and start helping your schoolyard!
+              </p>
+              <a 
+                href="/login" 
+                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors"
+              >
+                <span>🚀</span>
+                <span>Log In</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      {/if}
 
       <!-- Back to Map Link -->
       <div class="text-center">
