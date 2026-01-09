@@ -42,6 +42,7 @@
   import LoadingSkeleton from '$lib/components/LoadingSkeleton.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import MapBuilder from '$lib/components/MapBuilder.svelte';
+  import SectorQRGenerator from '$lib/components/SectorQRGenerator.svelte';
   import { API_BASE_URL, SUPPLY_API_URL, MASCOT_ENGINE_URL } from '$lib/config';
   import { getAuthHeaders } from '$lib/auth/context';
   import { auth, user } from '$lib/stores/auth';
@@ -2483,6 +2484,11 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Sector QR Codes -->
+        <div class="mt-6">
+          <SectorQRGenerator />
         </div>
       </div>
     {/if}
