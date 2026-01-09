@@ -28,8 +28,19 @@ interface Sector {
 	missions: Mission[];
 }
 
+interface MapDecoration {
+	id: string;
+	classId: string;
+	type: string;
+	gridX: number;
+	gridY: number;
+	gridWidth: number;
+	gridHeight: number;
+}
+
 interface MapData {
 	sectors: Sector[];
+	decorations: MapDecoration[];
 	mapWidth: number;
 	mapHeight: number;
 	className?: string;
@@ -61,7 +72,7 @@ export const load: PageLoad = async ({ fetch }): Promise<MapData> => {
 
 	if (!classId) {
 		console.log('No class ID found, returning empty map');
-		return { sectors: [], mapWidth: 20, mapHeight: 16 };
+		return { sectors: [], decorations: [], mapWidth: 20, mapHeight: 16 };
 	}
 
 	// Build auth headers
@@ -85,13 +96,15 @@ export const load: PageLoad = async ({ fetch }): Promise<MapData> => {
 	}
 
 	try {
-		// Fetch sectors with missions for the student's class
-		const [sectorsRes, classRes] = await Promise.all([
+		// Fetch sectors with missions, class info, and decorations for the student's class
+		const [sectorsRes, classRes, decorationsRes] = await Promise.all([
 			fetch(`${API_BASE_URL}/api/student/sectors?classId=${classId}`, { headers }),
 			fetch(`${API_BASE_URL}/api/student/class?classId=${classId}`, { headers }),
+			fetch(`${API_BASE_URL}/api/student/decorations?classId=${classId}`, { headers }),
 		]);
 
 		let sectors: Sector[] = [];
+		let decorations: MapDecoration[] = [];
 		let mapWidth = 20;
 		let mapHeight = 16;
 		let className = '';
@@ -109,9 +122,15 @@ export const load: PageLoad = async ({ fetch }): Promise<MapData> => {
 			className = classData.name || '';
 		}
 
-		return { sectors, mapWidth, mapHeight, className };
+		if (decorationsRes.ok) {
+			decorations = await decorationsRes.json();
+		} else {
+			console.error('Failed to fetch decorations:', decorationsRes.status);
+		}
+
+		return { sectors, decorations, mapWidth, mapHeight, className };
 	} catch (error) {
 		console.error('Error fetching map data:', error);
-		return { sectors: [], mapWidth: 20, mapHeight: 16 };
+		return { sectors: [], decorations: [], mapWidth: 20, mapHeight: 16 };
 	}
 };
