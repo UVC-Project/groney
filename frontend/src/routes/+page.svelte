@@ -3,6 +3,7 @@
   import LogoutModal from '$lib/components/LogoutModal.svelte';
   import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
   import StreakWidget from '$lib/components/StreakWidget.svelte';
+  import WeatherWidget from '$lib/components/WeatherWidget.svelte';
   import type { PageData } from './$types';
   import type { MascotData } from './+page';
   import { goto } from '$app/navigation';
@@ -426,9 +427,14 @@
     goto('/login');
   }
 </script>
-<div class="container mx-auto px-4 py-10">
+<div class="container mx-auto px-4 py-10 relative">
 
-  <!-- Welcome -->
+  <!-- Weather Widget - Absolute positioned -->
+  <div class="absolute top-24 right-4 z-10 hidden sm:block">
+    <WeatherWidget />
+  </div>
+
+  <!-- Welcome + Controls -->
   <div class="flex justify-between items-center mb-6">
     <p class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white text-sm font-medium text-gray-800 shadow-lg">
       Welcome{displayName ? `, ${displayName}` : ''}!
