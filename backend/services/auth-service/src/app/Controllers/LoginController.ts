@@ -8,6 +8,16 @@ const prisma: PrismaClient = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey';
 const JWT_EXPIRES_IN = '7d';
 
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
+interface LoginAttempt {
+	count: number;
+	firstAttemptAt: number;
+}
+
+const loginAttempts = new Map<string, LoginAttempt>();
+
 // Streak milestone rewards: day -> coins
 const STREAK_MILESTONES: Record<number, number> = {
 	3: 2,
@@ -29,6 +39,35 @@ const MILESTONE_MESSAGES: string[] = [
 	"Keep the streak alive!",
 	"Awesome job showing up!",
 ];
+
+function recordFailedLogin(key: string) {
+	const now = Date.now();
+	const attempt = loginAttempts.get(key);
+
+	if (!attempt || now - attempt.firstAttemptAt > LOGIN_WINDOW_MS) {
+		loginAttempts.set(key, { count: 1, firstAttemptAt: now });
+	} else {
+		attempt.count += 1;
+	}
+}
+
+function isLoginBlocked(key: string): boolean {
+	const attempt = loginAttempts.get(key);
+	if (!attempt) return false;
+
+	const now = Date.now();
+	if (now - attempt.firstAttemptAt > LOGIN_WINDOW_MS) {
+		loginAttempts.delete(key);
+		return false;
+	}
+
+	return attempt.count >= MAX_LOGIN_ATTEMPTS;
+}
+
+function clearLoginAttempts(key: string) {
+	loginAttempts.delete(key);
+}
+
 
 /**
  * Get coin reward for a streak milestone, or 0 if not a milestone
@@ -158,6 +197,7 @@ export default class LoginController {
 	static async login(req: Request, res: Response) {
 		try {
 			const { username, password } = req.body;
+			const loginKey = username;
 
 			if (!username || !password) {
 				return res.status(400).json({ message: 'Missing username or password' });
@@ -175,17 +215,25 @@ export default class LoginController {
 			});
 
 			if (!user) {
+				recordFailedLogin(loginKey);
 				return res.status(401).json({ message: 'Invalid username or password' });
 			}
 
 			const match = await bcrypt.compare(password, user.password);
 			if (!match) {
+				recordFailedLogin(loginKey);
 				return res.status(401).json({ message: 'Invalid username or password' });
 			}
 
 			if (user.role === 'TEACHER' && !user.emailVerified) {
 				return res.status(403).json({
 					message: 'Please verify your email before logging in',
+				});
+			}
+
+			if (isLoginBlocked(loginKey)) {
+				return res.status(429).json({
+					message: 'Too many failed login attempts. Please try again later.',
 				});
 			}
 
@@ -271,6 +319,8 @@ export default class LoginController {
 				role: user.role,
 				classId: primaryClassId,
 			};
+
+			clearLoginAttempts(loginKey);
 
 			const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
