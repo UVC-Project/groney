@@ -33,7 +33,7 @@
           </div>
           <h3 class="text-base font-bold text-gray-800">Getting Started</h3>
         </div>
-        <span class={`w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center text-xs transition-transform duration-200 ${openGroeny ? 'rotate-90 bg-emerald-100' : ''}`}>▶</span>
+        <span class={`w-6 h-6 rounded-lg flex items-center justify-center text-xs transition-all duration-200 ${openGroeny ? 'rotate-90 bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>▶</span>
       </button>
       {#if openGroeny}
         <div class="px-4 pb-4 pt-1 border-t border-gray-100 bg-gradient-to-br from-gray-50 to-white">
@@ -56,7 +56,7 @@
           </div>
           <h3 class="text-base font-bold text-gray-800">How to Care for Groeny</h3>
         </div>
-        <span class={`w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center text-xs transition-transform duration-200 ${openHowToPlay ? 'rotate-90 bg-blue-100' : ''}`}>▶</span>
+        <span class={`w-6 h-6 rounded-lg flex items-center justify-center text-xs transition-all duration-200 ${openHowToPlay ? 'rotate-90 bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>▶</span>
       </button>
       {#if openHowToPlay}
         <div class="px-4 pb-4 pt-1 border-t border-gray-100 bg-gradient-to-br from-gray-50 to-white">
@@ -79,7 +79,7 @@
           </div>
           <h3 class="text-base font-bold text-gray-800">Completing Missions</h3>
         </div>
-        <span class={`w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center text-xs transition-transform duration-200 ${openStats ? 'rotate-90 bg-amber-100' : ''}`}>▶</span>
+        <span class={`w-6 h-6 rounded-lg flex items-center justify-center text-xs transition-all duration-200 ${openStats ? 'rotate-90 bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-400'}`}>▶</span>
       </button>
       {#if openStats}
         <div class="px-4 pb-4 pt-1 border-t border-gray-100 bg-gradient-to-br from-gray-50 to-white">
@@ -102,7 +102,7 @@
           </div>
           <h3 class="text-base font-bold text-gray-800">Earning Seeds & XP</h3>
         </div>
-        <span class={`w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center text-xs transition-transform duration-200 ${coins ? 'rotate-90 bg-purple-100' : ''}`}>▶</span>
+        <span class={`w-6 h-6 rounded-lg flex items-center justify-center text-xs transition-all duration-200 ${coins ? 'rotate-90 bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>▶</span>
       </button>
       {#if coins}
         <div class="px-4 pb-4 pt-1 border-t border-gray-100 bg-gradient-to-br from-gray-50 to-white">
@@ -125,7 +125,7 @@
           </div>
           <h3 class="text-base font-bold text-gray-800">Class Leaderboard</h3>
         </div>
-        <span class={`w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center text-xs transition-transform duration-200 ${leaderBoard ? 'rotate-90 bg-orange-100' : ''}`}>▶</span>
+        <span class={`w-6 h-6 rounded-lg flex items-center justify-center text-xs transition-all duration-200 ${leaderBoard ? 'rotate-90 bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}>▶</span>
       </button>
       {#if leaderBoard}
         <div class="px-4 pb-4 pt-1 border-t border-gray-100 bg-gradient-to-br from-gray-50 to-white">
