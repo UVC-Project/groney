@@ -158,7 +158,7 @@
           <div class="px-4 py-3 bg-green-50 flex items-center justify-end">
             <button
               type="button"
-              class="text-sm font-bold rounded-full px-4 py-1.5 bg-green-500 text-white hover:bg-green-600 transition-colors"
+              class="btn-action-green"
               onclick={() => onRequestClick(supply)}
             >
               Request

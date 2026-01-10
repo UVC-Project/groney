@@ -148,10 +148,10 @@
   <!-- Back Button -->
   <button
     onclick={goBackToMap}
-    class="flex items-center gap-2 text-white/90 hover:text-white mb-4 transition-colors group"
+    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-bold mb-4 transition-all active:scale-[0.98] min-h-[44px]"
   >
-    <span class="text-xl group-hover:-translate-x-1 transition-transform">←</span>
-    <span class="font-medium">Back to Map</span>
+    <span class="text-lg">←</span>
+    <span>Back to Map</span>
   </button>
 
   <!-- Main Card -->
@@ -298,11 +298,7 @@
       <button
         onclick={handleSubmit}
         disabled={!selectedFile || isSubmitting || !!successMessage}
-        class="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-lg rounded-2xl 
-          hover:from-emerald-600 hover:to-teal-700 
-          disabled:from-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed
-          transition-all shadow-lg hover:shadow-xl active:scale-[0.98]
-          flex items-center justify-center gap-2"
+        class="btn-primary w-full py-4 text-lg"
       >
         {#if isSubmitting}
           <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">

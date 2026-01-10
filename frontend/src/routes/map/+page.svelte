@@ -286,7 +286,7 @@
 				<div class="flex gap-3">
 					<button
 						onclick={closeModal}
-						class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors"
+						class="btn-secondary flex-1"
 					>
 						Close
 					</button>
@@ -295,7 +295,7 @@
 						<button
 							onclick={acceptMission}
 							disabled={isAccepting || !!successMessage || missionAction.disabled}
-							class="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+							class="btn-primary flex-1"
 						>
 							{#if isAccepting}
 								<svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
@@ -312,14 +312,14 @@
 					{:else if missionAction.action === 'submit'}
 						<button
 							onclick={() => goto(`/missions/${selectedMission.id}/submit`)}
-							class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+							class="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-6 rounded-2xl shadow-lg shadow-blue-500/25 hover:from-blue-600 hover:to-blue-700 active:scale-[0.98] transition-all duration-150 min-h-[48px]"
 						>
 							{missionAction.label}
 						</button>
 					{:else}
 						<button
 							disabled={true}
-							class="flex-1 px-4 py-3 bg-gray-200 text-gray-500 font-bold rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
+							class="flex-1 inline-flex items-center justify-center gap-2 bg-gray-100 text-gray-400 font-bold py-3 px-6 rounded-2xl cursor-not-allowed min-h-[48px]"
 						>
 							{missionAction.label}
 						</button>

@@ -170,17 +170,17 @@
 
         <div class="px-4 py-3 bg-sky-100 flex items-center justify-between">
           {#if item.owned}
-            <span class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Owned</span>
+            <span class="text-xs font-bold text-emerald-600 uppercase tracking-wide">✓ Owned</span>
             <button
-              class="text-sm font-bold rounded-full px-4 py-1.5 bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+              class="btn-action-green"
               onclick={() => onApplyClick(item.id)}
             >
               Apply
             </button>
           {:else}
-            <span class="text-sm font-semibold text-gray-700">🪙 {item.price}</span>
+            <span class="text-sm font-bold text-gray-700">🪙 {item.price}</span>
             <button
-              class="text-sm font-bold rounded-full px-4 py-1.5 bg-blue-500 text-white disabled:opacity-50 hover:bg-blue-600 transition-colors"
+              class="btn-action-blue"
               onclick={() => onBuyClick(item.id)}
               disabled={coins < item.price}
             >

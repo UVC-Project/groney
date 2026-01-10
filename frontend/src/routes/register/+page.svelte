@@ -127,30 +127,20 @@
 		</div>
 
 		<!-- Type Selector -->
-		<div class="flex gap-2 mb-6">
+		<div class="flex gap-3 mb-6">
 			<button
 				onclick={() => switchType('teacher')}
-				class="flex-1 py-3 px-4 rounded-lg font-semibold transition-all"
-				class:bg-emerald-500={registrationType === 'teacher'}
-				class:text-white={registrationType === 'teacher'}
-				class:shadow-lg={registrationType === 'teacher'}
-				class:bg-white={registrationType !== 'teacher'}
-				class:text-slate-600={registrationType !== 'teacher'}
-				class:border={registrationType !== 'teacher'}
-				class:border-slate-200={registrationType !== 'teacher'}
+				class="flex-1 py-3 px-4 rounded-2xl font-bold transition-all active:scale-[0.98] min-h-[48px] {registrationType === 'teacher' 
+					? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25' 
+					: 'bg-white text-slate-600 border-2 border-slate-200 hover:border-emerald-300'}"
 			>
 				👩‍🏫 Teacher
 			</button>
 			<button
 				onclick={() => switchType('student')}
-				class="flex-1 py-3 px-4 rounded-lg font-semibold transition-all"
-				class:bg-blue-500={registrationType === 'student'}
-				class:text-white={registrationType === 'student'}
-				class:shadow-lg={registrationType === 'student'}
-				class:bg-white={registrationType !== 'student'}
-				class:text-slate-600={registrationType !== 'student'}
-				class:border={registrationType !== 'student'}
-				class:border-slate-200={registrationType !== 'student'}
+				class="flex-1 py-3 px-4 rounded-2xl font-bold transition-all active:scale-[0.98] min-h-[48px] {registrationType === 'student' 
+					? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25' 
+					: 'bg-white text-slate-600 border-2 border-slate-200 hover:border-blue-300'}"
 			>
 				👨‍🎓 Student
 			</button>
@@ -298,7 +288,7 @@
 				<button
 					type="submit"
 					disabled={isLoading}
-					class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
+					class="btn-primary w-full mt-6"
 				>
 					{#if isLoading}
 						<svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">

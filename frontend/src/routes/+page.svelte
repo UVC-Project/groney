@@ -472,13 +472,13 @@
 
   <!-- Welcome + Controls -->
   <div class="flex justify-between items-center mb-4">
-    <p class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white text-sm font-medium text-gray-800 shadow-lg">
-      Welcome{displayName ? `, ${displayName}` : ''}!
+    <p class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-gray-100 bg-white text-sm font-bold text-gray-800 shadow-md">
+      Welcome{displayName ? `, ${displayName}` : ''}! 👋
     </p>
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-3">
       <BackgroundPicker />
       <button
-        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white hover:bg-gray-300 text-sm font-medium text-gray-800 shadow-lg"
+        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] text-sm font-bold text-gray-700 shadow-md transition-all min-h-[44px]"
         onclick={() => showLogoutModal = true}
       >
         Logout
@@ -517,10 +517,10 @@
         </div>
         <p class="text-gray-500 text-base sm:text-lg mb-4">{milestoneReward.message}</p>
         <button
-          class="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-semibold px-6 py-2.5 rounded-full transition-colors touch-manipulation"
+          class="btn-primary w-full sm:w-auto"
           onclick={dismissMilestoneReward}
         >
-          Awesome!
+          Awesome! 🎉
         </button>
       </div>
     </div>
@@ -553,10 +553,10 @@
         </div>
         <p class="text-gray-600 text-base sm:text-lg mb-4">Let's start fresh together! 🌱</p>
         <button
-          class="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-semibold px-6 py-2.5 rounded-full transition-colors touch-manipulation"
+          class="btn-primary w-full sm:w-auto"
           onclick={dismissStreakReset}
         >
-          Let's go!
+          Let's go! 💪
         </button>
       </div>
     </div>
@@ -677,15 +677,15 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
       <h2 class="text-xl md:text-2xl font-bold text-gray-800">Recent Activities</h2>
       
-      <div class="bg-gray-100 p-1 rounded-xl inline-flex self-start sm:self-auto">
+      <div class="bg-gray-100 p-1.5 rounded-2xl inline-flex self-start sm:self-auto">
         <button 
-          class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 {activityFilter === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
+          class={activityFilter === 'all' ? 'btn-chip-active' : 'btn-chip-inactive'}
           onclick={() => activityFilter = 'all'}
         >
           🏫 Whole Class
         </button>
         <button 
-          class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 {activityFilter === 'mine' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
+          class={activityFilter === 'mine' ? 'btn-chip-active' : 'btn-chip-inactive'}
           onclick={() => activityFilter = 'mine'}
         >
           👤 My Activity

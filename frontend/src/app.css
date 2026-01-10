@@ -15,25 +15,100 @@
 }
 
 @layer components {
-  /* Game-style button */
+  /* ============================================
+     BUTTON SYSTEM - Kid-friendly, consistent
+     ============================================ */
+  
+  /* Primary Button - Main actions (Save, Submit, Accept) */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply bg-gradient-to-r from-emerald-500 to-teal-600 text-white;
+    @apply font-bold py-3 px-6 rounded-2xl;
+    @apply shadow-lg shadow-emerald-500/25;
+    @apply hover:from-emerald-600 hover:to-teal-700;
+    @apply active:scale-[0.98] transition-all duration-150;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+    @apply min-h-[48px];
+  }
+
+  /* Secondary Button - Alternative actions (Close, Cancel) */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply bg-white text-gray-700 border-2 border-gray-200;
+    @apply font-bold py-3 px-6 rounded-2xl;
+    @apply hover:bg-gray-50 hover:border-gray-300;
+    @apply active:scale-[0.98] transition-all duration-150;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+    @apply min-h-[48px];
+  }
+
+  /* Action Button - Card actions (Buy, Apply, Request) - pill shaped */
+  .btn-action {
+    @apply inline-flex items-center justify-center gap-1.5;
+    @apply font-bold text-sm py-2.5 px-5 rounded-full;
+    @apply active:scale-[0.97] transition-all duration-150;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+    @apply min-h-[44px];
+  }
+
+  .btn-action-green {
+    @apply btn-action bg-emerald-500 text-white;
+    @apply hover:bg-emerald-600 shadow-md shadow-emerald-500/20;
+  }
+
+  .btn-action-blue {
+    @apply btn-action bg-blue-500 text-white;
+    @apply hover:bg-blue-600 shadow-md shadow-blue-500/20;
+  }
+
+  /* Danger Button - Destructive actions (Remove, Delete) */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply bg-white text-gray-700 border-2 border-gray-200;
+    @apply font-bold py-2.5 px-5 rounded-full;
+    @apply hover:bg-red-500 hover:text-white hover:border-red-500;
+    @apply active:scale-[0.97] transition-all duration-150;
+    @apply min-h-[44px];
+  }
+
+  /* Chip/Tab Button - Toggle buttons (activity filter) */
+  .btn-chip {
+    @apply px-4 py-2 rounded-xl text-sm font-bold;
+    @apply transition-all duration-200;
+    @apply min-h-[40px];
+  }
+
+  .btn-chip-active {
+    @apply btn-chip bg-white text-gray-800 shadow-sm;
+  }
+
+  .btn-chip-inactive {
+    @apply btn-chip text-gray-500 hover:text-gray-700 hover:bg-white/50;
+  }
+
+  /* Legacy game-style buttons (kept for compatibility) */
   .btn-game {
     @apply bg-grass-green text-white font-bold py-3 px-6 rounded-game shadow-game;
-    @apply hover:bg-grass-green-dark active:scale-95 transition-all;
+    @apply hover:bg-grass-green-dark active:scale-[0.98] transition-all;
     @apply min-h-touch-target min-w-touch-target;
   }
 
   .btn-game-secondary {
     @apply bg-sky-blue text-white font-bold py-3 px-6 rounded-game shadow-game;
-    @apply hover:bg-sky-blue-dark active:scale-95 transition-all;
+    @apply hover:bg-sky-blue-dark active:scale-[0.98] transition-all;
     @apply min-h-touch-target min-w-touch-target;
   }
 
-  /* Card styles */
+  /* ============================================
+     CARD STYLES
+     ============================================ */
   .card-game {
     @apply bg-white rounded-game shadow-game-lg p-6;
   }
 
-  /* Stat bar */
+  /* ============================================
+     STAT BAR
+     ============================================ */
   .stat-bar {
     @apply h-4 bg-gray-200 rounded-full overflow-hidden;
   }

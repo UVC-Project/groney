@@ -131,7 +131,7 @@
         <button
           type="button"
           onclick={clearSelection}
-          class="px-4 py-2 rounded-full border bg-white hover:bg-red-500 hover:text-white text-sm font-bold text-gray-700 shadow transition-colors"
+          class="btn-danger"
         >
           Remove Item
         </button>
@@ -162,19 +162,19 @@
       <button
         type="button"
         onclick={() => selectItem(item)}
-        class={`relative bg-white rounded-2xl shadow-md border-2 hover:shadow-lg transition p-3 flex flex-col items-center ${
-          selectedItem?.id === item.id ? 'border-yellow-400' : 'border-gray-200'
+        class={`relative bg-white rounded-2xl shadow-md border-2 hover:shadow-lg hover:border-yellow-300 active:scale-[0.98] transition-all duration-150 p-3 flex flex-col items-center min-h-[120px] ${
+          selectedItem?.id === item.id ? 'border-yellow-400 ring-2 ring-yellow-200' : 'border-gray-200'
         }`}
       >
         {#if selectedItem?.id === item.id}
           <div
-            class="absolute top-2 left-2 bg-sky-100 text-sky-700 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1"
+            class="absolute top-2 left-2 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1"
           >
-            ✅<span>Equipped</span>
+            ✓ Equipped
           </div>
         {/if}
 
-        <div class="w-14 h-14 rounded-xl bg-white flex items-center justify-center mb-2">
+        <div class="w-14 h-14 rounded-xl bg-gray-50 flex items-center justify-center mb-2">
           {#if getItemImage(item)}
             <img src={getItemImage(item)} alt={item.name} class="w-10" />
           {/if}

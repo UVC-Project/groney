@@ -94,7 +94,7 @@
         <button
           type="submit"
           disabled={isLoading}
-          class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          class="btn-primary w-full"
         >
           {#if isLoading}
             <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
@@ -130,18 +130,18 @@
 
       <div class="mt-6 pt-6 border-t border-slate-200 text-center">
         <p class="text-slate-600">Don't have an account?</p>
-        <div class="flex gap-4 mt-3">
+        <div class="flex gap-3 mt-3">
           <a
             href="/register?type=teacher"
-            class="flex-1 py-2.5 px-4 border-2 border-emerald-500 text-emerald-600 font-semibold rounded-lg hover:bg-emerald-50 transition-all text-center"
+            class="flex-1 py-3 px-4 border-2 border-emerald-500 text-emerald-600 font-bold rounded-2xl hover:bg-emerald-50 active:scale-[0.98] transition-all text-center min-h-[48px] flex items-center justify-center"
           >
-            I'm a Teacher
+            👩‍🏫 I'm a Teacher
           </a>
           <a
             href="/register?type=student"
-            class="flex-1 py-2.5 px-4 border-2 border-blue-500 text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all text-center"
+            class="flex-1 py-3 px-4 border-2 border-blue-500 text-blue-600 font-bold rounded-2xl hover:bg-blue-50 active:scale-[0.98] transition-all text-center min-h-[48px] flex items-center justify-center"
           >
-            I'm a Student
+            👨‍🎓 I'm a Student
           </a>
         </div>
       </div>

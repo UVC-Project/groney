@@ -169,11 +169,7 @@
           <button
             type="submit"
             disabled={saving}
-            class="w-full py-3 mt-2 bg-gradient-to-r from-emerald-500 to-teal-600
-						text-white font-bold rounded-xl
-						hover:from-emerald-600 hover:to-teal-700
-						transition-all shadow-lg shadow-emerald-500/30
-						disabled:opacity-50 disabled:cursor-not-allowed"
+            class="btn-primary w-full mt-2"
           >
             {saving ? 'Saving…' : 'Save Changes'}
           </button>
