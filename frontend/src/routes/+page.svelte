@@ -487,7 +487,7 @@
   </div>
 
   <!-- Title -->
-  <h1 class="text-4xl md:text-5xl font-extrabold text-center text-gray-800 mb-4">
+  <h1 class="text-4xl md:text-5xl font-extrabold text-center text-gray-800 mb-4 tracking-tight">
     Groeny
   </h1>
 
@@ -641,41 +641,41 @@
 
   <!-- XP Progress -->
   <div class="max-w-md mx-auto mb-6">
-    <p class="text-gray-800 mb-1 text-sm">XP Progress (Level {level})</p>
+    <p class="text-gray-700 mb-1 text-sm font-semibold">XP Progress (Level {level})</p>
     <div class="w-full bg-gray-200 rounded-full h-3 shadow-lg overflow-hidden">
       <div class="{healthColor} h-full transition-all duration-500" style="width: {levelProgress.percentage}%"></div>
     </div>
-    <p class="text-right text-gray-800 text-sm mt-1">{levelProgress.current} / {levelProgress.required}</p>
+    <p class="text-right text-gray-500 text-xs mt-1">{levelProgress.current} / {levelProgress.required}</p>
   </div>
 
   <!-- Stats -->
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-blue-600">
       <div class="text-3xl mb-1">💧</div>
-      <p class="text-gray-800 text-sm">THIRST</p>
-      <p class="font-extrabold text-xl transition-all duration-500 {getStatColor(thirst)}">{thirst}%</p>
+      <p class="text-gray-500 text-xs font-bold uppercase tracking-wide">Thirst</p>
+      <p class="font-extrabold text-2xl transition-all duration-500 {getStatColor(thirst)}">{thirst}%</p>
     </div>
     <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-orange-500">
       <div class="text-3xl mb-1">🍎</div>
-      <p class="text-gray-800 text-sm">HUNGER</p>
-      <p class="font-extrabold text-xl transition-all duration-500 {getStatColor(hunger)}">{hunger}%</p>
+      <p class="text-gray-500 text-xs font-bold uppercase tracking-wide">Hunger</p>
+      <p class="font-extrabold text-2xl transition-all duration-500 {getStatColor(hunger)}">{hunger}%</p>
     </div>
     <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-sky-500">
       <div class="text-3xl mb-1">🥰</div>
-      <p class="text-gray-800 text-sm">HAPPINESS</p>
-      <p class="font-extrabold text-xl transition-all duration-500 {getStatColor(happiness)}">{happiness}%</p>
+      <p class="text-gray-500 text-xs font-bold uppercase tracking-wide">Happiness</p>
+      <p class="font-extrabold text-2xl transition-all duration-500 {getStatColor(happiness)}">{happiness}%</p>
     </div>
     <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-pink-500">
       <div class="text-3xl mb-1">🧹</div>
-      <p class="text-gray-800 text-sm">CLEANLINESS</p>
-      <p class="font-extrabold text-xl transition-all duration-500 {getStatColor(cleanliness)}">{cleanliness}%</p>
+      <p class="text-gray-500 text-xs font-bold uppercase tracking-wide">Clean</p>
+      <p class="font-extrabold text-2xl transition-all duration-500 {getStatColor(cleanliness)}">{cleanliness}%</p>
     </div>
   </div>
 
   <!-- Activity Feed -->
    <div class="mt-6">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-      <h2 class="text-2xl font-extrabold text-gray-800">Recent activities</h2>
+      <h2 class="text-xl md:text-2xl font-bold text-gray-800">Recent Activities</h2>
       
       <div class="bg-gray-100 p-1 rounded-xl inline-flex self-start sm:self-auto">
         <button 
@@ -703,25 +703,25 @@
           {#each activities as activity}
             <article class="bg-white rounded-3xl shadow-md p-4 border border-gray-100 transition-transform hover:scale-[1.01]">
               <div class="flex items-center gap-3 mb-3">
-                  <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                  <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
                       {activity.userName?.charAt(0) || '?'}
                   </div>
-                  <h3 class="font-semibold text-gray-800 text-sm">
-                      <span class="font-bold text-blue-600">{activity.userName}</span> completed {activity.missionTitle}!
-                  </h3>
+                  <p class="text-gray-700 text-sm leading-snug">
+                      <span class="font-bold text-blue-600">{activity.userName}</span> completed <span class="font-semibold">{activity.missionTitle}</span>!
+                  </p>
               </div>
 
               <div class="overflow-hidden rounded-2xl mb-3 bg-gray-50 relative group">
                 {#if activity.imageUrl}
                     <img src={resolvePhotoUrl(activity.imageUrl)} alt={activity.missionTitle} class="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-105">
                 {:else}
-                    <div class="w-full h-40 flex items-center justify-center text-gray-400">
+                    <div class="w-full h-40 flex items-center justify-center text-gray-400 text-sm">
                         No photo submitted
                     </div>
                 {/if}
               </div>
 
-              <p class="text-xs text-gray-500 flex items-center gap-1">
+              <p class="text-xs text-gray-400 flex items-center gap-1">
                   📅 {formatDate(activity.createdAt)}
               </p>
             </article>
@@ -730,9 +730,9 @@
     {:else}
         <div class="text-center py-10 bg-gray-50 rounded-3xl border border-dashed border-gray-300">
             <p class="text-4xl mb-2">📭</p>
-            <p class="text-gray-600 font-medium">No recent activities found.</p>
+            <p class="text-gray-700 font-semibold">No recent activities yet</p>
             {#if activityFilter === 'mine'}
-                <p class="text-gray-400 text-sm mt-1">Complete some missions to see them here!</p>
+                <p class="text-gray-500 text-sm mt-1">Complete some missions to see them here!</p>
             {/if}
         </div>
     {/if}

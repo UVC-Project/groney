@@ -164,23 +164,23 @@
             <img src={getItemImage(item)} alt={item.name} class="h-20 mb-3" />
           {/if}
 
-          <h3 class="font-semibold text-gray-800">{item.name}</h3>
-          <p class="text-xs text-gray-500 text-center mt-1">{item.description}</p>
+          <h3 class="text-base font-bold text-gray-800">{item.name}</h3>
+          <p class="text-xs text-gray-500 text-center mt-1 leading-relaxed">{item.description}</p>
         </div>
 
         <div class="px-4 py-3 bg-sky-100 flex items-center justify-between">
           {#if item.owned}
-            <span class="text-xs font-semibold text-emerald-600">Owned</span>
+            <span class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Owned</span>
             <button
-              class="text-xs font-semibold rounded-full px-4 py-1 bg-emerald-400 text-white"
+              class="text-sm font-bold rounded-full px-4 py-1.5 bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
               onclick={() => onApplyClick(item.id)}
             >
               Apply
             </button>
           {:else}
-            <span class="text-sm text-gray-700">🪙 {item.price}</span>
+            <span class="text-sm font-semibold text-gray-700">🪙 {item.price}</span>
             <button
-              class="text-xs font-semibold rounded-full px-4 py-1 bg-blue-400 text-white disabled:opacity-60"
+              class="text-sm font-bold rounded-full px-4 py-1.5 bg-blue-500 text-white disabled:opacity-50 hover:bg-blue-600 transition-colors"
               onclick={() => onBuyClick(item.id)}
               disabled={coins < item.price}
             >

@@ -137,8 +137,8 @@
 
   {#if data.supplies.length === 0}
     <div class="text-center text-gray-500 py-6">
-      <p class="font-medium mb-1">No supplies found</p>
-      <p class="text-sm">Seed the DB and make sure supply-service + gateway are running.</p>
+      <p class="font-semibold text-gray-700 mb-1">No supplies found</p>
+      <p class="text-sm text-gray-500">Seed the DB and make sure supply-service + gateway are running.</p>
     </div>
   {:else}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -151,14 +151,14 @@
               </div>
             {/if}
 
-            <h3 class="font-semibold text-gray-800">{supply.name}</h3>
-            <p class="text-xs text-gray-500 text-center mt-1">{supply.description}</p>
+            <h3 class="text-base font-bold text-gray-800">{supply.name}</h3>
+            <p class="text-xs text-gray-500 text-center mt-1 leading-relaxed">{supply.description}</p>
           </div>
 
           <div class="px-4 py-3 bg-green-50 flex items-center justify-end">
             <button
               type="button"
-              class="text-xs font-semibold rounded-full px-4 py-1 bg-green-500 text-white hover:bg-green-600 transition-colors"
+              class="text-sm font-bold rounded-full px-4 py-1.5 bg-green-500 text-white hover:bg-green-600 transition-colors"
               onclick={() => onRequestClick(supply)}
             >
               Request

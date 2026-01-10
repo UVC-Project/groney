@@ -60,7 +60,7 @@
 </svelte:head>
 
 <div class="container mx-auto px-4 py-6 max-w-4xl">
-  <h1 class="text-3xl font-bold text-white drop-shadow-lg mb-6 text-center">
+  <h1 class="text-3xl md:text-4xl font-extrabold text-white drop-shadow-lg mb-6 text-center tracking-tight">
     My Profile
   </h1>
 
@@ -72,7 +72,7 @@
       >
         <span class="text-3xl">👤</span>
       </div>
-      <p class="text-slate-600">Update your personal information</p>
+      <p class="text-gray-500 text-sm">Update your personal information</p>
     </div>
 
     <!-- Form Container -->
@@ -90,10 +90,10 @@
 
           <!-- First name -->
           <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-2"> First name </label>
+            <label class="block text-sm font-bold text-gray-700 mb-1.5"> First Name </label>
             <input
               bind:value={firstName}
-              class="w-full px-4 py-3 border border-slate-300 rounded-lg
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-gray-800
 							focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
 							outline-none transition-all"
             />
@@ -101,10 +101,10 @@
 
           <!-- Last name -->
           <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-2"> Last name </label>
+            <label class="block text-sm font-bold text-gray-700 mb-1.5"> Last Name </label>
             <input
               bind:value={lastName}
-              class="w-full px-4 py-3 border border-slate-300 rounded-lg
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-gray-800
 							focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
 							outline-none transition-all"
             />
@@ -112,10 +112,10 @@
 
           <!-- Username -->
           <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-2"> Username </label>
+            <label class="block text-sm font-bold text-gray-700 mb-1.5"> Username </label>
             <input
               bind:value={username}
-              class="w-full px-4 py-3 border border-slate-300 rounded-lg
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-gray-800
 							focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
 							outline-none transition-all"
             />
@@ -124,11 +124,11 @@
           <!-- Email (teacher only) -->
           {#if role === 'TEACHER'}
             <div>
-              <label class="block text-sm font-semibold text-slate-700 mb-2"> Email </label>
+              <label class="block text-sm font-bold text-gray-700 mb-1.5"> Email </label>
               <input
                 type="email"
                 bind:value={email}
-                class="w-full px-4 py-3 border border-slate-300 rounded-lg
+                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-gray-800
 								focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
 								outline-none transition-all"
               />
@@ -137,14 +137,14 @@
 
           <!-- Current password -->
           <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-2">
-              Current password <span class="text-slate-500">(optional)</span>
+            <label class="block text-sm font-bold text-gray-700 mb-1.5">
+              Current Password <span class="text-gray-400 font-normal">(optional)</span>
             </label>
             <input
               type="password"
               bind:value={currentPassword}
               placeholder="Required to change password"
-              class="w-full px-4 py-3 border border-slate-300 rounded-lg
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-gray-800 placeholder:text-gray-400
 		focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
 		outline-none transition-all"
             />
@@ -152,14 +152,14 @@
 
           <!-- Password -->
           <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-2">
-              New password <span class="text-slate-500">(optional)</span>
+            <label class="block text-sm font-bold text-gray-700 mb-1.5">
+              New Password <span class="text-gray-400 font-normal">(optional)</span>
             </label>
             <input
               type="password"
               bind:value={password}
-              placeholder="Leave blank to keep current password"
-              class="w-full px-4 py-3 border border-slate-300 rounded-lg
+              placeholder="Leave blank to keep current"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-gray-800 placeholder:text-gray-400
 							focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
 							outline-none transition-all"
             />
@@ -169,13 +169,13 @@
           <button
             type="submit"
             disabled={saving}
-            class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600
-						text-white font-semibold rounded-lg
+            class="w-full py-3 mt-2 bg-gradient-to-r from-emerald-500 to-teal-600
+						text-white font-bold rounded-xl
 						hover:from-emerald-600 hover:to-teal-700
 						transition-all shadow-lg shadow-emerald-500/30
 						disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? 'Saving…' : 'Save changes'}
+            {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </form>
       {/if}

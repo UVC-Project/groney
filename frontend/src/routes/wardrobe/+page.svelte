@@ -121,7 +121,7 @@
     </div>
   </div>
 
-  <h2 class="text-lg md:text-xl font-extrabold text-center text-gray-800 mb-4">
+  <h2 class="text-lg md:text-xl font-bold text-center text-gray-800 mb-4">
     Currently Wearing
   </h2>
 
@@ -131,31 +131,31 @@
         <button
           type="button"
           onclick={clearSelection}
-          class="px-4 py-2 rounded-full border bg-white hover:bg-red-600 hover:text-white text-sm font-semibold text-gray-800 shadow"
+          class="px-4 py-2 rounded-full border bg-white hover:bg-red-500 hover:text-white text-sm font-bold text-gray-700 shadow transition-colors"
         >
-          Remove item
+          Remove Item
         </button>
       </div>
     {/if}
 
     <div
-      class="flex items-center justify-between bg-gray-200 rounded-full px-4 py-2 text-sm"
+      class="flex items-center justify-between bg-gray-100 rounded-full px-4 py-2.5"
     >
-      <span class="text-gray-700 font-medium">Name:</span>
-      <span class="text-gray-600">{selectedItem ? selectedItem.name : 'None'}</span>
+      <span class="text-gray-600 text-sm font-semibold">Name:</span>
+      <span class="text-gray-800 text-sm font-medium">{selectedItem ? selectedItem.name : 'None'}</span>
     </div>
 
     <div
-      class="flex items-center justify-between bg-gray-200 rounded-full px-4 py-2 text-sm"
+      class="flex items-center justify-between bg-gray-100 rounded-full px-4 py-2.5"
     >
-      <span class="text-gray-700 font-medium">Type:</span>
-      <span class="text-gray-600">
+      <span class="text-gray-600 text-sm font-semibold">Type:</span>
+      <span class="text-gray-800 text-sm font-medium">
         {selectedItem ? (selectedItem.type ?? 'None') : 'None'}
       </span>
     </div>
   </div>
 
-  <h3 class="text-lg md:text-xl font-extrabold text-gray-800 mb-4">Your Collection</h3>
+  <h3 class="text-lg md:text-xl font-bold text-gray-800 mb-4">Your Collection</h3>
 
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
     {#each ownedItems as item}
@@ -168,7 +168,7 @@
       >
         {#if selectedItem?.id === item.id}
           <div
-            class="absolute top-2 left-2 bg-sky-100 text-sky-700 text-[10px] font-semibold px-2 py-1 rounded-full flex items-center gap-1"
+            class="absolute top-2 left-2 bg-sky-100 text-sky-700 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1"
           >
             ✅<span>Equipped</span>
           </div>
@@ -180,8 +180,8 @@
           {/if}
         </div>
 
-        <p class="text-sm font-semibold text-gray-800">{item.name}</p>
-        <p class="text-xs text-gray-500 mt-1 text-center">{item.description}</p>
+        <p class="text-sm font-bold text-gray-800">{item.name}</p>
+        <p class="text-xs text-gray-500 mt-1 text-center leading-relaxed">{item.description}</p>
       </button>
     {/each}
   </div>
