@@ -211,6 +211,98 @@
   .stat-bar-fill {
     @apply h-full transition-all duration-300 ease-out;
   }
+
+  /* ============================================
+     FEEDBACK SYSTEM
+     ======================================== */
+  
+  /* Toast/Banner - appears at top of content */
+  .feedback-toast {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-full;
+    @apply text-sm font-bold shadow-lg;
+    @apply animate-bounce-in;
+  }
+
+  .feedback-toast-success {
+    @apply feedback-toast;
+    @apply bg-emerald-100 text-emerald-800 border-2 border-emerald-200;
+  }
+
+  .feedback-toast-error {
+    @apply feedback-toast;
+    @apply bg-rose-100 text-rose-800 border-2 border-rose-200;
+  }
+
+  .feedback-toast-info {
+    @apply feedback-toast;
+    @apply bg-sky-100 text-sky-800 border-2 border-sky-200;
+  }
+
+  /* Inline feedback boxes - for form/modal feedback */
+  .feedback-box {
+    @apply p-3.5 rounded-2xl text-sm font-medium;
+    @apply flex items-start gap-2.5;
+  }
+
+  .feedback-box-success {
+    @apply feedback-box;
+    @apply bg-emerald-50 border-2 border-emerald-200 text-emerald-700;
+  }
+
+  .feedback-box-error {
+    @apply feedback-box;
+    @apply bg-rose-50 border-2 border-rose-200 text-rose-700;
+  }
+
+  .feedback-box-warning {
+    @apply feedback-box;
+    @apply bg-amber-50 border-2 border-amber-200 text-amber-700;
+  }
+
+  .feedback-box-info {
+    @apply feedback-box;
+    @apply bg-sky-50 border-2 border-sky-200 text-sky-700;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    @apply w-5 h-5 border-2 border-current border-t-transparent rounded-full;
+    animation: spin 0.7s linear infinite;
+  }
+
+  .spinner-sm {
+    @apply w-4 h-4 border-2 border-current border-t-transparent rounded-full;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 rounded-2xl;
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Button loading state helper */
+  .btn-loading {
+    @apply relative pointer-events-none;
+  }
+
+  .btn-loading > *:not(.spinner) {
+    @apply opacity-0;
+  }
+
+  .btn-loading > .spinner {
+    @apply absolute inset-0 m-auto;
+  }
 }
 
 @layer utilities {

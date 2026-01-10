@@ -25,6 +25,32 @@
 
   let selectedItem = $state<Item | null>(null);
 
+  // Feedback state
+  let bannerMsg = $state<string | null>(null);
+  let bannerType = $state<'error' | 'success'>('success');
+  let bannerEmoji = $state('');
+  let bannerTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  // Loading states
+  let isEquipping = $state(false);
+  let isUnequipping = $state(false);
+
+  function showBanner(msg: string, type: 'error' | 'success', emoji = '') {
+    // Clear any existing timeout to prevent glitchy disappearing
+    if (bannerTimeout) {
+      clearTimeout(bannerTimeout);
+    }
+    
+    bannerMsg = msg;
+    bannerType = type;
+    bannerEmoji = emoji || (type === 'success' ? '✨' : '😕');
+    
+    bannerTimeout = setTimeout(() => {
+      bannerMsg = null;
+      bannerTimeout = null;
+    }, 3000);
+  }
+
   // ✅ Use imported assets
   const groenyGifMap: Record<string, string> = {
     'hat-red-cap': RedHatGif,
@@ -81,27 +107,46 @@
   }
 
   async function selectItem(item: Item) {
+    if (isEquipping) return;
+    isEquipping = true;
+
+    // Optimistically update UI
     selectedItem = item;
     localStorage.setItem(STORAGE_KEY, item.id);
 
-    // ✅ keep DB in sync with selection
     try {
       await equipItem(item);
+      showBanner(`Groeny is now wearing ${item.name}!`, 'success', '👔');
     } catch (e) {
       console.error('Failed to equip item', e);
+      showBanner("Couldn't put that on. Try again!", 'error', '😅');
+      // Revert on failure
+      selectedItem = null;
+      localStorage.removeItem(STORAGE_KEY);
+    } finally {
+      isEquipping = false;
     }
   }
 
   async function clearSelection() {
-    // ✅ remove from DB too
+    if (isUnequipping || !selectedItem) return;
+    isUnequipping = true;
+
+    const prevItem = selectedItem;
+
     try {
       await unequipSelected();
+      selectedItem = null;
+      localStorage.removeItem(STORAGE_KEY);
+      showBanner('Item removed!', 'success', '👋');
     } catch (e) {
       console.error('Failed to unequip item', e);
+      showBanner("Couldn't remove that. Try again!", 'error', '😅');
+      // Keep the item on failure
+      selectedItem = prevItem;
+    } finally {
+      isUnequipping = false;
     }
-
-    selectedItem = null;
-    localStorage.removeItem(STORAGE_KEY);
   }
 
   onMount(() => {
@@ -114,6 +159,15 @@
 </script>
 
 <PageWrapper title="Wardrobe">
+  {#if bannerMsg}
+    <div class="flex justify-center mb-4">
+      <div class={bannerType === 'success' ? 'feedback-toast-success' : 'feedback-toast-error'}>
+        <span>{bannerEmoji}</span>
+        <span>{bannerMsg}</span>
+      </div>
+    </div>
+  {/if}
+
   <!-- Groeny Preview -->
   <div class="flex justify-center mb-6">
     <div class="relative">
@@ -145,9 +199,15 @@
       <button
         type="button"
         onclick={clearSelection}
+        disabled={isUnequipping}
         class="btn-danger w-full"
       >
-        Remove Item
+        {#if isUnequipping}
+          <span class="spinner-sm"></span>
+          <span>Removing...</span>
+        {:else}
+          Remove Item
+        {/if}
       </button>
     {:else}
       <div class="surface-info">
@@ -178,7 +238,8 @@
         <button
           type="button"
           onclick={() => selectItem(item)}
-          class="card-item-blue relative p-4 flex flex-col items-center min-h-[130px] hover:shadow-lg active:scale-[0.98] transition-all duration-150 {selectedItem?.id === item.id ? 'ring-2 ring-yellow-400 border-yellow-300' : ''}"
+          disabled={isEquipping}
+          class="card-item-blue relative p-4 flex flex-col items-center min-h-[130px] hover:shadow-lg active:scale-[0.98] transition-all duration-150 disabled:opacity-70 {selectedItem?.id === item.id ? 'ring-2 ring-yellow-400 border-yellow-300' : ''}"
         >
           {#if selectedItem?.id === item.id}
             <div class="absolute top-2 right-2 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-md">

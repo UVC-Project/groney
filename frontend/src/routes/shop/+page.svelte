@@ -35,13 +35,30 @@
   let coins = $state(data.coins);
   let items = $state([...data.items]);
 
+  // Feedback state
   let bannerMsg = $state<string | null>(null);
   let bannerType = $state<'error' | 'success'>('error');
+  let bannerEmoji = $state('');
+  let bannerTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  function showBanner(msg: string, type: 'error' | 'success' = 'error') {
+  // Loading states - track per item to prevent double actions
+  let buyingItemId = $state<string | null>(null);
+  let applyingItemId = $state<string | null>(null);
+
+  function showBanner(msg: string, type: 'error' | 'success' = 'error', emoji = '') {
+    // Clear any existing timeout to prevent glitchy disappearing
+    if (bannerTimeout) {
+      clearTimeout(bannerTimeout);
+    }
+    
     bannerMsg = msg;
     bannerType = type;
-    window.setTimeout(() => (bannerMsg = null), 3500);
+    bannerEmoji = emoji || (type === 'success' ? '🎉' : '😕');
+    
+    bannerTimeout = setTimeout(() => {
+      bannerMsg = null;
+      bannerTimeout = null;
+    }, 3500);
   }
 
   type FetchOptions = {
@@ -65,16 +82,18 @@
     }
   }
 
-  function getNetworkErrorMessage(err: unknown) {
+  function getKidFriendlyError(err: unknown, fallback: string) {
     if (err instanceof DOMException && err.name === 'AbortError') {
-      return 'Request timed out. Please try again.';
+      return 'Oops! That took too long. Try again?';
     }
-    return 'Service unavailable.';
+    return fallback;
   }
 
   async function onBuyClick(id: string) {
     const item = items.find((i) => i.id === id);
-    if (!item || item.owned) return;
+    if (!item || item.owned || buyingItemId) return;
+
+    buyingItemId = id;
 
     try {
       const res = await fetchWithTimeout(`${API_BASE}/api/shop/purchase`, {
@@ -90,7 +109,7 @@
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        showBanner(json.message ?? 'Purchase failed');
+        showBanner(json.message ?? "Couldn't buy that right now. Try again!", 'error', '😅');
         return;
       }
 
@@ -99,15 +118,19 @@
         i.id === id ? { ...i, owned: true } : i
       );
 
-      showBanner('Purchased!', 'success');
+      showBanner(`You got ${item.name}!`, 'success', '🛍️');
     } catch (err) {
-      showBanner(getNetworkErrorMessage(err));
+      showBanner(getKidFriendlyError(err, 'Something went wrong. Try again!'), 'error');
+    } finally {
+      buyingItemId = null;
     }
   }
 
   async function onApplyClick(id: string) {
     const item = items.find((i) => i.id === id);
-    if (!item || !item.owned) return;
+    if (!item || !item.owned || applyingItemId) return;
+
+    applyingItemId = id;
 
     try {
       const res = await fetchWithTimeout(`${API_BASE}/api/mascot/equip`, {
@@ -122,14 +145,16 @@
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        showBanner(json.message ?? 'Equip failed');
+        showBanner(json.message ?? "Couldn't equip that. Try again!", 'error', '😅');
         return;
       }
 
       localStorage.setItem('wardrobe:selectedItemId', id);
-      showBanner('Equipped!', 'success');
+      showBanner(`Groeny is now wearing ${item.name}!`, 'success', '✨');
     } catch (err) {
-      showBanner(getNetworkErrorMessage(err));
+      showBanner(getKidFriendlyError(err, 'Something went wrong. Try again!'), 'error');
+    } finally {
+      applyingItemId = null;
     }
   }
 </script>
@@ -137,14 +162,9 @@
 <PageWrapper title="Shop">
   {#if bannerMsg}
     <div class="flex justify-center mb-4">
-      <div
-        class={`px-5 py-2 rounded-full text-sm font-semibold border ${
-          bannerType === 'success'
-            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-            : 'bg-rose-100 text-rose-800 border-rose-200'
-        }`}
-      >
-        {bannerMsg}
+      <div class={bannerType === 'success' ? 'feedback-toast-success' : 'feedback-toast-error'}>
+        <span>{bannerEmoji}</span>
+        <span>{bannerMsg}</span>
       </div>
     </div>
   {/if}
@@ -182,17 +202,26 @@
             <button
               class="btn-action-green"
               onclick={() => onApplyClick(item.id)}
+              disabled={applyingItemId === item.id}
             >
-              Apply
+              {#if applyingItemId === item.id}
+                <span class="spinner-sm"></span>
+              {:else}
+                Apply
+              {/if}
             </button>
           {:else}
             <span class="badge-playful bg-emerald-100 text-emerald-800 text-sm py-1 px-3">🌱 {item.price}</span>
             <button
               class="btn-action-blue"
               onclick={() => onBuyClick(item.id)}
-              disabled={coins < item.price}
+              disabled={coins < item.price || buyingItemId === item.id}
             >
-              Buy
+              {#if buyingItemId === item.id}
+                <span class="spinner-sm"></span>
+              {:else}
+                Buy
+              {/if}
             </button>
           {/if}
         </div>

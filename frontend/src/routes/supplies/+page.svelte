@@ -39,13 +39,29 @@
     }
   });
 
+  // Feedback state
   let bannerMsg = $state<string | null>(null);
   let bannerType = $state<'error' | 'success'>('success');
+  let bannerEmoji = $state('');
+  let bannerTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  function showBanner(msg: string, type: 'error' | 'success') {
+  // Loading state - track which supply is being requested
+  let requestingSupplyId = $state<string | null>(null);
+
+  function showBanner(msg: string, type: 'error' | 'success', emoji = '') {
+    // Clear any existing timeout to prevent glitchy disappearing
+    if (bannerTimeout) {
+      clearTimeout(bannerTimeout);
+    }
+    
     bannerMsg = msg;
     bannerType = type;
-    window.setTimeout(() => (bannerMsg = null), 3500);
+    bannerEmoji = emoji || (type === 'success' ? '📬' : '😕');
+    
+    bannerTimeout = setTimeout(() => {
+      bannerMsg = null;
+      bannerTimeout = null;
+    }, 3500);
   }
 
   const imageMap: Record<string, string> = {
@@ -85,19 +101,23 @@
     }
   }
 
-  function getNetworkErrorMessage(err: unknown) {
+  function getKidFriendlyError(err: unknown, fallback: string) {
     if (err instanceof DOMException && err.name === 'AbortError') {
-      return 'Request timed out. Please try again.';
+      return 'Oops! That took too long. Try again?';
     }
-    return 'Service unavailable.';
+    return fallback;
   }
 
   async function onRequestClick(supply: Supply) {
-    // ✅ Guard: must have real IDs
+    // Guard: must have real IDs
     if (!userId || !classId) {
-      showBanner('Please log in and select a class first.', 'error');
+      showBanner('Please log in first!', 'error', '🔑');
       return;
     }
+
+    // Prevent double-click
+    if (requestingSupplyId) return;
+    requestingSupplyId = supply.id;
 
     try {
       const res = await fetchWithTimeout(`${API_BASE}/api/supply-requests`, {
@@ -109,13 +129,15 @@
       const json: { message?: string } = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        showBanner(json.message ?? 'Failed to request supply', 'error');
+        showBanner(json.message ?? "Couldn't send that request. Try again!", 'error', '😅');
         return;
       }
 
-      showBanner('Request sent to your teacher!', 'success');
+      showBanner('Request sent! Your teacher will see it soon.', 'success', '✉️');
     } catch (err) {
-      showBanner(getNetworkErrorMessage(err), 'error');
+      showBanner(getKidFriendlyError(err, 'Something went wrong. Try again!'), 'error');
+    } finally {
+      requestingSupplyId = null;
     }
   }
 </script>
@@ -123,14 +145,9 @@
 <PageWrapper title="Schoolyard Supplies">
   {#if bannerMsg}
     <div class="flex justify-center mb-4">
-      <div
-        class={`px-5 py-2 rounded-full text-sm font-semibold border ${
-          bannerType === 'success'
-            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-            : 'bg-rose-100 text-rose-800 border-rose-200'
-        }`}
-      >
-        {bannerMsg}
+      <div class={bannerType === 'success' ? 'feedback-toast-success' : 'feedback-toast-error'}>
+        <span>{bannerEmoji}</span>
+        <span>{bannerMsg}</span>
       </div>
     </div>
   {/if}
@@ -169,8 +186,13 @@
               type="button"
               class="btn-action-green"
               onclick={() => onRequestClick(supply)}
+              disabled={requestingSupplyId === supply.id}
             >
-              Request
+              {#if requestingSupplyId === supply.id}
+                <span class="spinner-sm"></span>
+              {:else}
+                Request
+              {/if}
             </button>
           </div>
         </article>

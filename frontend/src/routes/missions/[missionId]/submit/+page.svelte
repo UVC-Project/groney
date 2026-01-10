@@ -47,14 +47,14 @@
   function processFile(file: File) {
     // Validate file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
-      errorMessage = 'File too large. Maximum size is 5MB.';
+      errorMessage = 'That photo is too big! Try a smaller one (under 5MB).';
       return;
     }
     
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      errorMessage = 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.';
+      errorMessage = 'Oops! That file type doesn\'t work. Try a JPG, WebP, GIF or PNG photo.';
       return;
     }
     
@@ -79,7 +79,7 @@
 
   async function handleSubmit() {
     if (!selectedFile || !data.submissionId) {
-      errorMessage = 'Please select a photo to upload';
+      errorMessage = 'Pick a photo first! 📷';
       return;
     }
 
@@ -113,10 +113,10 @@
       const result = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(result.message || 'Failed to upload photo');
+        throw new Error(result.message || "Couldn't upload that. Try again!");
       }
 
-      successMessage = 'Photo uploaded! Your submission is pending review. 🎉';
+      successMessage = "Awesome! Your teacher will check it soon. Nice work! 🌟";
       
       // Redirect to map after short delay
       setTimeout(() => {
@@ -124,7 +124,7 @@
       }, 2000);
     } catch (err) {
       console.error('Upload error:', err);
-      errorMessage = err instanceof Error ? err.message : 'Failed to upload photo. Please try again.';
+      errorMessage = err instanceof Error ? err.message : 'Oops! Something went wrong. Try again!';
     } finally {
       isSubmitting = false;
     }
@@ -223,15 +223,17 @@
 
       <!-- Error Message -->
       {#if errorMessage}
-        <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-          ❌ {errorMessage}
+        <div class="feedback-box-error">
+          <span class="text-lg">😅</span>
+          <span>{errorMessage}</span>
         </div>
       {/if}
 
       <!-- Success Message -->
       {#if successMessage}
-        <div class="p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
-          ✅ {successMessage}
+        <div class="feedback-box-success">
+          <span class="text-lg">🎉</span>
+          <span>{successMessage}</span>
         </div>
       {/if}
 

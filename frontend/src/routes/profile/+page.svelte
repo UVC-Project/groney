@@ -2,29 +2,35 @@
   import { onMount } from 'svelte';
   import { auth } from '$lib/stores/auth';
 
-  let loading = true;
-  let saving = false;
-  let message = '';
+  let loading = $state(true);
+  let saving = $state(false);
+  let message = $state('');
+  let messageType = $state<'success' | 'error'>('success');
 
-  let role: 'TEACHER' | 'STUDENT';
+  let role = $state<'TEACHER' | 'STUDENT'>('STUDENT');
 
-  let firstName = '';
-  let lastName = '';
-  let username = '';
-  let email = '';
-  let password = '';
-  let currentPassword = '';
+  let firstName = $state('');
+  let lastName = $state('');
+  let username = $state('');
+  let email = $state('');
+  let password = $state('');
+  let currentPassword = $state('');
 
   onMount(async () => {
-    const profile = await auth.getProfile();
+    try {
+      const profile = await auth.getProfile();
 
-    role = profile.role;
-    firstName = profile.firstName;
-    lastName = profile.lastName;
-    username = profile.username;
-    email = profile.email ?? '';
-
-    loading = false;
+      role = profile.role;
+      firstName = profile.firstName;
+      lastName = profile.lastName;
+      username = profile.username;
+      email = profile.email ?? '';
+    } catch (e) {
+      message = "Couldn't load your profile. Try refreshing!";
+      messageType = 'error';
+    } finally {
+      loading = false;
+    }
   });
 
   async function save() {
@@ -46,12 +52,18 @@
       payload.currentPassword = currentPassword;
     }
 
-    const res = await auth.updateProfile(payload);
-    message = res.message ?? 'Profile updated';
-    password = '';
-    currentPassword = '';
-
-    saving = false;
+    try {
+      const res = await auth.updateProfile(payload);
+      message = res.message ?? 'Changes saved! ✨';
+      messageType = 'success';
+      password = '';
+      currentPassword = '';
+    } catch (e) {
+      message = "Couldn't save changes. Try again!";
+      messageType = 'error';
+    } finally {
+      saving = false;
+    }
   }
 </script>
 
@@ -84,11 +96,11 @@
           <p class="text-slate-600">Loading profile…</p>
         </div>
       {:else}
-        <form on:submit|preventDefault={save} class="space-y-4">
+        <form onsubmit={(e) => { e.preventDefault(); save(); }} class="space-y-4">
           {#if message}
-            <div class="surface-info !bg-emerald-50 !border-emerald-200 flex items-center gap-2">
-              <span class="text-lg">✅</span>
-              <span class="text-emerald-700 text-sm font-medium">{message}</span>
+            <div class={messageType === 'success' ? 'feedback-box-success' : 'feedback-box-error'}>
+              <span class="text-lg">{messageType === 'success' ? '✅' : '😅'}</span>
+              <span>{message}</span>
             </div>
           {/if}
 
@@ -176,7 +188,13 @@
             disabled={saving}
             class="btn-primary w-full mt-2"
           >
-            {saving ? 'Saving…' : 'Save Changes'}
+            {#if saving}
+              <span class="spinner"></span>
+              <span>Saving...</span>
+            {:else}
+              <span>💾</span>
+              <span>Save Changes</span>
+            {/if}
           </button>
         </form>
       {/if}

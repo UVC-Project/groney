@@ -97,7 +97,7 @@
 		try {
 			const classId = authState.classes?.[0]?.id;
 			if (!classId) {
-				throw new Error('No class found');
+				throw new Error('You need to be in a class to do missions!');
 			}
 
 			const res = await fetch(`${API_BASE_URL}/api/student/missions/${selectedMission.id}/accept`, {
@@ -117,12 +117,24 @@
 			const responseData = await res.json().catch(() => ({}));
 
 			if (!res.ok) {
-				throw new Error(responseData.message || 'Failed to accept mission');
+				// kid-friendly messages
+				const backendMsg = responseData.message?.toLowerCase() || '';
+				let friendlyMsg = "Couldn't start this mission right now. Try again!";
+				
+				if (backendMsg.includes('already') || backendMsg.includes('taken')) {
+					friendlyMsg = 'Someone else just took this mission! Try another one.';
+				} else if (backendMsg.includes('cooldown')) {
+					friendlyMsg = 'This mission needs a break. Try again later!';
+				} else if (backendMsg.includes('max') || backendMsg.includes('limit')) {
+					friendlyMsg = 'This mission has been done enough times today!';
+				}
+				
+				throw new Error(friendlyMsg);
 			}
 
 			const missionId = selectedMission.id;
 
-			successMessage = 'Mission accepted! Go complete it and come back to submit.';
+			successMessage = "You're on! Go complete it and take a photo! 📸";
 			
 			await refreshSectors();
 			
@@ -132,7 +144,7 @@
 			}, 1000);
 		} catch (err) {
 			console.error('Accept mission error:', err);
-			errorMessage = err instanceof Error ? err.message : 'Could not accept mission. Try again later.';
+			errorMessage = err instanceof Error ? err.message : 'Oops! Something went wrong. Try again!';
 		} finally {
 			isAccepting = false;
 		}
@@ -281,14 +293,16 @@
 				{/if}
 
 				{#if errorMessage}
-					<div class="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm mb-4 font-medium">
-						{errorMessage}
+					<div class="feedback-box-error mb-4">
+						<span class="text-lg">😕</span>
+						<span>{errorMessage}</span>
 					</div>
 				{/if}
 
 				{#if successMessage}
-					<div class="p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm mb-4 font-medium">
-						✅ {successMessage}
+					<div class="feedback-box-success mb-4">
+						<span class="text-lg">🎉</span>
+						<span>{successMessage}</span>
 					</div>
 				{/if}
 

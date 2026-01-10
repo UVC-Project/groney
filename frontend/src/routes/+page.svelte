@@ -224,22 +224,12 @@
       // Show next notification
       currentDecisionIndex++;
     } else {
-      // All notifications shown
+      // All notifications shown - close completely
       showDecisionNotification = false;
       missionDecisions = [];
       currentDecisionIndex = 0;
     }
   }
-
-  // Auto-dismiss after 5 seconds
-  $effect(() => {
-    if (showDecisionNotification) {
-      const timeout = setTimeout(() => {
-        dismissDecisionNotification();
-      }, 5000);
-      return () => clearTimeout(timeout);
-    }
-  });
 
   // Start polling on mount and check for milestone reward / streak reset
   onMount(() => {
@@ -719,8 +709,8 @@
 
     {#if isLoadingActivities}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="h-56 bg-gradient-to-br from-gray-100 to-gray-50 rounded-3xl animate-pulse"></div>
-            <div class="h-56 bg-gradient-to-br from-gray-100 to-gray-50 rounded-3xl animate-pulse"></div>
+            <div class="h-56 skeleton"></div>
+            <div class="h-56 skeleton"></div>
         </div>
     {:else if activities.length > 0}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
