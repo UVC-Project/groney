@@ -161,6 +161,9 @@
 </script>
 
 <div class="container mx-auto px-4 py-6 max-w-4xl">
+	<h1 class="text-3xl font-bold text-white drop-shadow-lg mb-6 text-center">
+		Schoolyard Map
+	</h1>
 	<StudentMap
 		sectors={displaySectors}
 		{decorations}

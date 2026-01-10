@@ -59,27 +59,27 @@
   <title>My Profile - Green Schoolyard</title>
 </svelte:head>
 
-<div
-  class="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center p-4"
->
-  <div class="w-full max-w-md">
+<div class="container mx-auto px-4 py-6 max-w-4xl">
+  <h1 class="text-3xl font-bold text-white drop-shadow-lg mb-6 text-center">
+    My Profile
+  </h1>
+
+  <div class="bg-white rounded-game shadow-game-lg p-6 max-w-md mx-auto">
     <!-- Header -->
-    <div class="text-center mb-8">
+    <div class="text-center mb-6">
       <div
-        class="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/30"
+        class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/30"
       >
-        <span class="text-4xl">👤</span>
+        <span class="text-3xl">👤</span>
       </div>
-      <h1 class="text-3xl font-bold text-slate-800">My Profile</h1>
-      <p class="text-slate-600 mt-2">Update your personal information</p>
+      <p class="text-slate-600">Update your personal information</p>
     </div>
 
-    <!-- Card -->
-    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
+    <!-- Form Container -->
       {#if loading}
         <p class="text-center text-slate-600">Loading profile…</p>
       {:else}
-        <form on:submit|preventDefault={save} class="space-y-5">
+        <form on:submit|preventDefault={save} class="space-y-4">
           {#if message}
             <div
               class="p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm"
@@ -179,6 +179,5 @@
           </button>
         </form>
       {/if}
-    </div>
   </div>
 </div>

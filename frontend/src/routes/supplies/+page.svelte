@@ -124,10 +124,10 @@
   {#if bannerMsg}
     <div class="flex justify-center mb-4">
       <div
-        class={`px-5 py-2 rounded-full shadow-md text-sm font-semibold ${
+        class={`px-5 py-2 rounded-full text-sm font-semibold border ${
           bannerType === 'success'
-            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-            : 'bg-rose-100 text-rose-800 border border-rose-200'
+            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+            : 'bg-rose-100 text-rose-800 border-rose-200'
         }`}
       >
         {bannerMsg}
@@ -136,18 +136,18 @@
   {/if}
 
   {#if data.supplies.length === 0}
-    <div class="text-center text-gray-500 pb-10">
+    <div class="text-center text-gray-500 py-6">
       <p class="font-medium mb-1">No supplies found</p>
       <p class="text-sm">Seed the DB and make sure supply-service + gateway are running.</p>
     </div>
   {:else}
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-10">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {#each data.supplies as supply}
         <article class="bg-white rounded-3xl shadow-md border-4 border-green-200 flex flex-col overflow-hidden">
-          <div class="flex-1 flex flex-col items-center justify-center p-6">
+          <div class="flex-1 flex flex-col items-center justify-center p-4">
             {#if getSupplyImage(supply)}
-              <div class="h-24 mb-4 flex items-center justify-center">
-                <img src={getSupplyImage(supply)} alt={supply.name} class="max-h-24" />
+              <div class="h-20 mb-3 flex items-center justify-center">
+                <img src={getSupplyImage(supply)} alt={supply.name} class="max-h-20" />
               </div>
             {/if}
 
@@ -155,7 +155,7 @@
             <p class="text-xs text-gray-500 text-center mt-1">{supply.description}</p>
           </div>
 
-          <div class="px-6 py-3 bg-green-50 flex items-center justify-end">
+          <div class="px-4 py-3 bg-green-50 flex items-center justify-end">
             <button
               type="button"
               class="text-xs font-semibold rounded-full px-4 py-1 bg-green-500 text-white hover:bg-green-600 transition-colors"

@@ -463,15 +463,15 @@
     goto('/login');
   }
 </script>
-<div class="container mx-auto px-4 py-10 relative">
+<div class="container mx-auto px-4 py-6 max-w-4xl relative">
 
   <!-- Weather Widget - Absolute positioned -->
-  <div class="absolute top-24 right-4 z-10 hidden sm:block">
+  <div class="absolute top-20 right-0 z-10 hidden sm:block">
     <WeatherWidget />
   </div>
 
   <!-- Welcome + Controls -->
-  <div class="flex justify-between items-center mb-6">
+  <div class="flex justify-between items-center mb-4">
     <p class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white text-sm font-medium text-gray-800 shadow-lg">
       Welcome{displayName ? `, ${displayName}` : ''}!
     </p>
@@ -487,7 +487,7 @@
   </div>
 
   <!-- Title -->
-  <h1 class="text-4xl md:text-6xl font-extrabold text-center text-gray-800 mb-4">
+  <h1 class="text-4xl md:text-5xl font-extrabold text-center text-gray-800 mb-4">
     Groeny
   </h1>
 
@@ -614,7 +614,7 @@
   {/if}
 
   <!-- Level + coins + streak -->
-  <div class="flex justify-center gap-3 mb-6">
+  <div class="flex justify-center gap-3 mb-4">
     <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg">🎖️ {level}</div>
     <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg">🪙 {coins}</div>
     <StreakWidget />
@@ -622,13 +622,13 @@
 
   <!-- Mascot -->
   <div class="flex justify-center mb-4">
-    <div class="w-80 h-80 rounded-full border-8 border-sky-300 flex items-center justify-center bg-white shadow-lg">
-      <img src={groenySrc} class="w-64" alt="Groeny" />
+    <div class="w-64 h-64 md:w-72 md:h-72 rounded-full border-8 border-sky-300 flex items-center justify-center bg-white shadow-lg">
+      <img src={groenySrc} class="w-48 md:w-56" alt="Groeny" />
     </div>
   </div>
 
   <!-- Health -->
-  <div class="flex justify-center mb-6">
+  <div class="flex justify-center mb-4">
     <div class="{healthBgColor} px-4 py-1 rounded-full font-semibold text-gray-800 text-sm shadow">
       {health}% Health
       {#if state === 'sad'}
@@ -640,7 +640,7 @@
   </div>
 
   <!-- XP Progress -->
-  <div class="max-w-md mx-auto mb-10">
+  <div class="max-w-md mx-auto mb-6">
     <p class="text-gray-800 mb-1 text-sm">XP Progress (Level {level})</p>
     <div class="w-full bg-gray-200 rounded-full h-3 shadow-lg overflow-hidden">
       <div class="{healthColor} h-full transition-all duration-500" style="width: {levelProgress.percentage}%"></div>
@@ -649,7 +649,7 @@
   </div>
 
   <!-- Stats -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-blue-600">
       <div class="text-3xl mb-1">💧</div>
       <p class="text-gray-800 text-sm">THIRST</p>
@@ -673,9 +673,9 @@
   </div>
 
   <!-- Activity Feed -->
-   <div class="max-w-5xl mx-auto mt-10 mb-20">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-      <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800">Recent activities</h2>
+   <div class="mt-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+      <h2 class="text-2xl font-extrabold text-gray-800">Recent activities</h2>
       
       <div class="bg-gray-100 p-1 rounded-xl inline-flex self-start sm:self-auto">
         <button 
@@ -694,41 +694,41 @@
     </div>
 
     {#if isLoadingActivities}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <div class="h-64 bg-gray-100 rounded-[32px] animate-pulse"></div>
-            <div class="h-64 bg-gray-100 rounded-[32px] animate-pulse"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="h-56 bg-gray-100 rounded-3xl animate-pulse"></div>
+            <div class="h-56 bg-gray-100 rounded-3xl animate-pulse"></div>
         </div>
     {:else if activities.length > 0}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           {#each activities as activity}
-            <article class="bg-white rounded-[32px] shadow-lg p-4 md:p-5 border border-gray-100 transition-transform hover:scale-[1.01]">
+            <article class="bg-white rounded-3xl shadow-md p-4 border border-gray-100 transition-transform hover:scale-[1.01]">
               <div class="flex items-center gap-3 mb-3">
                   <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
                       {activity.userName?.charAt(0) || '?'}
                   </div>
-                  <h3 class="font-semibold text-gray-800 text-sm md:text-base">
+                  <h3 class="font-semibold text-gray-800 text-sm">
                       <span class="font-bold text-blue-600">{activity.userName}</span> completed {activity.missionTitle}!
                   </h3>
               </div>
 
               <div class="overflow-hidden rounded-2xl mb-3 bg-gray-50 relative group">
                 {#if activity.imageUrl}
-                    <img src={resolvePhotoUrl(activity.imageUrl)} alt={activity.missionTitle} class="w-full h-44 md:h-56 object-cover transition-transform duration-500 group-hover:scale-105">
+                    <img src={resolvePhotoUrl(activity.imageUrl)} alt={activity.missionTitle} class="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-105">
                 {:else}
-                    <div class="w-full h-44 md:h-56 flex items-center justify-center text-gray-400">
+                    <div class="w-full h-40 flex items-center justify-center text-gray-400">
                         No photo submitted
                     </div>
                 {/if}
               </div>
 
-              <p class="text-xs md:text-sm text-gray-500 flex items-center gap-1">
+              <p class="text-xs text-gray-500 flex items-center gap-1">
                   📅 {formatDate(activity.createdAt)}
               </p>
             </article>
           {/each}
         </div>
     {:else}
-        <div class="text-center py-12 bg-gray-50 rounded-[32px] border border-dashed border-gray-300">
+        <div class="text-center py-10 bg-gray-50 rounded-3xl border border-dashed border-gray-300">
             <p class="text-4xl mb-2">📭</p>
             <p class="text-gray-600 font-medium">No recent activities found.</p>
             {#if activityFilter === 'mine'}
