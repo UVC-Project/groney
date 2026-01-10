@@ -136,26 +136,35 @@
   {/if}
 
   {#if data.supplies.length === 0}
-    <div class="text-center text-gray-500 py-6">
-      <p class="font-semibold text-gray-700 mb-1">No supplies found</p>
-      <p class="text-sm text-gray-500">Seed the DB and make sure supply-service + gateway are running.</p>
+    <div class="empty-state">
+      <div class="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+        <span class="text-3xl">🌱</span>
+      </div>
+      <p class="font-bold text-gray-700 text-lg mb-1">No supplies found</p>
+      <p class="text-sm text-gray-500">Check back later for gardening supplies!</p>
     </div>
   {:else}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {#each data.supplies as supply}
-        <article class="bg-white rounded-3xl shadow-md border-4 border-green-200 flex flex-col overflow-hidden">
-          <div class="flex-1 flex flex-col items-center justify-center p-4">
-            {#if getSupplyImage(supply)}
-              <div class="h-20 mb-3 flex items-center justify-center">
-                <img src={getSupplyImage(supply)} alt={supply.name} class="max-h-20" />
-              </div>
-            {/if}
-
+        <article class="card-item-green flex flex-col">
+          <!-- Supply Display -->
+          <div class="flex-1 flex flex-col items-center justify-center p-5 bg-gradient-to-br from-emerald-50/50 to-white">
+            <div class="w-20 h-20 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-3 border border-emerald-100">
+              {#if getSupplyImage(supply)}
+                <img src={getSupplyImage(supply)} alt={supply.name} class="max-h-14" />
+              {:else}
+                <span class="text-3xl">🧰</span>
+              {/if}
+            </div>
             <h3 class="text-base font-bold text-gray-800">{supply.name}</h3>
             <p class="text-xs text-gray-500 text-center mt-1 leading-relaxed">{supply.description}</p>
           </div>
 
-          <div class="px-4 py-3 bg-green-50 flex items-center justify-end">
+          <!-- Action Footer -->
+          <div class="px-4 py-3 bg-gradient-to-r from-emerald-50 to-green-50 border-t border-emerald-100 flex items-center justify-between">
+            <span class="text-xs text-emerald-600 font-medium flex items-center gap-1">
+              <span>📋</span> Ask your teacher
+            </span>
             <button
               type="button"
               class="btn-action-green"

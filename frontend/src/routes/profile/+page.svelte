@@ -64,59 +64,67 @@
     My Profile
   </h1>
 
-  <div class="bg-white rounded-game shadow-game-lg p-6 max-w-md mx-auto">
+  <div class="card-playful max-w-md mx-auto">
     <!-- Header -->
     <div class="text-center mb-6">
-      <div
-        class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/30"
-      >
-        <span class="text-3xl">👤</span>
+      <div class="relative inline-block">
+        <div class="absolute -inset-2 rounded-2xl bg-gradient-to-br from-emerald-200 to-teal-200 opacity-50 blur-sm"></div>
+        <div class="relative w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+          <span class="text-3xl">👤</span>
+        </div>
       </div>
-      <p class="text-gray-500 text-sm">Update your personal information</p>
+      <h2 class="text-lg font-bold text-gray-800 mt-3">Your Information</h2>
+      <p class="text-gray-500 text-sm">Update your personal details below</p>
     </div>
 
     <!-- Form Container -->
       {#if loading}
-        <p class="text-center text-slate-600">Loading profile…</p>
+        <div class="surface-info text-center py-8">
+          <div class="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p class="text-slate-600">Loading profile…</p>
+        </div>
       {:else}
         <form on:submit|preventDefault={save} class="space-y-4">
           {#if message}
-            <div
-              class="p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm"
-            >
-              {message}
+            <div class="surface-info !bg-emerald-50 !border-emerald-200 flex items-center gap-2">
+              <span class="text-lg">✅</span>
+              <span class="text-emerald-700 text-sm font-medium">{message}</span>
             </div>
           {/if}
 
-          <!-- First name -->
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1.5"> First Name </label>
-            <input
-              bind:value={firstName}
-              class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-gray-800
-							focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
-							outline-none transition-all"
-            />
-          </div>
-
-          <!-- Last name -->
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1.5"> Last Name </label>
-            <input
-              bind:value={lastName}
-              class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-gray-800
-							focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
-							outline-none transition-all"
-            />
+          <!-- Name Fields -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1.5 flex items-center gap-1">
+                <span class="text-xs">👋</span> First Name
+              </label>
+              <input
+                bind:value={firstName}
+                class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800
+                focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
+                outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1.5"> Last Name </label>
+              <input
+                bind:value={lastName}
+                class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800
+                focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
+                outline-none transition-all"
+              />
+            </div>
           </div>
 
           <!-- Username -->
           <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1.5"> Username </label>
+            <label class="block text-sm font-bold text-gray-700 mb-1.5 flex items-center gap-1">
+              <span class="text-xs">@</span> Username
+            </label>
             <input
               bind:value={username}
-              class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-gray-800
-							focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
+              class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800
+							focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
 							outline-none transition-all"
             />
           </div>
@@ -124,44 +132,41 @@
           <!-- Email (teacher only) -->
           {#if role === 'TEACHER'}
             <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1.5"> Email </label>
+              <label class="block text-sm font-bold text-gray-700 mb-1.5 flex items-center gap-1">
+                <span class="text-xs">📧</span> Email
+              </label>
               <input
                 type="email"
                 bind:value={email}
-                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-gray-800
-								focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
+                class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800
+								focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
 								outline-none transition-all"
               />
             </div>
           {/if}
 
-          <!-- Current password -->
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1.5">
-              Current Password <span class="text-gray-400 font-normal">(optional)</span>
-            </label>
+          <!-- Password Section -->
+          <div class="surface-info !p-4 space-y-3">
+            <p class="text-sm font-bold text-gray-700 flex items-center gap-1">
+              <span>🔒</span> Change Password <span class="text-gray-400 font-normal text-xs">(optional)</span>
+            </p>
+            
             <input
               type="password"
               bind:value={currentPassword}
-              placeholder="Required to change password"
-              class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-gray-800 placeholder:text-gray-400
-		focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
-		outline-none transition-all"
+              placeholder="Current password"
+              class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400
+              focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
+              outline-none transition-all bg-white"
             />
-          </div>
-
-          <!-- Password -->
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1.5">
-              New Password <span class="text-gray-400 font-normal">(optional)</span>
-            </label>
+            
             <input
               type="password"
               bind:value={password}
-              placeholder="Leave blank to keep current"
-              class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-gray-800 placeholder:text-gray-400
-							focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
-							outline-none transition-all"
+              placeholder="New password"
+              class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400
+							focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
+							outline-none transition-all bg-white"
             />
           </div>
 

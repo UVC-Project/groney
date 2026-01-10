@@ -513,7 +513,7 @@
           {milestoneReward.streakDay}-day streak!
         </h2>
         <div class="bg-yellow-50 border border-yellow-200 rounded-full px-4 py-1.5 inline-block mb-3">
-          <span class="text-lg sm:text-xl font-bold text-yellow-600">🪙 +{milestoneReward.coinsEarned} coins</span>
+          <span class="text-lg sm:text-xl font-bold text-yellow-600">🌱 +{milestoneReward.coinsEarned} seeds</span>
         </div>
         <p class="text-gray-500 text-base sm:text-lg mb-4">{milestoneReward.message}</p>
         <button
@@ -596,7 +596,7 @@
                 ⭐ +{decision.xpReward} XP
               </span>
               <span class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-semibold">
-                🪙 +{decision.coinReward} Coins
+                🌱 +{decision.coinReward} Seeds
               </span>
             </div>
           {:else}
@@ -613,60 +613,84 @@
     </div>
   {/if}
 
-  <!-- Level + coins + streak -->
-  <div class="flex justify-center gap-3 mb-4">
-    <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg">🎖️ {level}</div>
-    <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg">🪙 {coins}</div>
+  <!-- Level + seeds + streak -->
+  <div class="flex justify-center gap-2 mb-4 flex-wrap">
+    <div class="badge-playful bg-gradient-to-r from-amber-300 to-yellow-400 text-amber-900 shadow-amber-400/30">
+      <span>🎖️</span> Level {level}
+    </div>
+    <div class="badge-playful bg-gradient-to-r from-emerald-300 to-green-400 text-emerald-900 shadow-emerald-400/30">
+      <span>🌱</span> {coins}
+    </div>
     <StreakWidget />
   </div>
 
-  <!-- Mascot -->
+  <!-- Mascot Container -->
   <div class="flex justify-center mb-4">
-    <div class="w-64 h-64 md:w-72 md:h-72 rounded-full border-8 border-sky-300 flex items-center justify-center bg-white shadow-lg">
-      <img src={groenySrc} class="w-48 md:w-56" alt="Groeny" />
+    <div class="relative">
+      <!-- Decorative ring -->
+      <div class="absolute -inset-2 rounded-full bg-gradient-to-br from-sky-200 via-emerald-200 to-teal-200 opacity-60 blur-sm"></div>
+      <!-- Main mascot circle -->
+      <div class="relative w-64 h-64 md:w-72 md:h-72 rounded-full border-4 border-white flex items-center justify-center bg-gradient-to-br from-sky-50 to-emerald-50 shadow-xl">
+        <img src={groenySrc} class="w-48 md:w-56 drop-shadow-lg" alt="Groeny" />
+      </div>
     </div>
   </div>
 
-  <!-- Health -->
+  <!-- Health Badge -->
   <div class="flex justify-center mb-4">
-    <div class="{healthBgColor} px-4 py-1 rounded-full font-semibold text-gray-800 text-sm shadow">
+    <div class="badge-playful {healthBgColor} {health >= 51 ? 'text-green-800' : health >= 25 ? 'text-yellow-800' : 'text-red-800'}">
+      <span>{health >= 51 ? '💚' : health >= 25 ? '💛' : '❤️'}</span>
       {health}% Health
       {#if state === 'sad'}
-        <span class="ml-1">😢</span>
+        <span>😢</span>
       {:else if state === 'sick'}
-        <span class="ml-1">🤒</span>
+        <span>🤒</span>
       {/if}
     </div>
   </div>
 
   <!-- XP Progress -->
-  <div class="max-w-md mx-auto mb-6">
-    <p class="text-gray-700 mb-1 text-sm font-semibold">XP Progress (Level {level})</p>
-    <div class="w-full bg-gray-200 rounded-full h-3 shadow-lg overflow-hidden">
-      <div class="{healthColor} h-full transition-all duration-500" style="width: {levelProgress.percentage}%"></div>
+  <div class="max-w-md mx-auto mb-6 card-playful !p-4">
+    <div class="flex items-center justify-between mb-2">
+      <p class="text-gray-700 text-sm font-bold flex items-center gap-2">
+        <span class="w-6 h-6 rounded-lg bg-purple-100 flex items-center justify-center text-sm">⭐</span>
+        XP Progress
+      </p>
+      <span class="text-xs font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">Level {level}</span>
     </div>
-    <p class="text-right text-gray-500 text-xs mt-1">{levelProgress.current} / {levelProgress.required}</p>
+    <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+      <div class="bg-gradient-to-r from-purple-500 to-violet-500 h-full transition-all duration-500 rounded-full" style="width: {levelProgress.percentage}%"></div>
+    </div>
+    <p class="text-right text-gray-500 text-xs mt-1.5 font-medium">{levelProgress.current} / {levelProgress.required} XP</p>
   </div>
 
   <!-- Stats -->
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-blue-600">
-      <div class="text-3xl mb-1">💧</div>
+    <div class="card-stat border-blue-500">
+      <div class="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-2">
+        <span class="text-2xl">💧</span>
+      </div>
       <p class="text-gray-500 text-xs font-bold uppercase tracking-wide">Thirst</p>
       <p class="font-extrabold text-2xl transition-all duration-500 {getStatColor(thirst)}">{thirst}%</p>
     </div>
-    <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-orange-500">
-      <div class="text-3xl mb-1">🍎</div>
+    <div class="card-stat border-orange-500">
+      <div class="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center mx-auto mb-2">
+        <span class="text-2xl">🍎</span>
+      </div>
       <p class="text-gray-500 text-xs font-bold uppercase tracking-wide">Hunger</p>
       <p class="font-extrabold text-2xl transition-all duration-500 {getStatColor(hunger)}">{hunger}%</p>
     </div>
-    <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-sky-500">
-      <div class="text-3xl mb-1">🥰</div>
+    <div class="card-stat border-sky-500">
+      <div class="w-12 h-12 rounded-2xl bg-sky-100 flex items-center justify-center mx-auto mb-2">
+        <span class="text-2xl">🥰</span>
+      </div>
       <p class="text-gray-500 text-xs font-bold uppercase tracking-wide">Happiness</p>
       <p class="font-extrabold text-2xl transition-all duration-500 {getStatColor(happiness)}">{happiness}%</p>
     </div>
-    <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-pink-500">
-      <div class="text-3xl mb-1">🧹</div>
+    <div class="card-stat border-pink-500">
+      <div class="w-12 h-12 rounded-2xl bg-pink-100 flex items-center justify-center mx-auto mb-2">
+        <span class="text-2xl">🧹</span>
+      </div>
       <p class="text-gray-500 text-xs font-bold uppercase tracking-wide">Clean</p>
       <p class="font-extrabold text-2xl transition-all duration-500 {getStatColor(cleanliness)}">{cleanliness}%</p>
     </div>
@@ -695,42 +719,47 @@
 
     {#if isLoadingActivities}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="h-56 bg-gray-100 rounded-3xl animate-pulse"></div>
-            <div class="h-56 bg-gray-100 rounded-3xl animate-pulse"></div>
+            <div class="h-56 bg-gradient-to-br from-gray-100 to-gray-50 rounded-3xl animate-pulse"></div>
+            <div class="h-56 bg-gradient-to-br from-gray-100 to-gray-50 rounded-3xl animate-pulse"></div>
         </div>
     {:else if activities.length > 0}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           {#each activities as activity}
-            <article class="bg-white rounded-3xl shadow-md p-4 border border-gray-100 transition-transform hover:scale-[1.01]">
+            <article class="card-activity">
               <div class="flex items-center gap-3 mb-3">
-                  <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                  <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-blue-500/20">
                       {activity.userName?.charAt(0) || '?'}
                   </div>
-                  <p class="text-gray-700 text-sm leading-snug">
-                      <span class="font-bold text-blue-600">{activity.userName}</span> completed <span class="font-semibold">{activity.missionTitle}</span>!
-                  </p>
+                  <div>
+                      <p class="font-bold text-gray-800 text-sm">{activity.userName}</p>
+                      <p class="text-gray-500 text-xs">completed <span class="font-semibold text-emerald-600">{activity.missionTitle}</span></p>
+                  </div>
               </div>
 
-              <div class="overflow-hidden rounded-2xl mb-3 bg-gray-50 relative group">
+              <div class="overflow-hidden rounded-2xl mb-3 bg-gradient-to-br from-gray-100 to-gray-50 relative group">
                 {#if activity.imageUrl}
-                    <img src={resolvePhotoUrl(activity.imageUrl)} alt={activity.missionTitle} class="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-105">
+                    <img src={resolvePhotoUrl(activity.imageUrl)} alt={activity.missionTitle} class="w-full h-36 object-cover transition-transform duration-500 group-hover:scale-105">
                 {:else}
-                    <div class="w-full h-40 flex items-center justify-center text-gray-400 text-sm">
-                        No photo submitted
+                    <div class="w-full h-36 flex flex-col items-center justify-center text-gray-400">
+                        <span class="text-2xl mb-1">📷</span>
+                        <span class="text-xs">No photo</span>
                     </div>
                 {/if}
               </div>
 
-              <p class="text-xs text-gray-400 flex items-center gap-1">
-                  📅 {formatDate(activity.createdAt)}
+              <p class="text-xs text-gray-400 flex items-center gap-1.5">
+                  <span class="w-5 h-5 rounded-md bg-gray-100 flex items-center justify-center">📅</span>
+                  {formatDate(activity.createdAt)}
               </p>
             </article>
           {/each}
         </div>
     {:else}
-        <div class="text-center py-10 bg-gray-50 rounded-3xl border border-dashed border-gray-300">
-            <p class="text-4xl mb-2">📭</p>
-            <p class="text-gray-700 font-semibold">No recent activities yet</p>
+        <div class="empty-state">
+            <div class="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                <span class="text-3xl">📭</span>
+            </div>
+            <p class="text-gray-700 font-bold text-lg">No recent activities yet</p>
             {#if activityFilter === 'mine'}
                 <p class="text-gray-500 text-sm mt-1">Complete some missions to see them here!</p>
             {/if}

@@ -155,33 +155,42 @@
   </button>
 
   <!-- Main Card -->
-  <div class="bg-white rounded-3xl shadow-xl overflow-hidden animate-slide-up">
+  <div class="card-modal animate-slide-up">
     <!-- Header -->
     <div class="px-6 py-5 bg-gradient-to-r from-emerald-500 to-teal-600">
       <div class="flex items-center gap-2 mb-1">
-        <span class="text-2xl">📸</span>
-        <h1 class="text-xl font-bold text-white">Submit Mission</h1>
+        <span class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl">📸</span>
+        <div>
+          <h1 class="text-xl font-bold text-white">Submit Mission</h1>
+          <p class="text-emerald-100 text-sm">Upload proof to complete!</p>
+        </div>
       </div>
-      <p class="text-emerald-100 text-sm">Complete your task and upload proof!</p>
     </div>
 
     <!-- Content -->
-    <div class="p-6 space-y-6">
+    <div class="p-6 space-y-5">
       <!-- Mission Info Section -->
-      <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-        <h2 class="font-bold text-lg text-slate-800 mb-2">{data.mission.title}</h2>
-        <p class="text-slate-600 text-sm leading-relaxed">{data.mission.description}</p>
+      <div class="surface-info">
+        <div class="flex items-start gap-3">
+          <span class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-lg flex-shrink-0">🎯</span>
+          <div>
+            <h2 class="font-bold text-base text-slate-800 mb-1">{data.mission.title}</h2>
+            <p class="text-slate-600 text-sm leading-relaxed">{data.mission.description}</p>
+          </div>
+        </div>
       </div>
 
       <!-- Rewards Section -->
       <div>
-        <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Rewards</h3>
+        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1">
+          <span>🎁</span> Rewards
+        </h3>
         <div class="flex flex-wrap gap-2">
-          <span class="px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold flex items-center gap-1.5 shadow-sm">
-            <span>⭐</span> +{data.mission.xpReward} XP
+          <span class="badge-playful bg-purple-100 text-purple-700">
+            ⭐ +{data.mission.xpReward} XP
           </span>
-          <span class="px-4 py-2 bg-amber-100 text-amber-700 rounded-full text-sm font-semibold flex items-center gap-1.5 shadow-sm">
-            <span>🪙</span> +{data.mission.coinReward} Coins
+          <span class="badge-playful bg-emerald-100 text-emerald-700">
+            🌱 +{data.mission.coinReward} Seeds
           </span>
         </div>
 
@@ -189,22 +198,22 @@
         {#if data.mission.thirstBoost || data.mission.hungerBoost || data.mission.happinessBoost || data.mission.cleanlinessBoost}
           <div class="flex flex-wrap gap-2 mt-3">
             {#if data.mission.thirstBoost}
-              <span class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium">
+              <span class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-xl text-xs font-semibold">
                 💧 +{data.mission.thirstBoost}
               </span>
             {/if}
             {#if data.mission.hungerBoost}
-              <span class="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-xs font-medium">
+              <span class="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-xl text-xs font-semibold">
                 🍎 +{data.mission.hungerBoost}
               </span>
             {/if}
             {#if data.mission.happinessBoost}
-              <span class="px-3 py-1.5 bg-yellow-50 text-yellow-600 rounded-lg text-xs font-medium">
+              <span class="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-xl text-xs font-semibold">
                 😊 +{data.mission.happinessBoost}
               </span>
             {/if}
             {#if data.mission.cleanlinessBoost}
-              <span class="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg text-xs font-medium">
+              <span class="px-3 py-1.5 bg-green-100 text-green-700 rounded-xl text-xs font-semibold">
                 ✨ +{data.mission.cleanlinessBoost}
               </span>
             {/if}

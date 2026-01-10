@@ -822,8 +822,8 @@
                         >⭐ {mission.xpReward} XP</span
                       >
                       <span
-                        class="px-3 py-1 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-full text-sm font-bold shadow-sm"
-                        >🪙 {mission.coinReward}</span
+                        class="px-3 py-1 bg-gradient-to-r from-emerald-400 to-green-500 text-white rounded-full text-sm font-bold shadow-sm"
+                        >🌱 {mission.coinReward}</span
                       >
                     </div>
                   </div>

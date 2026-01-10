@@ -14,7 +14,7 @@
     {title}
   </h1>
 
-  <div class="bg-white rounded-game shadow-game-lg p-6">
+  <div class="card-playful">
     {@render children()}
   </div>
 </div>

@@ -100,8 +100,103 @@
   }
 
   /* ============================================
-     CARD STYLES
+     CARD SYSTEM
      ============================================ */
+  
+  /* Base card - clean, rounded, subtle shadow */
+  .card-playful {
+    @apply bg-white rounded-3xl shadow-lg p-5;
+    @apply border-2 border-white;
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.07),
+      0 2px 4px -1px rgba(0, 0, 0, 0.04),
+      0 0 0 1px rgba(0, 0, 0, 0.03);
+  }
+
+  /* Item card - for shop/supplies with colorful top accent */
+  .card-item {
+    @apply bg-white rounded-3xl overflow-hidden;
+    @apply border-2 border-gray-100;
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.07),
+      0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+  .card-item-amber {
+    @apply card-item border-amber-200;
+    box-shadow: 
+      0 4px 12px -2px rgba(251, 191, 36, 0.15),
+      0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+
+  .card-item-green {
+    @apply card-item border-emerald-200;
+    box-shadow: 
+      0 4px 12px -2px rgba(16, 185, 129, 0.15),
+      0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+
+  .card-item-blue {
+    @apply card-item border-sky-200;
+    box-shadow: 
+      0 4px 12px -2px rgba(56, 189, 248, 0.15),
+      0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Stat card - for mascot stats with bottom color accent */
+  .card-stat {
+    @apply bg-white rounded-3xl p-4 text-center;
+    @apply border-b-4;
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.07),
+      0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Activity card - for feed items */
+  .card-activity {
+    @apply bg-white rounded-3xl p-4;
+    @apply border border-gray-100;
+    @apply transition-all duration-200;
+    @apply hover:shadow-lg hover:-translate-y-0.5;
+    box-shadow: 
+      0 2px 4px -1px rgba(0, 0, 0, 0.05),
+      0 1px 2px -1px rgba(0, 0, 0, 0.03);
+  }
+
+  /* Accordion card - for wiki/expandable sections */
+  .card-accordion {
+    @apply bg-white rounded-2xl overflow-hidden;
+    @apply border border-gray-100;
+    box-shadow: 
+      0 1px 3px 0 rgba(0, 0, 0, 0.05),
+      0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  }
+
+  /* Surface for info sections */
+  .surface-info {
+    @apply bg-gray-50/80 rounded-2xl px-4 py-3;
+    @apply border border-gray-100;
+  }
+
+  /* Badge/pill for status indicators */
+  .badge-playful {
+    @apply inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full;
+    @apply text-sm font-bold;
+    @apply shadow-sm;
+  }
+  /* Empty state styling */
+  .empty-state {
+    @apply text-center py-10 rounded-3xl;
+    @apply bg-gradient-to-br from-gray-50 to-gray-100/50;
+    @apply border-2 border-dashed border-gray-200;
+  }
+
+  /* Modal card styling */
+  .card-modal {
+    @apply bg-white rounded-3xl shadow-2xl overflow-hidden;
+    @apply border border-white/20;
+  }
+
+  /* Legacy game card (kept for compatibility) */
   .card-game {
     @apply bg-white rounded-game shadow-game-lg p-6;
   }

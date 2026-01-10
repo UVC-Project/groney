@@ -149,28 +149,36 @@
     </div>
   {/if}
 
+  <!-- Seed Balance -->
   <div class="flex justify-center mb-6">
-    <div class="bg-yellow-300 rounded-full px-6 py-2 flex items-center gap-2 border-2 border-yellow-400">
-      <span class="text-xl">🪙</span>
-      <span class="font-semibold text-lg">{coins}</span>
+    <div class="badge-playful bg-gradient-to-r from-emerald-300 to-green-400 text-emerald-900 shadow-emerald-400/30 text-lg px-6 py-2">
+      <span class="text-xl">🌱</span>
+      <span class="font-bold">{coins}</span>
+      <span class="text-emerald-700 text-sm font-medium">seeds</span>
     </div>
   </div>
 
+  <!-- Shop Grid -->
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {#each items as item}
-      <article class="bg-white rounded-3xl shadow-md border-4 border-amber-300 flex flex-col overflow-hidden">
-        <div class="flex-1 flex flex-col items-center justify-center p-4">
-          {#if getItemImage(item)}
-            <img src={getItemImage(item)} alt={item.name} class="h-20 mb-3" />
-          {/if}
-
+      <article class="card-item-amber flex flex-col">
+        <!-- Item Display -->
+        <div class="flex-1 flex flex-col items-center justify-center p-5 bg-gradient-to-br from-amber-50/50 to-white">
+          <div class="w-20 h-20 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-3 border border-amber-100">
+            {#if getItemImage(item)}
+              <img src={getItemImage(item)} alt={item.name} class="h-14" />
+            {:else}
+              <span class="text-3xl">🎁</span>
+            {/if}
+          </div>
           <h3 class="text-base font-bold text-gray-800">{item.name}</h3>
           <p class="text-xs text-gray-500 text-center mt-1 leading-relaxed">{item.description}</p>
         </div>
 
-        <div class="px-4 py-3 bg-sky-100 flex items-center justify-between">
+        <!-- Action Footer -->
+        <div class="px-4 py-3 bg-gradient-to-r from-sky-50 to-blue-50 border-t border-sky-100 flex items-center justify-between">
           {#if item.owned}
-            <span class="text-xs font-bold text-emerald-600 uppercase tracking-wide">✓ Owned</span>
+            <span class="badge-playful bg-emerald-100 text-emerald-700 text-xs py-1 px-3">✓ Owned</span>
             <button
               class="btn-action-green"
               onclick={() => onApplyClick(item.id)}
@@ -178,7 +186,7 @@
               Apply
             </button>
           {:else}
-            <span class="text-sm font-bold text-gray-700">🪙 {item.price}</span>
+            <span class="badge-playful bg-emerald-100 text-emerald-800 text-sm py-1 px-3">🌱 {item.price}</span>
             <button
               class="btn-action-blue"
               onclick={() => onBuyClick(item.id)}

@@ -180,61 +180,70 @@
 		onclick={closeModal}
 	>
 		<div
-			class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in"
+			class="card-modal w-full max-w-md animate-scale-in"
 			onclick={(e) => e.stopPropagation()}
 		>
-			<div class="px-6 py-4 text-white bg-gradient-to-r from-emerald-500 to-teal-600">
+			<!-- Header -->
+			<div class="px-6 py-5 text-white bg-gradient-to-r from-emerald-500 to-teal-600">
 				<div class="flex items-center justify-between">
 					<div>
 						<div class="flex items-center gap-2">
+							<span class="text-xl">🎯</span>
 							<h3 class="text-lg md:text-xl font-bold">{selectedMission.title}</h3>
 						</div>
 						{#if selectedSector}
-							<p class="text-emerald-100 text-sm mt-1 font-medium">📍 {selectedSector.name}</p>
+							<p class="text-emerald-100 text-sm mt-1 font-medium flex items-center gap-1">
+								<span>📍</span> {selectedSector.name}
+							</p>
 						{/if}
 					</div>
 					{#if selectedMission.missionStatus === 'my_active'}
-						<span class="px-3 py-1 bg-white/20 rounded-full text-sm font-bold">
+						<span class="badge-playful bg-white/20 text-white text-xs py-1">
 							📋 Your Mission
 						</span>
 					{/if}
 				</div>
 			</div>
 
+			<!-- Content -->
 			<div class="p-6">
 				<p class="text-gray-600 text-sm leading-relaxed mb-4">{selectedMission.description}</p>
 
+				<!-- Rewards -->
 				<div class="flex flex-wrap gap-2 mb-4">
-					<span class="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-sm font-bold">
+					<span class="badge-playful bg-purple-100 text-purple-700">
 						⭐ +{selectedMission.xpReward} XP
 					</span>
-					<span class="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-sm font-bold">
-						🪙 +{selectedMission.coinReward} Coins
+					<span class="badge-playful bg-emerald-100 text-emerald-700">
+						🌱 +{selectedMission.coinReward} Seeds
 					</span>
 				</div>
 
+				<!-- Mascot Boosts -->
 				{#if selectedMission.thirstBoost || selectedMission.hungerBoost || selectedMission.happinessBoost || selectedMission.cleanlinessBoost}
-					<div class="mb-4">
-						<p class="text-sm font-bold text-gray-700 mb-2">Mascot Boosts:</p>
+					<div class="surface-info mb-4">
+						<p class="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1">
+							<span>💪</span> Mascot Boosts
+						</p>
 						<div class="flex flex-wrap gap-2">
 							{#if selectedMission.thirstBoost}
-								<span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-semibold">
-									💧 +{selectedMission.thirstBoost} Thirst
+								<span class="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
+									💧 +{selectedMission.thirstBoost}
 								</span>
 							{/if}
 							{#if selectedMission.hungerBoost}
-								<span class="px-2 py-1 bg-orange-50 text-orange-700 rounded text-xs font-semibold">
-									🍎 +{selectedMission.hungerBoost} Hunger
+								<span class="px-2.5 py-1 bg-orange-100 text-orange-700 rounded-lg text-xs font-semibold">
+									🍎 +{selectedMission.hungerBoost}
 								</span>
 							{/if}
 							{#if selectedMission.happinessBoost}
-								<span class="px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-xs font-semibold">
-									😊 +{selectedMission.happinessBoost} Happiness
+								<span class="px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-xs font-semibold">
+									😊 +{selectedMission.happinessBoost}
 								</span>
 							{/if}
 							{#if selectedMission.cleanlinessBoost}
-								<span class="px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-semibold">
-									✨ +{selectedMission.cleanlinessBoost} Clean
+								<span class="px-2.5 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-semibold">
+									✨ +{selectedMission.cleanlinessBoost}
 								</span>
 							{/if}
 						</div>
