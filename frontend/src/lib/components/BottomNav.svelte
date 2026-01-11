@@ -10,6 +10,7 @@
     { href: '/supplies', label: 'Supplies', icon: '🧤' },
     { href: '/wardrobe', label: 'Wardrobe', icon: '👔' },
     { href: '/wiki', label: 'Wiki', icon: '📚' },
+    { href: '/profile', label: 'Profile', icon: '👤' },
   ];
 
   const teacherNavItems = [
@@ -40,8 +41,9 @@
     {#each navItems as item}
       <a
         href={item.href}
-        class="flex flex-col items-center justify-center min-w-touch-target min-h-touch-target px-3 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:rounded-lg"
-        class:text-black={currentPath === item.href}
+        class="flex flex-col items-center justify-center min-w-touch-target min-h-touch-target px-4 py-2 mx-1 rounded-2xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2"
+        class:bg-emerald-50={currentPath === item.href}
+        class:text-emerald-700={currentPath === item.href}
         class:font-bold={currentPath === item.href}
         class:text-gray-600={currentPath !== item.href}
       >
