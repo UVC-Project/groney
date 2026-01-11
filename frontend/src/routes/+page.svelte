@@ -468,7 +468,7 @@
     <div class="flex items-center gap-3">
       <BackgroundPicker />
       <button
-        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] text-sm font-bold text-gray-700 shadow-md transition-all min-h-[44px]"
+        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] text-sm font-bold text-gray-700 shadow-md transition-all min-h-[44px] focus:outline-none focus-visible:ring-4 focus-visible:ring-gray-400/40 focus-visible:ring-offset-2"
         onclick={() => showLogoutModal = true}
       >
         Logout
@@ -568,7 +568,7 @@
             </div>
             <button 
               onclick={dismissDecisionNotification}
-              class="text-white/80 hover:text-white transition-colors"
+              class="text-white/80 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-1 focus-visible:rounded px-1 py-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
               aria-label="Dismiss"
             >
               ✕

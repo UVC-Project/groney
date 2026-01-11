@@ -173,8 +173,8 @@
                 <span class="text-3xl">🧰</span>
               {/if}
             </div>
-            <h3 class="text-base font-bold text-gray-800">{supply.name}</h3>
-            <p class="text-xs text-gray-500 text-center mt-1 leading-relaxed">{supply.description}</p>
+            <h3 class="text-lg font-bold text-gray-800">{supply.name}</h3>
+            <p class="text-sm text-gray-500 text-center mt-1.5 leading-relaxed">{supply.description}</p>
           </div>
 
           <!-- Action Footer -->

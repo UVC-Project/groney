@@ -23,59 +23,66 @@
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2;
     @apply bg-gradient-to-r from-emerald-500 to-teal-600 text-white;
-    @apply font-bold py-3 px-6 rounded-2xl;
+    @apply font-bold py-4 px-8 rounded-2xl text-base;
     @apply shadow-lg shadow-emerald-500/25;
     @apply hover:from-emerald-600 hover:to-teal-700;
     @apply active:scale-[0.98] transition-all duration-150;
     @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
-    @apply min-h-[48px];
+    @apply min-h-[56px];
+    @apply focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-2;
   }
 
   /* Secondary Button - Alternative actions (Close, Cancel) */
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2;
     @apply bg-white text-gray-700 border-2 border-gray-200;
-    @apply font-bold py-3 px-6 rounded-2xl;
+    @apply font-bold py-4 px-8 rounded-2xl text-base;
     @apply hover:bg-gray-50 hover:border-gray-300;
     @apply active:scale-[0.98] transition-all duration-150;
     @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
-    @apply min-h-[48px];
+    @apply min-h-[56px];
+    @apply focus:outline-none focus-visible:ring-4 focus-visible:ring-gray-400/40 focus-visible:ring-offset-2;
   }
 
   /* Action Button - Card actions (Buy, Apply, Request) - pill shaped */
   .btn-action {
     @apply inline-flex items-center justify-center gap-1.5;
-    @apply font-bold text-sm py-2.5 px-5 rounded-full;
+    @apply font-bold text-base py-3 px-6 rounded-full;
     @apply active:scale-[0.97] transition-all duration-150;
     @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
-    @apply min-h-[44px];
+    @apply min-h-[52px];
+    @apply focus:outline-none focus-visible:ring-4 focus-visible:ring-offset-2;
   }
 
   .btn-action-green {
     @apply btn-action bg-emerald-500 text-white;
     @apply hover:bg-emerald-600 shadow-md shadow-emerald-500/20;
+    @apply focus-visible:ring-emerald-500/40;
   }
 
   .btn-action-blue {
     @apply btn-action bg-blue-500 text-white;
     @apply hover:bg-blue-600 shadow-md shadow-blue-500/20;
+    @apply focus-visible:ring-blue-500/40;
   }
 
   /* Danger Button - Destructive actions (Remove, Delete) */
   .btn-danger {
     @apply inline-flex items-center justify-center gap-2;
     @apply bg-white text-gray-700 border-2 border-gray-200;
-    @apply font-bold py-2.5 px-5 rounded-full;
+    @apply font-bold py-3 px-6 rounded-full text-base;
     @apply hover:bg-red-500 hover:text-white hover:border-red-500;
     @apply active:scale-[0.97] transition-all duration-150;
-    @apply min-h-[44px];
+    @apply min-h-[52px];
+    @apply focus:outline-none focus-visible:ring-4 focus-visible:ring-red-500/40 focus-visible:ring-offset-2;
   }
 
   /* Chip/Tab Button - Toggle buttons (activity filter) */
   .btn-chip {
-    @apply px-4 py-2 rounded-xl text-sm font-bold;
+    @apply px-5 py-2.5 rounded-xl text-base font-bold;
     @apply transition-all duration-200;
-    @apply min-h-[40px];
+    @apply min-h-[48px];
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400/50 focus-visible:ring-offset-1;
   }
 
   .btn-chip-active {
@@ -105,7 +112,7 @@
   
   /* Base card - clean, rounded, subtle shadow */
   .card-playful {
-    @apply bg-white rounded-3xl shadow-lg p-5;
+    @apply bg-white rounded-3xl shadow-lg p-6;
     @apply border-2 border-white;
     box-shadow: 
       0 4px 6px -1px rgba(0, 0, 0, 0.07),
@@ -144,7 +151,7 @@
 
   /* Stat card - for mascot stats with bottom color accent */
   .card-stat {
-    @apply bg-white rounded-3xl p-4 text-center;
+    @apply bg-white rounded-3xl p-5 text-center;
     @apply border-b-4;
     box-shadow: 
       0 4px 6px -1px rgba(0, 0, 0, 0.07),
@@ -153,7 +160,7 @@
 
   /* Activity card - for feed items */
   .card-activity {
-    @apply bg-white rounded-3xl p-4;
+    @apply bg-white rounded-3xl p-5;
     @apply border border-gray-100;
     @apply transition-all duration-200;
     @apply hover:shadow-lg hover:-translate-y-0.5;
@@ -173,14 +180,14 @@
 
   /* Surface for info sections */
   .surface-info {
-    @apply bg-gray-50/80 rounded-2xl px-4 py-3;
+    @apply bg-gray-50/80 rounded-2xl px-5 py-4;
     @apply border border-gray-100;
   }
 
   /* Badge/pill for status indicators */
   .badge-playful {
-    @apply inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full;
-    @apply text-sm font-bold;
+    @apply inline-flex items-center gap-1.5 px-5 py-2 rounded-full;
+    @apply text-base font-bold;
     @apply shadow-sm;
   }
   /* Empty state styling */

@@ -335,7 +335,7 @@
 					{:else if missionAction.action === 'submit'}
 						<button
 							onclick={() => goto(`/missions/${selectedMission.id}/submit`)}
-							class="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-6 rounded-2xl shadow-lg shadow-blue-500/25 hover:from-blue-600 hover:to-blue-700 active:scale-[0.98] transition-all duration-150 min-h-[48px]"
+							class="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-6 rounded-2xl shadow-lg shadow-blue-500/25 hover:from-blue-600 hover:to-blue-700 active:scale-[0.98] transition-all duration-150 min-h-[48px] focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2"
 						>
 							{missionAction.label}
 						</button>

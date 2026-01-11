@@ -189,11 +189,11 @@
       <div class="surface-info mb-4">
         <div class="flex items-center justify-between mb-2">
           <span class="text-gray-500 text-sm font-medium">Item:</span>
-          <span class="badge-playful bg-purple-100 text-purple-700 text-xs py-1">{selectedItem.name}</span>
+          <span class="badge-playful bg-purple-100 text-purple-700 text-sm py-1">{selectedItem.name}</span>
         </div>
         <div class="flex items-center justify-between">
           <span class="text-gray-500 text-sm font-medium">Type:</span>
-          <span class="badge-playful bg-gray-100 text-gray-600 text-xs py-1">{selectedItem.type ?? 'Accessory'}</span>
+          <span class="badge-playful bg-gray-100 text-gray-600 text-sm py-1">{selectedItem.type ?? 'Accessory'}</span>
         </div>
       </div>
       <button
@@ -221,7 +221,7 @@
   <div class="flex items-center gap-2 mb-4">
     <span class="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-lg">✨</span>
     <h3 class="text-lg font-bold text-gray-800">Your Collection</h3>
-    <span class="badge-playful bg-gray-100 text-gray-600 text-xs py-1 ml-auto">{ownedItems.length} items</span>
+    <span class="badge-playful bg-gray-100 text-gray-600 text-sm py-1 ml-auto">{ownedItems.length} items</span>
   </div>
 
   {#if ownedItems.length === 0}
@@ -239,7 +239,7 @@
           type="button"
           onclick={() => selectItem(item)}
           disabled={isEquipping}
-          class="card-item-blue relative p-4 flex flex-col items-center min-h-[130px] hover:shadow-lg active:scale-[0.98] transition-all duration-150 disabled:opacity-70 {selectedItem?.id === item.id ? 'ring-2 ring-yellow-400 border-yellow-300' : ''}"
+          class="card-item-blue relative p-4 flex flex-col items-center min-h-[130px] hover:shadow-lg active:scale-[0.98] transition-all duration-150 disabled:opacity-70 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 {selectedItem?.id === item.id ? 'ring-2 ring-yellow-400 border-yellow-300' : ''}"
         >
           {#if selectedItem?.id === item.id}
             <div class="absolute top-2 right-2 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-md">
@@ -255,8 +255,8 @@
             {/if}
           </div>
 
-          <p class="text-sm font-bold text-gray-800">{item.name}</p>
-          <p class="text-xs text-gray-500 mt-1 text-center leading-relaxed line-clamp-2">{item.description}</p>
+          <p class="text-base font-bold text-gray-800">{item.name}</p>
+          <p class="text-sm text-gray-500 mt-1.5 text-center leading-relaxed line-clamp-2">{item.description}</p>
         </button>
       {/each}
     </div>
