@@ -31,7 +31,7 @@
           <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-sm shadow-green-500/20">
             <span class="text-lg text-white">🌱</span>
           </div>
-          <h3 class="text-lg font-bold text-gray-800">Getting Started</h3>
+          <h3 class="text-base font-bold text-gray-800">Getting Started</h3>
         </div>
         <span class={`w-6 h-6 rounded-lg flex items-center justify-center text-xs transition-all duration-200 ${openGroeny ? 'rotate-90 bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>▶</span>
       </button>
@@ -54,7 +54,7 @@
           <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-sm shadow-blue-500/20">
             <span class="text-lg text-white">💚</span>
           </div>
-          <h3 class="text-lg font-bold text-gray-800">How to Care for Groeny</h3>
+          <h3 class="text-base font-bold text-gray-800">How to Care for Groeny</h3>
         </div>
         <span class={`w-6 h-6 rounded-lg flex items-center justify-center text-xs transition-all duration-200 ${openHowToPlay ? 'rotate-90 bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>▶</span>
       </button>
@@ -77,7 +77,7 @@
           <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center shadow-sm shadow-amber-500/20">
             <span class="text-lg text-white">🎯</span>
           </div>
-          <h3 class="text-lg font-bold text-gray-800">Completing Missions</h3>
+          <h3 class="text-base font-bold text-gray-800">Completing Missions</h3>
         </div>
         <span class={`w-6 h-6 rounded-lg flex items-center justify-center text-xs transition-all duration-200 ${openStats ? 'rotate-90 bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-400'}`}>▶</span>
       </button>
@@ -100,7 +100,7 @@
           <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-400 to-violet-500 flex items-center justify-center shadow-sm shadow-purple-500/20">
             <span class="text-lg text-white">⭐</span>
           </div>
-          <h3 class="text-lg font-bold text-gray-800">Earning Seeds & XP</h3>
+          <h3 class="text-base font-bold text-gray-800">Earning Seeds & XP</h3>
         </div>
         <span class={`w-6 h-6 rounded-lg flex items-center justify-center text-xs transition-all duration-200 ${coins ? 'rotate-90 bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>▶</span>
       </button>
@@ -123,7 +123,7 @@
           <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-sm shadow-orange-500/20">
             <span class="text-lg text-white">🏆</span>
           </div>
-          <h3 class="text-lg font-bold text-gray-800">Class Leaderboard</h3>
+          <h3 class="text-base font-bold text-gray-800">Class Leaderboard</h3>
         </div>
         <span class={`w-6 h-6 rounded-lg flex items-center justify-center text-xs transition-all duration-200 ${leaderBoard ? 'rotate-90 bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}>▶</span>
       </button>

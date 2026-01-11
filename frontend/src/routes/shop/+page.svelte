@@ -191,14 +191,14 @@
               <span class="text-3xl">🎁</span>
             {/if}
           </div>
-          <h3 class="text-lg font-bold text-gray-800">{item.name}</h3>
-          <p class="text-sm text-gray-500 text-center mt-1.5 leading-relaxed">{item.description}</p>
+          <h3 class="text-base font-bold text-gray-800">{item.name}</h3>
+          <p class="text-xs text-gray-500 text-center mt-1 leading-relaxed">{item.description}</p>
         </div>
 
         <!-- Action Footer -->
         <div class="px-4 py-3 bg-gradient-to-r from-sky-50 to-blue-50 border-t border-sky-100 flex items-center justify-between">
           {#if item.owned}
-            <span class="badge-playful bg-emerald-100 text-emerald-700 text-sm py-1 px-3">✓ Owned</span>
+            <span class="badge-playful bg-emerald-100 text-emerald-700 text-xs py-1 px-3">✓ Owned</span>
             <button
               class="btn-action-green"
               onclick={() => onApplyClick(item.id)}
@@ -211,7 +211,7 @@
               {/if}
             </button>
           {:else}
-            <span class="badge-playful bg-emerald-100 text-emerald-800 text-base py-1 px-3">🌱 {item.price}</span>
+            <span class="badge-playful bg-emerald-100 text-emerald-800 text-sm py-1 px-3">🌱 {item.price}</span>
             <button
               class="btn-action-blue"
               onclick={() => onBuyClick(item.id)}

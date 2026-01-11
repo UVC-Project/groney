@@ -189,11 +189,11 @@
       <div class="surface-info mb-4">
         <div class="flex items-center justify-between mb-2">
           <span class="text-gray-500 text-sm font-medium">Item:</span>
-          <span class="badge-playful bg-purple-100 text-purple-700 text-sm py-1">{selectedItem.name}</span>
+          <span class="badge-playful bg-purple-100 text-purple-700 text-xs py-1">{selectedItem.name}</span>
         </div>
         <div class="flex items-center justify-between">
           <span class="text-gray-500 text-sm font-medium">Type:</span>
-          <span class="badge-playful bg-gray-100 text-gray-600 text-sm py-1">{selectedItem.type ?? 'Accessory'}</span>
+          <span class="badge-playful bg-gray-100 text-gray-600 text-xs py-1">{selectedItem.type ?? 'Accessory'}</span>
         </div>
       </div>
       <button
@@ -221,7 +221,7 @@
   <div class="flex items-center gap-2 mb-4">
     <span class="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-lg">✨</span>
     <h3 class="text-lg font-bold text-gray-800">Your Collection</h3>
-    <span class="badge-playful bg-gray-100 text-gray-600 text-sm py-1 ml-auto">{ownedItems.length} items</span>
+    <span class="badge-playful bg-gray-100 text-gray-600 text-xs py-1 ml-auto">{ownedItems.length} items</span>
   </div>
 
   {#if ownedItems.length === 0}
@@ -255,8 +255,8 @@
             {/if}
           </div>
 
-          <p class="text-base font-bold text-gray-800">{item.name}</p>
-          <p class="text-sm text-gray-500 mt-1.5 text-center leading-relaxed line-clamp-2">{item.description}</p>
+          <p class="text-sm font-bold text-gray-800">{item.name}</p>
+          <p class="text-xs text-gray-500 mt-1 text-center leading-relaxed line-clamp-2">{item.description}</p>
         </button>
       {/each}
     </div>
