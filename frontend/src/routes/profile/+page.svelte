@@ -46,12 +46,34 @@
       payload.currentPassword = currentPassword;
     }
 
+<<<<<<< Updated upstream
     const res = await auth.updateProfile(payload);
     message = res.message ?? 'Profile updated';
     password = '';
     currentPassword = '';
 
     saving = false;
+=======
+    try {
+      const res = await auth.updateProfile(payload);
+      
+      // Check if response indicates an error
+      if (!res.success || res.error) {
+        message = res.error || res.message || "Couldn't save changes. Try again!";
+        messageType = 'error';
+      } else {
+        message = res.message ?? 'Changes saved! ✨';
+        messageType = 'success';
+        password = '';
+        currentPassword = '';
+      }
+    } catch (e) {
+      message = "Couldn't save changes. Try again!";
+      messageType = 'error';
+    } finally {
+      saving = false;
+    }
+>>>>>>> Stashed changes
   }
 </script>
 

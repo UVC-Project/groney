@@ -321,7 +321,13 @@ function createAuthStore() {
 				body: JSON.stringify(payload),
 			});
 
-			return res.json();
+			const data = await res.json();
+			
+			if (!res.ok) {
+				return { error: data.message || 'Update failed', success: false };
+			}
+			
+			return { ...data, success: true };
 		},
 	};
 }
