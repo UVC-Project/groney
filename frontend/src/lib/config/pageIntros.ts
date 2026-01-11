@@ -76,6 +76,22 @@ export const pageIntros: Record<string, IntroContent> = {
       'Learn terms related to gardening and ecosystems.',
       'Use the wiki to help with mission decisions.'
     ],
+<<<<<<< Updated upstream
     tipText: 'If you’re stuck on a mission, the wiki often has the answer.'
+=======
+    tipText: "If you're stuck on a mission, the wiki often has the answer."
+  },
+
+  '/profile': {
+    emoji: '👤',
+    title: 'Welcome to Your Profile',
+    subtitle: 'Manage your account information and settings.',
+    bullets: [
+      'Update your name and username.',
+      'Change your password to keep your account safe.',
+      'All your information is private and secure.'
+    ],
+    tipText: 'Keep your password safe and don\'t share it with anyone!'
+>>>>>>> Stashed changes
   }
 };
