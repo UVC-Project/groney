@@ -101,12 +101,17 @@
     )
   );
 
-  // Responsive cell size
+  // Responsive cell size - optimized for mobile
   let containerRef = $state<HTMLDivElement | null>(null);
   let containerWidth = $state(800);
-  let CELL_SIZE = $derived(
-    Math.max(32, Math.min(45, Math.floor((containerWidth - 32) / mapWidth)))
-  );
+  let isMobile = $derived(containerWidth < 480);
+  let CELL_SIZE = $derived.by(() => {
+    // On mobile, use smaller cells and less padding
+    const padding = isMobile ? 16 : 32;
+    const minSize = isMobile ? 20 : 32;
+    const maxSize = isMobile ? 35 : 45;
+    return Math.max(minSize, Math.min(maxSize, Math.floor((containerWidth - padding) / mapWidth)));
+  });
 
   $effect(() => {
     if (!containerRef) return;
@@ -442,41 +447,41 @@
 </script>
 
 <div class="student-map" bind:this={containerRef}>
-  <div class="mb-4">
-    <div class="flex items-center justify-between flex-wrap gap-3">
-      <div>
-        <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
-          <span class="text-3xl">🗺️</span> Schoolyard Map
+  <div class="mb-3 sm:mb-4">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+      <div class="text-center sm:text-left">
+        <h2 class="text-xl sm:text-2xl font-bold text-slate-800 flex items-center justify-center sm:justify-start gap-2">
+          <span class="text-2xl sm:text-3xl">🗺️</span> Schoolyard Map
         </h2>
-        <p class="text-slate-500 text-sm mt-0.5">Tap on an area to discover missions!</p>
+        <p class="text-slate-500 text-xs sm:text-sm mt-0.5">Tap on an area to discover missions!</p>
       </div>
-      <div class="flex gap-2 flex-wrap">
+      <div class="flex gap-1.5 sm:gap-2 flex-wrap justify-center sm:justify-end">
         {#if urgentMissionsCount > 0}
           <div
-            class="px-3 py-1.5 bg-red-100 text-red-700 rounded-full text-sm font-bold animate-pulse shadow-sm border border-red-200"
+            class="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-100 text-red-700 rounded-full text-xs sm:text-sm font-bold animate-pulse shadow-sm border border-red-200"
           >
             🚨 {urgentMissionsCount} Urgent
           </div>
         {/if}
         {#if myActiveMissions > 0}
-          <div class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+          <div class="px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-100 text-blue-700 rounded-full text-xs sm:text-sm font-semibold">
             📋 {myActiveMissions} active
           </div>
         {/if}
-        <div class="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold">
+        <div class="px-2 sm:px-3 py-1 sm:py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs sm:text-sm font-semibold">
           📍 {placedSectors.length} area{placedSectors.length !== 1 ? 's' : ''}
         </div>
-        <div class="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-sm font-semibold">
+        <div class="px-2 sm:px-3 py-1 sm:py-1.5 bg-amber-100 text-amber-700 rounded-full text-xs sm:text-sm font-semibold">
           🎯 {totalMissions - (myActiveMissions + myCooldownMissions + myTakenMissions)} mission{totalMissions !== 1 ? 's' : ''}
         </div>
       </div>
     </div>
   </div>
 
-  <div class="map-container rounded-2xl shadow-xl border-4 border-white/50 overflow-hidden">
+  <div class="map-container rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl border-2 sm:border-4 border-white/50 overflow-hidden">
     <div class="relative bg-gradient-to-b from-sky-200 via-sky-100 to-emerald-200">
-      <div class="relative p-4 sm:p-5 flex justify-center">
-        <div class="map-grid-wrapper" style="padding: 8px;">
+      <div class="relative p-2 sm:p-4 md:p-5 flex justify-center overflow-x-auto scrollbar-hide">
+        <div class="map-grid-wrapper" style="padding: {isMobile ? '4px' : '8px'};">
           <div
             class="relative rounded-xl"
             style="width: {mapWidth * CELL_SIZE}px; height: {mapHeight * CELL_SIZE}px;"
@@ -697,32 +702,35 @@
     {@const config = getConfig(selectedSector.type)}
     {@const currentSector = selectedSector}
     <div
-      class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
+      class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center"
       onclick={closeSectorPanel}
+      onkeydown={(e) => e.key === 'Escape' && closeSectorPanel()}
       role="presentation"
     >
       <div
-        class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden animate-slide-up"
+        class="sector-panel-modal bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-lg animate-slide-up sm:mx-4"
         onclick={(e) => e.stopPropagation()}
+        onkeydown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         tabindex="-1"
       >
+        <!-- Header - fixed height -->
         <div
-          class="px-6 py-5 flex items-center justify-between relative overflow-hidden"
+          class="px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between relative overflow-hidden rounded-t-3xl sm:rounded-t-3xl"
           style="background: linear-gradient(135deg, {config.gradientFrom} 0%, {config.gradientTo} 100%);"
         >
           <div
             class="absolute -right-8 -top-8 w-32 h-32 rounded-full opacity-20"
             style="background: {config.color};"
           ></div>
-          <div class="flex items-center gap-4 relative z-10">
-            <div class="text-5xl drop-shadow-lg">{config.icon}</div>
+          <div class="flex items-center gap-3 sm:gap-4 relative z-10">
+            <div class="text-4xl sm:text-5xl drop-shadow-lg">{config.icon}</div>
             <div>
-              <h3 class="text-2xl font-bold" style="color: {config.color};">
+              <h3 class="text-xl sm:text-2xl font-bold" style="color: {config.color};">
                 {selectedSector.name}
               </h3>
-              <p class="text-slate-600 flex items-center gap-1 mt-0.5">
+              <p class="text-slate-600 flex items-center gap-1 mt-0.5 text-sm">
                 🎯 <span class="font-medium"
                   >{selectedSector.missions?.length || 0} mission{(selectedSector.missions
                     ?.length || 0) !== 1
@@ -734,7 +742,7 @@
           </div>
           <button
             onclick={closeSectorPanel}
-            class="relative z-10 p-2.5 bg-white/80 hover:bg-white rounded-full transition-all shadow-md"
+            class="relative z-10 p-2 sm:p-2.5 bg-white/80 hover:bg-white rounded-full transition-all shadow-md"
             aria-label="Close"
           >
             <svg
@@ -753,7 +761,8 @@
           </button>
         </div>
 
-        <div class="p-4 overflow-y-auto max-h-[60vh] bg-slate-50">
+        <!-- Scrollable content area -->
+        <div class="sector-panel-content p-3 sm:p-4 bg-slate-50">
           {#if selectedSector.missions && selectedSector.missions.length > 0}
             <div class="space-y-3">
               {#each sortMissions(selectedSector.missions) as mission}
@@ -766,7 +775,7 @@
                   mission.isUrgent && mission.missionStatus === 'available'}
 
                 <button
-                  class="mission-card w-full text-left p-4 rounded-2xl transition-all duration-200 border-2 group"
+                  class="mission-card w-full text-left p-3 sm:p-4 rounded-2xl transition-all duration-200 border-2 group"
                   class:bg-white={!isUrgentAvailable && mission.missionStatus !== 'my_active'}
                   class:border-slate-100={!isUrgentAvailable &&
                     mission.missionStatus !== 'my_active'}
@@ -791,17 +800,17 @@
                   {#if statusBadge}
                     <div class="mb-2">
                       <span
-                        class="px-2.5 py-1 {statusBadge.bgColor} {statusBadge.textColor} rounded-lg text-xs font-semibold shadow-sm"
+                        class="px-2 sm:px-2.5 py-1 {statusBadge.bgColor} {statusBadge.textColor} rounded-lg text-xs font-semibold shadow-sm"
                       >
                         {statusBadge.text}
                       </span>
                     </div>
                   {/if}
 
-                  <div class="flex items-start justify-between gap-3">
+                  <div class="flex items-start justify-between gap-2 sm:gap-3">
                     <div class="flex-1 min-w-0">
                       <h4
-                        class="font-bold text-lg transition-colors"
+                        class="font-bold text-base sm:text-lg transition-colors"
                         class:text-slate-800={!isUrgentAvailable}
                         class:text-red-800={isUrgentAvailable}
                         class:group-hover:text-emerald-700={!isUnavailable && !isUrgentAvailable}
@@ -809,20 +818,20 @@
                         {mission.title}
                       </h4>
                       <p
-                        class="text-sm mt-1 line-clamp-2"
+                        class="text-xs sm:text-sm mt-1 line-clamp-2"
                         class:text-slate-500={!isUrgentAvailable}
                         class:text-red-600={isUrgentAvailable}
                       >
                         {mission.description}
                       </p>
                     </div>
-                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                    <div class="flex flex-col items-end gap-1 sm:gap-1.5 flex-shrink-0">
                       <span
-                        class="px-3 py-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-full text-sm font-bold shadow-sm"
+                        class="px-2 sm:px-3 py-0.5 sm:py-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-full text-xs sm:text-sm font-bold shadow-sm"
                         >⭐ {mission.xpReward} XP</span
                       >
                       <span
-                        class="px-3 py-1 bg-gradient-to-r from-emerald-400 to-green-500 text-white rounded-full text-sm font-bold shadow-sm"
+                        class="px-2 sm:px-3 py-0.5 sm:py-1 bg-gradient-to-r from-emerald-400 to-green-500 text-white rounded-full text-xs sm:text-sm font-bold shadow-sm"
                         >🌱 {mission.coinReward}</span
                       >
                     </div>
@@ -897,6 +906,8 @@
                 </button>
               {/each}
             </div>
+            <!-- Bottom padding for safe area on mobile -->
+            <div class="h-4 sm:h-0"></div>
           {:else}
             <div class="text-center py-12">
               <div class="text-6xl mb-4">📭</div>
@@ -948,6 +959,42 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 100%;
+  }
+
+  /* Mobile scroll improvements */
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+
+  /* Sector panel modal - explicit height constraints for mobile */
+  .sector-panel-modal {
+    display: flex;
+    flex-direction: column;
+    /* Take up most of the screen on mobile */
+    height: calc(100vh - 70px);
+    height: calc(100dvh - 70px);
+    max-height: calc(100vh - 70px);
+    max-height: calc(100dvh - 70px);
+  }
+
+  .sector-panel-content {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    min-height: 0; /* Important for flex children to scroll */
+  }
+
+  @media (min-width: 640px) {
+    .sector-panel-modal {
+      /* On desktop, don't force full height - let content determine size */
+      height: auto;
+      max-height: 85vh;
+    }
+    .sector-panel-content {
+      max-height: 60vh;
+    }
   }
 
   @keyframes slide-up {
