@@ -241,8 +241,8 @@
                           <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-semibold">
                             ⭐ +{mission.xpReward} XP
                           </span>
-                          <span class="px-2 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-semibold">
-                            🪙 +{mission.coinReward}
+                          <span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-semibold">
+                            🌱 +{mission.coinReward}
                           </span>
                         </div>
                       </div>

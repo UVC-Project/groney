@@ -39,13 +39,29 @@
     }
   });
 
+  // Feedback state
   let bannerMsg = $state<string | null>(null);
   let bannerType = $state<'error' | 'success'>('success');
+  let bannerEmoji = $state('');
+  let bannerTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  function showBanner(msg: string, type: 'error' | 'success') {
+  // Loading state - track which supply is being requested
+  let requestingSupplyId = $state<string | null>(null);
+
+  function showBanner(msg: string, type: 'error' | 'success', emoji = '') {
+    // Clear any existing timeout to prevent glitchy disappearing
+    if (bannerTimeout) {
+      clearTimeout(bannerTimeout);
+    }
+    
     bannerMsg = msg;
     bannerType = type;
-    window.setTimeout(() => (bannerMsg = null), 3500);
+    bannerEmoji = emoji || (type === 'success' ? '📬' : '😕');
+    
+    bannerTimeout = setTimeout(() => {
+      bannerMsg = null;
+      bannerTimeout = null;
+    }, 3500);
   }
 
   const imageMap: Record<string, string> = {
@@ -85,19 +101,23 @@
     }
   }
 
-  function getNetworkErrorMessage(err: unknown) {
+  function getKidFriendlyError(err: unknown, fallback: string) {
     if (err instanceof DOMException && err.name === 'AbortError') {
-      return 'Request timed out. Please try again.';
+      return 'Oops! That took too long. Try again?';
     }
-    return 'Service unavailable.';
+    return fallback;
   }
 
   async function onRequestClick(supply: Supply) {
-    // ✅ Guard: must have real IDs
+    // Guard: must have real IDs
     if (!userId || !classId) {
-      showBanner('Please log in and select a class first.', 'error');
+      showBanner('Please log in first!', 'error', '🔑');
       return;
     }
+
+    // Prevent double-click
+    if (requestingSupplyId) return;
+    requestingSupplyId = supply.id;
 
     try {
       const res = await fetchWithTimeout(`${API_BASE}/api/supply-requests`, {
@@ -109,13 +129,15 @@
       const json: { message?: string } = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        showBanner(json.message ?? 'Failed to request supply', 'error');
+        showBanner(json.message ?? "Couldn't send that request. Try again!", 'error', '😅');
         return;
       }
 
-      showBanner('Request sent to your teacher!', 'success');
+      showBanner('Request sent! Your teacher will see it soon.', 'success', '✉️');
     } catch (err) {
-      showBanner(getNetworkErrorMessage(err), 'error');
+      showBanner(getKidFriendlyError(err, 'Something went wrong. Try again!'), 'error');
+    } finally {
+      requestingSupplyId = null;
     }
   }
 </script>
@@ -123,45 +145,54 @@
 <PageWrapper title="Schoolyard Supplies">
   {#if bannerMsg}
     <div class="flex justify-center mb-4">
-      <div
-        class={`px-5 py-2 rounded-full shadow-md text-sm font-semibold ${
-          bannerType === 'success'
-            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-            : 'bg-rose-100 text-rose-800 border border-rose-200'
-        }`}
-      >
-        {bannerMsg}
+      <div class={bannerType === 'success' ? 'feedback-toast-success' : 'feedback-toast-error'}>
+        <span>{bannerEmoji}</span>
+        <span>{bannerMsg}</span>
       </div>
     </div>
   {/if}
 
   {#if data.supplies.length === 0}
-    <div class="text-center text-gray-500 pb-10">
-      <p class="font-medium mb-1">No supplies found</p>
-      <p class="text-sm">Seed the DB and make sure supply-service + gateway are running.</p>
+    <div class="empty-state">
+      <div class="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+        <span class="text-3xl">🌱</span>
+      </div>
+      <p class="font-bold text-gray-700 text-lg mb-1">No supplies found</p>
+      <p class="text-sm text-gray-500">Check back later for gardening supplies!</p>
     </div>
   {:else}
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-10">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {#each data.supplies as supply}
-        <article class="bg-white rounded-3xl shadow-md border-4 border-green-200 flex flex-col overflow-hidden">
-          <div class="flex-1 flex flex-col items-center justify-center p-6">
-            {#if getSupplyImage(supply)}
-              <div class="h-24 mb-4 flex items-center justify-center">
-                <img src={getSupplyImage(supply)} alt={supply.name} class="max-h-24" />
-              </div>
-            {/if}
-
-            <h3 class="font-semibold text-gray-800">{supply.name}</h3>
-            <p class="text-xs text-gray-500 text-center mt-1">{supply.description}</p>
+        <article class="card-item-green flex flex-col">
+          <!-- Supply Display -->
+          <div class="flex-1 flex flex-col items-center justify-center p-5 bg-gradient-to-br from-emerald-50/50 to-white">
+            <div class="w-20 h-20 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-3 border border-emerald-100">
+              {#if getSupplyImage(supply)}
+                <img src={getSupplyImage(supply)} alt={supply.name} class="max-h-14" />
+              {:else}
+                <span class="text-3xl">🧰</span>
+              {/if}
+            </div>
+            <h3 class="text-base font-bold text-gray-800">{supply.name}</h3>
+            <p class="text-xs text-gray-500 text-center mt-1 leading-relaxed">{supply.description}</p>
           </div>
 
-          <div class="px-6 py-3 bg-green-50 flex items-center justify-end">
+          <!-- Action Footer -->
+          <div class="px-4 py-3 bg-gradient-to-r from-emerald-50 to-green-50 border-t border-emerald-100 flex items-center justify-between">
+            <span class="text-xs text-emerald-600 font-medium flex items-center gap-1">
+              <span>📋</span> Ask your teacher
+            </span>
             <button
               type="button"
-              class="text-xs font-semibold rounded-full px-4 py-1 bg-green-500 text-white hover:bg-green-600 transition-colors"
+              class="btn-action-green"
               onclick={() => onRequestClick(supply)}
+              disabled={requestingSupplyId === supply.id}
             >
-              Request
+              {#if requestingSupplyId === supply.id}
+                <span class="spinner-sm"></span>
+              {:else}
+                Request
+              {/if}
             </button>
           </div>
         </article>

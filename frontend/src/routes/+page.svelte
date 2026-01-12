@@ -224,22 +224,12 @@
       // Show next notification
       currentDecisionIndex++;
     } else {
-      // All notifications shown
+      // All notifications shown - close completely
       showDecisionNotification = false;
       missionDecisions = [];
       currentDecisionIndex = 0;
     }
   }
-
-  // Auto-dismiss after 5 seconds
-  $effect(() => {
-    if (showDecisionNotification) {
-      const timeout = setTimeout(() => {
-        dismissDecisionNotification();
-      }, 5000);
-      return () => clearTimeout(timeout);
-    }
-  });
 
   // Start polling on mount and check for milestone reward / streak reset
   onMount(() => {
@@ -462,32 +452,126 @@
     localStorage.removeItem('auth');
     goto('/login');
   }
+
+  // Pet Groeny interaction
+  let isJumping = $state(false);
+  let petCooldown = $state(false);
+  let showPetFeedback = $state(false);
+
+  async function petGroeny() {
+    if (petCooldown || isJumping) return;
+
+    // Start jump animation
+    isJumping = true;
+    
+    // Get user and class info
+    let userId = '';
+    let classId = '';
+    const authData = localStorage.getItem('auth');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      userId = parsed?.user?.id ?? '';
+      classId = parsed?.classes?.[0]?.id ?? '';
+    }
+
+    if (!userId || !classId) {
+      console.warn('Pet Groeny: Missing userId or classId', { userId, classId });
+      // Still show animation even if we can't save
+      setTimeout(() => { isJumping = false; }, 500);
+      return;
+    }
+
+    try {
+      console.log('Petting Groeny...', { classId, userId });
+      const res = await fetch(`${MASCOT_ENGINE_URL}/api/mascot/${classId}/pet`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+
+      console.log('Pet response status:', res.status);
+      
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Pet response data:', data);
+        // Update local state immediately for responsiveness
+        if (liveMascot) {
+          liveMascot = { ...liveMascot, happiness: data.happiness, health: data.health, state: data.state };
+        }
+        // Show feedback
+        showPetFeedback = true;
+        setTimeout(() => { showPetFeedback = false; }, 1500);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('Pet Groeny failed:', res.status, errorData);
+      }
+    } catch (err) {
+      console.error('Error petting Groeny:', err);
+    }
+
+    // End jump animation
+    setTimeout(() => { isJumping = false; }, 500);
+    
+    // Set cooldown (1 minute)
+    petCooldown = true;
+    setTimeout(() => { petCooldown = false; }, 60000);
+  }
 </script>
-<div class="container mx-auto px-4 py-10 relative">
+<div class="container mx-auto px-4 py-4 sm:py-6 max-w-4xl relative">
 
-  <!-- Weather Widget - Absolute positioned -->
-  <div class="absolute top-24 right-4 z-10 hidden sm:block">
-    <WeatherWidget />
-  </div>
-
-  <!-- Welcome + Controls -->
-  <div class="flex justify-between items-center mb-6">
-    <p class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white text-sm font-medium text-gray-800 shadow-lg">
-      Welcome{displayName ? `, ${displayName}` : ''}!
-    </p>
-    <div class="flex items-center gap-4">
-      <BackgroundPicker />
+  <!-- Mobile Header -->
+  <div class="sm:hidden mb-4">
+    <!-- Top row: Welcome + Logout -->
+    <div class="flex justify-between items-center mb-3">
+      <p class="text-sm font-bold text-gray-800">
+        Welcome{displayName ? `, ${displayName}` : ''}! 👋
+      </p>
       <button
-        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-white hover:bg-gray-300 text-sm font-medium text-gray-800 shadow-lg"
+        class="px-3 py-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-600 shadow-sm transition-all"
         onclick={() => showLogoutModal = true}
       >
         Logout
       </button>
     </div>
+    
+    <!-- Weather + Background picker row -->
+    <div class="flex gap-2 items-stretch">
+      <!-- Compact Weather Widget for Mobile -->
+      <div class="flex-1">
+        <WeatherWidget compact={true} />
+      </div>
+      <div class="flex-shrink-0">
+        <BackgroundPicker />
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop Header -->
+  <div class="hidden sm:block">
+    <!-- Weather Widget - Absolute positioned on desktop -->
+    <div class="absolute top-20 right-0 z-10">
+      <WeatherWidget />
+    </div>
+
+    <!-- Welcome + Controls -->
+    <div class="flex justify-between items-center mb-4">
+      <p class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-gray-100 bg-white text-sm font-bold text-gray-800 shadow-md">
+        Welcome{displayName ? `, ${displayName}` : ''}! 👋
+      </p>
+      <div class="flex items-center gap-3">
+        <BackgroundPicker />
+        <button
+          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] text-sm font-bold text-gray-700 shadow-md transition-all min-h-[44px] focus:outline-none focus-visible:ring-4 focus-visible:ring-gray-400/40 focus-visible:ring-offset-2"
+          onclick={() => showLogoutModal = true}
+        >
+          Logout
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Title -->
-  <h1 class="text-4xl md:text-6xl font-extrabold text-center text-gray-800 mb-4">
+  <h1 class="text-4xl md:text-5xl font-extrabold text-center text-gray-800 mb-4 tracking-tight">
     Groeny
   </h1>
 
@@ -513,14 +597,14 @@
           {milestoneReward.streakDay}-day streak!
         </h2>
         <div class="bg-yellow-50 border border-yellow-200 rounded-full px-4 py-1.5 inline-block mb-3">
-          <span class="text-lg sm:text-xl font-bold text-yellow-600">🪙 +{milestoneReward.coinsEarned} coins</span>
+          <span class="text-lg sm:text-xl font-bold text-yellow-600">🌱 +{milestoneReward.coinsEarned} seeds</span>
         </div>
         <p class="text-gray-500 text-base sm:text-lg mb-4">{milestoneReward.message}</p>
         <button
-          class="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-semibold px-6 py-2.5 rounded-full transition-colors touch-manipulation"
+          class="btn-primary w-full sm:w-auto"
           onclick={dismissMilestoneReward}
         >
-          Awesome!
+          Awesome! 🎉
         </button>
       </div>
     </div>
@@ -553,10 +637,10 @@
         </div>
         <p class="text-gray-600 text-base sm:text-lg mb-4">Let's start fresh together! 🌱</p>
         <button
-          class="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-semibold px-6 py-2.5 rounded-full transition-colors touch-manipulation"
+          class="btn-primary w-full sm:w-auto"
           onclick={dismissStreakReset}
         >
-          Let's go!
+          Let's go! 💪
         </button>
       </div>
     </div>
@@ -578,7 +662,7 @@
             </div>
             <button 
               onclick={dismissDecisionNotification}
-              class="text-white/80 hover:text-white transition-colors"
+              class="text-white/80 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-1 focus-visible:rounded px-1 py-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
               aria-label="Dismiss"
             >
               ✕
@@ -596,7 +680,7 @@
                 ⭐ +{decision.xpReward} XP
               </span>
               <span class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-semibold">
-                🪙 +{decision.coinReward} Coins
+                🌱 +{decision.coinReward} Seeds
               </span>
             </div>
           {:else}
@@ -613,79 +697,119 @@
     </div>
   {/if}
 
-  <!-- Level + coins + streak -->
-  <div class="flex justify-center gap-3 mb-6">
-    <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg">🎖️ {level}</div>
-    <div class="bg-yellow-300 px-4 py-1 rounded-full font-bold text-gray-800 shadow-lg">🪙 {coins}</div>
+  <!-- Level + seeds + streak -->
+  <div class="flex justify-center gap-2 mb-4 flex-wrap">
+    <div class="badge-playful bg-gradient-to-r from-amber-300 to-yellow-400 text-amber-900 shadow-amber-400/30">
+      <span>🎖️</span> Level {level}
+    </div>
+    <div class="badge-playful bg-gradient-to-r from-emerald-300 to-green-400 text-emerald-900 shadow-emerald-400/30">
+      <span>🌱</span> {coins}
+    </div>
     <StreakWidget />
   </div>
 
-  <!-- Mascot -->
+  <!-- Mascot Container -->
   <div class="flex justify-center mb-4">
-    <div class="w-80 h-80 rounded-full border-8 border-sky-300 flex items-center justify-center bg-white shadow-lg">
-      <img src={groenySrc} class="w-64" alt="Groeny" />
-    </div>
+    <button 
+      class="relative group cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-400/50 focus-visible:ring-offset-4 rounded-full"
+      onclick={petGroeny}
+      disabled={petCooldown}
+      aria-label="Pet Groeny"
+    >
+      <!-- Decorative ring -->
+      <div class="absolute -inset-2 rounded-full bg-gradient-to-br from-sky-200 via-emerald-200 to-teal-200 opacity-60 blur-sm group-hover:opacity-80 transition-opacity"></div>
+      <!-- Main mascot circle -->
+      <div class="relative w-64 h-64 md:w-72 md:h-72 rounded-full border-4 border-white flex items-center justify-center bg-gradient-to-br from-sky-50 to-emerald-50 shadow-xl group-hover:shadow-2xl transition-shadow overflow-hidden">
+        <img 
+          src={groenySrc} 
+          class="w-48 md:w-56 drop-shadow-lg transition-transform duration-300 {isJumping ? 'groeny-jump' : ''} {!petCooldown ? 'group-hover:scale-105' : ''}" 
+          alt="Groeny - Click to pet!" 
+        />
+        
+        <!-- Pet feedback popup -->
+        {#if showPetFeedback}
+          <div class="absolute top-4 left-1/2 -translate-x-1/2 animate-float-up pointer-events-none">
+            <span class="text-2xl">🥰 +1</span>
+          </div>
+        {/if}
+      </div>
+    </button>
   </div>
 
-  <!-- Health -->
-  <div class="flex justify-center mb-6">
-    <div class="{healthBgColor} px-4 py-1 rounded-full font-semibold text-gray-800 text-sm shadow">
+  <!-- Health Badge -->
+  <div class="flex justify-center mb-4">
+    <div class="badge-playful {healthBgColor} {health >= 51 ? 'text-green-800' : health >= 25 ? 'text-yellow-800' : 'text-red-800'}">
+      <span>{health >= 51 ? '💚' : health >= 25 ? '💛' : '❤️'}</span>
       {health}% Health
       {#if state === 'sad'}
-        <span class="ml-1">😢</span>
+        <span>😢</span>
       {:else if state === 'sick'}
-        <span class="ml-1">🤒</span>
+        <span>🤒</span>
       {/if}
     </div>
   </div>
 
   <!-- XP Progress -->
-  <div class="max-w-md mx-auto mb-10">
-    <p class="text-gray-800 mb-1 text-sm">XP Progress (Level {level})</p>
-    <div class="w-full bg-gray-200 rounded-full h-3 shadow-lg overflow-hidden">
-      <div class="{healthColor} h-full transition-all duration-500" style="width: {levelProgress.percentage}%"></div>
+  <div class="max-w-md mx-auto mb-6 card-playful !p-4">
+    <div class="flex items-center justify-between mb-2">
+      <p class="text-gray-700 text-sm font-bold flex items-center gap-2">
+        <span class="w-6 h-6 rounded-lg bg-purple-100 flex items-center justify-center text-sm">⭐</span>
+        XP Progress
+      </p>
+      <span class="text-xs font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">Level {level}</span>
     </div>
-    <p class="text-right text-gray-800 text-sm mt-1">{levelProgress.current} / {levelProgress.required}</p>
+    <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+      <div class="bg-gradient-to-r from-purple-500 to-violet-500 h-full transition-all duration-500 rounded-full" style="width: {levelProgress.percentage}%"></div>
+    </div>
+    <p class="text-right text-gray-500 text-xs mt-1.5 font-medium">{levelProgress.current} / {levelProgress.required} XP</p>
   </div>
 
   <!-- Stats -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-    <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-blue-600">
-      <div class="text-3xl mb-1">💧</div>
-      <p class="text-gray-800 text-sm">THIRST</p>
-      <p class="font-extrabold text-xl transition-all duration-500 {getStatColor(thirst)}">{thirst}%</p>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="card-stat border-blue-500">
+      <div class="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-2">
+        <span class="text-2xl">💧</span>
+      </div>
+      <p class="text-gray-500 text-xs font-bold uppercase tracking-wide">Thirst</p>
+      <p class="font-extrabold text-2xl transition-all duration-500 {getStatColor(thirst)}">{thirst}%</p>
     </div>
-    <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-orange-500">
-      <div class="text-3xl mb-1">🍎</div>
-      <p class="text-gray-800 text-sm">HUNGER</p>
-      <p class="font-extrabold text-xl transition-all duration-500 {getStatColor(hunger)}">{hunger}%</p>
+    <div class="card-stat border-orange-500">
+      <div class="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center mx-auto mb-2">
+        <span class="text-2xl">🍎</span>
+      </div>
+      <p class="text-gray-500 text-xs font-bold uppercase tracking-wide">Hunger</p>
+      <p class="font-extrabold text-2xl transition-all duration-500 {getStatColor(hunger)}">{hunger}%</p>
     </div>
-    <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-sky-500">
-      <div class="text-3xl mb-1">🥰</div>
-      <p class="text-gray-800 text-sm">HAPPINESS</p>
-      <p class="font-extrabold text-xl transition-all duration-500 {getStatColor(happiness)}">{happiness}%</p>
+    <div class="card-stat border-sky-500">
+      <div class="w-12 h-12 rounded-2xl bg-sky-100 flex items-center justify-center mx-auto mb-2">
+        <span class="text-2xl">🥰</span>
+      </div>
+      <p class="text-gray-500 text-xs font-bold uppercase tracking-wide">Happiness</p>
+      <p class="font-extrabold text-2xl transition-all duration-500 {getStatColor(happiness)}">{happiness}%</p>
     </div>
-    <div class="bg-white rounded-3xl shadow-lg p-4 text-center border-b-4 border-pink-500">
-      <div class="text-3xl mb-1">🧹</div>
-      <p class="text-gray-800 text-sm">CLEANLINESS</p>
-      <p class="font-extrabold text-xl transition-all duration-500 {getStatColor(cleanliness)}">{cleanliness}%</p>
+    <div class="card-stat border-pink-500">
+      <div class="w-12 h-12 rounded-2xl bg-pink-100 flex items-center justify-center mx-auto mb-2">
+        <span class="text-2xl">🧹</span>
+      </div>
+      <p class="text-gray-500 text-xs font-bold uppercase tracking-wide">Clean</p>
+      <p class="font-extrabold text-2xl transition-all duration-500 {getStatColor(cleanliness)}">{cleanliness}%</p>
     </div>
   </div>
 
   <!-- Activity Feed -->
-   <div class="max-w-5xl mx-auto mt-10 mb-20">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-      <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800">Recent activities</h2>
+   <div class="mt-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+      <h2 class="text-xl md:text-2xl font-bold text-gray-800">Recent Activities</h2>
       
-      <div class="bg-gray-100 p-1 rounded-xl inline-flex self-start sm:self-auto">
+      <div class="bg-gray-100 p-1.5 rounded-2xl inline-flex self-start sm:self-auto">
         <button 
-          class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 {activityFilter === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
+          class={activityFilter === 'all' ? 'btn-chip-active' : 'btn-chip-inactive'}
           onclick={() => activityFilter = 'all'}
         >
           🏫 Whole Class
         </button>
         <button 
-          class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 {activityFilter === 'mine' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
+          class={activityFilter === 'mine' ? 'btn-chip-active' : 'btn-chip-inactive'}
           onclick={() => activityFilter = 'mine'}
         >
           👤 My Activity
@@ -694,45 +818,50 @@
     </div>
 
     {#if isLoadingActivities}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <div class="h-64 bg-gray-100 rounded-[32px] animate-pulse"></div>
-            <div class="h-64 bg-gray-100 rounded-[32px] animate-pulse"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="h-56 skeleton"></div>
+            <div class="h-56 skeleton"></div>
         </div>
     {:else if activities.length > 0}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           {#each activities as activity}
-            <article class="bg-white rounded-[32px] shadow-lg p-4 md:p-5 border border-gray-100 transition-transform hover:scale-[1.01]">
+            <article class="card-activity">
               <div class="flex items-center gap-3 mb-3">
-                  <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                  <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-blue-500/20">
                       {activity.userName?.charAt(0) || '?'}
                   </div>
-                  <h3 class="font-semibold text-gray-800 text-sm md:text-base">
-                      <span class="font-bold text-blue-600">{activity.userName}</span> completed {activity.missionTitle}!
-                  </h3>
+                  <div>
+                      <p class="font-bold text-gray-800 text-sm">{activity.userName}</p>
+                      <p class="text-gray-500 text-xs">completed <span class="font-semibold text-emerald-600">{activity.missionTitle}</span></p>
+                  </div>
               </div>
 
-              <div class="overflow-hidden rounded-2xl mb-3 bg-gray-50 relative group">
+              <div class="overflow-hidden rounded-2xl mb-3 bg-gradient-to-br from-gray-100 to-gray-50 relative group">
                 {#if activity.imageUrl}
-                    <img src={resolvePhotoUrl(activity.imageUrl)} alt={activity.missionTitle} class="w-full h-44 md:h-56 object-cover transition-transform duration-500 group-hover:scale-105">
+                    <img src={resolvePhotoUrl(activity.imageUrl)} alt={activity.missionTitle} class="w-full h-36 object-cover transition-transform duration-500 group-hover:scale-105">
                 {:else}
-                    <div class="w-full h-44 md:h-56 flex items-center justify-center text-gray-400">
-                        No photo submitted
+                    <div class="w-full h-36 flex flex-col items-center justify-center text-gray-400">
+                        <span class="text-2xl mb-1">📷</span>
+                        <span class="text-xs">No photo</span>
                     </div>
                 {/if}
               </div>
 
-              <p class="text-xs md:text-sm text-gray-500 flex items-center gap-1">
-                  📅 {formatDate(activity.createdAt)}
+              <p class="text-xs text-gray-400 flex items-center gap-1.5">
+                  <span class="w-5 h-5 rounded-md bg-gray-100 flex items-center justify-center">📅</span>
+                  {formatDate(activity.createdAt)}
               </p>
             </article>
           {/each}
         </div>
     {:else}
-        <div class="text-center py-12 bg-gray-50 rounded-[32px] border border-dashed border-gray-300">
-            <p class="text-4xl mb-2">📭</p>
-            <p class="text-gray-600 font-medium">No recent activities found.</p>
+        <div class="empty-state">
+            <div class="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                <span class="text-3xl">📭</span>
+            </div>
+            <p class="text-gray-700 font-bold text-lg">No recent activities yet</p>
             {#if activityFilter === 'mine'}
-                <p class="text-gray-400 text-sm mt-1">Complete some missions to see them here!</p>
+                <p class="text-gray-500 text-sm mt-1">Complete some missions to see them here!</p>
             {/if}
         </div>
     {/if}

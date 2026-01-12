@@ -42,8 +42,7 @@
 
       <button
         disabled={loading}
-        class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600
-				text-white font-semibold rounded-lg shadow-lg"
+        class="btn-primary w-full"
       >
         {loading ? 'Sending…' : 'Resend email'}
       </button>

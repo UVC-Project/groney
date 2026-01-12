@@ -1,35 +1,54 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
   import { auth } from '$lib/stores/auth';
+  import LogoutModal from '$lib/components/LogoutModal.svelte';
 
-  let loading = true;
-  let saving = false;
-  let message = '';
+  let loading = $state(true);
+  let saving = $state(false);
+  let message = $state('');
+  let messageType = $state<'success' | 'error'>('success');
 
-  let role: 'TEACHER' | 'STUDENT';
+  let role = $state<'TEACHER' | 'STUDENT'>('STUDENT');
 
-  let firstName = '';
-  let lastName = '';
-  let username = '';
-  let email = '';
-  let password = '';
-  let currentPassword = '';
+  let firstName = $state('');
+  let lastName = $state('');
+  let username = $state('');
+  let email = $state('');
+  let password = $state('');
+  let confirmPassword = $state('');
+  let currentPassword = $state('');
+
+  let showLogoutModal = $state(false);
 
   onMount(async () => {
-    const profile = await auth.getProfile();
+    try {
+      const profile = await auth.getProfile();
 
-    role = profile.role;
-    firstName = profile.firstName;
-    lastName = profile.lastName;
-    username = profile.username;
-    email = profile.email ?? '';
-
-    loading = false;
+      role = profile.role;
+      firstName = profile.firstName;
+      lastName = profile.lastName;
+      username = profile.username;
+      email = profile.email ?? '';
+    } catch (e) {
+      message = "Couldn't load your profile. Try refreshing!";
+      messageType = 'error';
+    } finally {
+      loading = false;
+    }
   });
 
   async function save() {
     saving = true;
     message = '';
+
+    // Validate password confirmation
+    if (password.trim() && password !== confirmPassword) {
+      message = "Passwords don't match!";
+      messageType = 'error';
+      saving = false;
+      return;
+    }
 
     const payload: any = {
       firstName,
@@ -46,12 +65,29 @@
       payload.currentPassword = currentPassword;
     }
 
-    const res = await auth.updateProfile(payload);
-    message = res.message ?? 'Profile updated';
-    password = '';
-    currentPassword = '';
+    try {
+      const res = await auth.updateProfile(payload);
+      message = res.message ?? 'Changes saved! ✨';
+      messageType = 'success';
+      password = '';
+      confirmPassword = '';
+      currentPassword = '';
+    } catch (e: any) {
+      // Extract error message from API response if available
+      message = e?.message || "Couldn't save changes. Try again!";
+      messageType = 'error';
+    } finally {
+      saving = false;
+    }
+  }
 
-    saving = false;
+  function logout() {
+    showLogoutModal = false;
+    localStorage.removeItem('userId');
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('auth');
+    goto('/login');
   }
 </script>
 
@@ -59,64 +95,72 @@
   <title>My Profile - Green Schoolyard</title>
 </svelte:head>
 
-<div
-  class="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center p-4"
->
-  <div class="w-full max-w-md">
+<div class="container mx-auto px-4 py-6 max-w-4xl">
+  <h1 class="text-3xl md:text-4xl font-extrabold text-white drop-shadow-lg mb-6 text-center tracking-tight">
+    My Profile
+  </h1>
+
+  <div class="card-playful max-w-md mx-auto">
     <!-- Header -->
-    <div class="text-center mb-8">
-      <div
-        class="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/30"
-      >
-        <span class="text-4xl">👤</span>
+    <div class="text-center mb-6">
+      <div class="relative inline-block">
+        <div class="absolute -inset-2 rounded-2xl bg-gradient-to-br from-emerald-200 to-teal-200 opacity-50 blur-sm"></div>
+        <div class="relative w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+          <span class="text-3xl">👤</span>
+        </div>
       </div>
-      <h1 class="text-3xl font-bold text-slate-800">My Profile</h1>
-      <p class="text-slate-600 mt-2">Update your personal information</p>
+      <h2 class="text-lg font-bold text-gray-800 mt-3">Your Information</h2>
+      <p class="text-gray-500 text-sm">Update your personal details below</p>
     </div>
 
-    <!-- Card -->
-    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
+    <!-- Form Container -->
       {#if loading}
-        <p class="text-center text-slate-600">Loading profile…</p>
+        <div class="surface-info text-center py-8">
+          <div class="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p class="text-slate-600">Loading profile…</p>
+        </div>
       {:else}
-        <form on:submit|preventDefault={save} class="space-y-5">
+        <form onsubmit={(e) => { e.preventDefault(); save(); }} class="space-y-4">
           {#if message}
-            <div
-              class="p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm"
-            >
-              {message}
+            <div class={messageType === 'success' ? 'feedback-box-success' : 'feedback-box-error'}>
+              <span class="text-lg">{messageType === 'success' ? '✅' : '😅'}</span>
+              <span>{message}</span>
             </div>
           {/if}
 
-          <!-- First name -->
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-2"> First name </label>
-            <input
-              bind:value={firstName}
-              class="w-full px-4 py-3 border border-slate-300 rounded-lg
-							focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
-							outline-none transition-all"
-            />
-          </div>
-
-          <!-- Last name -->
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-2"> Last name </label>
-            <input
-              bind:value={lastName}
-              class="w-full px-4 py-3 border border-slate-300 rounded-lg
-							focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
-							outline-none transition-all"
-            />
+          <!-- Name Fields -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1.5 flex items-center gap-1">
+                <span class="text-xs">👋</span> First Name
+              </label>
+              <input
+                bind:value={firstName}
+                class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800
+                focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
+                outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1.5"> Last Name </label>
+              <input
+                bind:value={lastName}
+                class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800
+                focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
+                outline-none transition-all"
+              />
+            </div>
           </div>
 
           <!-- Username -->
           <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-2"> Username </label>
+            <label class="block text-sm font-bold text-gray-700 mb-1.5 flex items-center gap-1">
+              <span class="text-xs">@</span> Username
+            </label>
             <input
               bind:value={username}
-              class="w-full px-4 py-3 border border-slate-300 rounded-lg
-							focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
+              class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800
+							focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
 							outline-none transition-all"
             />
           </div>
@@ -124,44 +168,50 @@
           <!-- Email (teacher only) -->
           {#if role === 'TEACHER'}
             <div>
-              <label class="block text-sm font-semibold text-slate-700 mb-2"> Email </label>
+              <label class="block text-sm font-bold text-gray-700 mb-1.5 flex items-center gap-1">
+                <span class="text-xs">📧</span> Email
+              </label>
               <input
                 type="email"
                 bind:value={email}
-                class="w-full px-4 py-3 border border-slate-300 rounded-lg
-								focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
+                class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800
+								focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
 								outline-none transition-all"
               />
             </div>
           {/if}
 
-          <!-- Current password -->
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-2">
-              Current password <span class="text-slate-500">(optional)</span>
-            </label>
+          <!-- Password Section -->
+          <div class="surface-info !p-4 space-y-3">
+            <p class="text-sm font-bold text-gray-700 flex items-center gap-1">
+              <span>🔒</span> Change Password <span class="text-gray-400 font-normal text-xs">(optional)</span>
+            </p>
+            
             <input
               type="password"
               bind:value={currentPassword}
-              placeholder="Required to change password"
-              class="w-full px-4 py-3 border border-slate-300 rounded-lg
-		focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
-		outline-none transition-all"
+              placeholder="Current password"
+              class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400
+              focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
+              outline-none transition-all bg-white"
             />
-          </div>
-
-          <!-- Password -->
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-2">
-              New password <span class="text-slate-500">(optional)</span>
-            </label>
+            
             <input
               type="password"
               bind:value={password}
-              placeholder="Leave blank to keep current password"
-              class="w-full px-4 py-3 border border-slate-300 rounded-lg
-							focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
-							outline-none transition-all"
+              placeholder="New password"
+              class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400
+							focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
+							outline-none transition-all bg-white"
+            />
+
+            <input
+              type="password"
+              bind:value={confirmPassword}
+              placeholder="Confirm new password"
+              class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400
+              focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
+              outline-none transition-all bg-white"
             />
           </div>
 
@@ -169,16 +219,34 @@
           <button
             type="submit"
             disabled={saving}
-            class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600
-						text-white font-semibold rounded-lg
-						hover:from-emerald-600 hover:to-teal-700
-						transition-all shadow-lg shadow-emerald-500/30
-						disabled:opacity-50 disabled:cursor-not-allowed"
+            class="btn-primary w-full mt-2"
           >
-            {saving ? 'Saving…' : 'Save changes'}
+            {#if saving}
+              <span class="spinner"></span>
+              <span>Saving...</span>
+            {:else}
+              <span>💾</span>
+              <span>Save Changes</span>
+            {/if}
+          </button>
+
+          <!-- Logout button -->
+          <button
+            type="button"
+            onclick={() => showLogoutModal = true}
+            class="w-full mt-2 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-300 active:scale-[0.98] text-sm font-bold text-red-600 transition-all"
+          >
+            <span>👋</span>
+            <span>Logout</span>
           </button>
         </form>
       {/if}
-    </div>
   </div>
 </div>
+
+<!-- Logout Modal -->
+<LogoutModal 
+  open={showLogoutModal} 
+  onConfirm={logout} 
+  onCancel={() => showLogoutModal = false} 
+/>

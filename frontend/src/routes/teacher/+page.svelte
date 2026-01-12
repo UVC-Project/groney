@@ -15,6 +15,117 @@
         animation: slide-up 0.3s ease-out;
     }
 
+    /* Floating Dock Styles */
+    .dock-container {
+        pointer-events: none;
+    }
+
+    .dock {
+        pointer-events: auto;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 2px;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 22px;
+        padding: 6px 10px 8px;
+        box-shadow: 
+            0 2px 20px rgba(0, 0, 0, 0.08),
+            0 0 0 1px rgba(0, 0, 0, 0.05),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .dock-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 10px 4px;
+        border-radius: 14px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+        min-width: 50px;
+        color: #6b7280;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+    }
+
+    .dock-item:hover {
+        background: rgba(0, 0, 0, 0.04);
+    }
+
+    .dock-item:active {
+        transform: scale(0.95);
+    }
+
+    .dock-item.active {
+        color: #10b981;
+    }
+
+    .dock-item.active .dock-icon {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    }
+
+    .dock-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 5px;
+    }
+
+    .dock-icon svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    .dock-label {
+        font-size: 10px;
+        font-weight: 600;
+        margin-top: 3px;
+        white-space: nowrap;
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .dock-item.active .dock-label {
+        color: #10b981;
+    }
+
+    .submission-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px;
+        font-size: 9px;
+        font-weight: 700;
+        color: white;
+        background: #ef4444;
+        border-radius: 8px;
+    }
+
+    /* Focus styles for accessibility */
+    .dock-item:focus {
+        outline: none;
+    }
+
+    .dock-item:focus-visible {
+        outline: 2px solid #10b981;
+        outline-offset: 2px;
+    }
+
     /* Respect user's motion preferences */
     @media (prefers-reduced-motion: reduce) {
         *,
@@ -32,6 +143,25 @@
         button,
         select {
             min-height: 48px;
+        }
+    }
+
+    /* Smaller screens - tighter dock spacing */
+    @media (max-width: 480px) {
+        .dock {
+            gap: 0;
+            padding: 5px 6px 6px;
+        }
+        .dock-item {
+            padding: 5px 6px 3px;
+            min-width: 42px;
+        }
+        .dock-icon {
+            width: 28px;
+            height: 28px;
+        }
+        .dock-label {
+            font-size: 9px;
         }
     }
 </style>
@@ -193,12 +323,12 @@
   let hasLoadedDecayRates = $state(false);
 
   const tabs = [
-    { id: 'overview' as const, label: 'Overview', icon: '📊' },
-    { id: 'missions' as const, label: 'Missions', icon: '🎯' },
-    { id: 'submissions' as const, label: 'Submissions', icon: '📝' },
-    { id: 'map' as const, label: 'Map', icon: '🗺️' },
-    { id: 'supplies' as const, label: 'Supplies', icon: '🧤' },
-    { id: 'settings' as const, label: 'Settings', icon: '⚙️' },
+    { id: 'overview' as const, label: 'Overview', icon: '📊', iconId: 'overview' },
+    { id: 'missions' as const, label: 'Missions', icon: '🎯', iconId: 'missions' },
+    { id: 'submissions' as const, label: 'Submissions', icon: '📝', iconId: 'submissions' },
+    { id: 'map' as const, label: 'Map', icon: '🗺️', iconId: 'map' },
+    { id: 'supplies' as const, label: 'Supplies', icon: '🧤', iconId: 'supplies' },
+    { id: 'settings' as const, label: 'Settings', icon: '⚙️', iconId: 'settings' },
   ];
 
   // Computed values
@@ -1351,7 +1481,7 @@
   }
 </script>
 
-<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/40 font-teacher">
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/40 font-teacher pb-20">
   <!-- Header -->
   <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-40 shadow-sm">
     <div class="container mx-auto px-4 lg:px-6 py-4">
@@ -1478,37 +1608,74 @@
     </div>
   </header>
 
-  <!-- Tab Navigation -->
-  <nav class="bg-white/60 backdrop-blur-sm border-b border-slate-200/60 sticky top-[72px] z-30">
-    <div class="container mx-auto px-4 lg:px-6">
-      <div class="flex gap-1 overflow-x-auto scrollbar-hide">
-        {#each tabs as tab}
-          <button
-            onclick={() => (activeTab = tab.id)}
-            class="relative flex items-center gap-2 px-4 sm:px-6 py-3.5 font-medium transition-all min-h-touch-target whitespace-nowrap group"
-            class:text-emerald-600={activeTab === tab.id}
-            class:text-slate-600={activeTab !== tab.id}
-            class:hover:text-slate-900={activeTab !== tab.id}
-            aria-current={activeTab === tab.id ? 'page' : undefined}
-          >
-            <span class="text-lg transition-transform group-hover:scale-110">{tab.icon}</span>
-            <span class="text-sm sm:text-base font-semibold">{tab.label}</span>
+  <!-- Tab Navigation - Floating Dock Style -->
+  <nav
+    class="dock-container fixed bottom-0 left-0 right-0 z-50 flex justify-center px-3 pb-2"
+    style="padding-bottom: max(env(safe-area-inset-bottom), 8px);"
+  >
+    <div class="dock">
+      {#each tabs as tab}
+        <button
+          onclick={() => (activeTab = tab.id)}
+          class="dock-item"
+          class:active={activeTab === tab.id}
+          aria-label={tab.label}
+          aria-current={activeTab === tab.id ? 'page' : undefined}
+        >
+          <div class="dock-icon">
+            {#if tab.iconId === 'overview'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+            {:else if tab.iconId === 'missions'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <circle cx="12" cy="12" r="6"/>
+                <circle cx="12" cy="12" r="2"/>
+              </svg>
+            {:else if tab.iconId === 'submissions'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+            {:else if tab.iconId === 'map'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+                <line x1="8" y1="2" x2="8" y2="18"/>
+                <line x1="16" y1="6" x2="16" y2="22"/>
+              </svg>
+            {:else if tab.iconId === 'supplies'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+              </svg>
+            {:else if tab.iconId === 'settings'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            {/if}
+          </div>
+          <span class="dock-label">
+            {tab.label}
             {#if tab.id === 'submissions' && submissionsData.length > 0}
-              <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-red-500 rounded-full shadow-sm">
-                {submissionsData.length > 99 ? '99+' : submissionsData.length}
-              </span>
+              <span class="submission-badge">{submissionsData.length > 99 ? '99+' : submissionsData.length}</span>
             {/if}
-            {#if activeTab === tab.id}
-              <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"></div>
-            {/if}
-          </button>
-        {/each}
-      </div>
+          </span>
+        </button>
+      {/each}
     </div>
   </nav>
 
   <!-- Main Content -->
-  <main class="container mx-auto px-4 lg:px-6 py-6 sm:py-8 max-w-7xl">
+  <main class="container mx-auto px-4 lg:px-6 py-6 sm:py-8 max-w-7xl pb-24">
     <!-- Welcome State for New Teachers (No Class) -->
     {#if !currentClassData && !loadError}
       <div class="max-w-2xl mx-auto">
@@ -1665,18 +1832,15 @@
             <p class="text-2xl sm:text-3xl font-bold text-purple-600">{currentClassData?.mascot.xp || 0}</p>
           </div>
 
-          <!-- Coins Card -->
+          <!-- Seeds Card -->
           <div class="bg-white/80 backdrop-blur-sm rounded-xl shadow-md shadow-slate-200/50 border border-slate-200/60 p-4 sm:p-5 hover:shadow-lg transition-shadow">
             <div class="flex items-center gap-2 sm:gap-3 mb-2">
-              <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd" />
-                </svg>
+              <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <span class="text-lg sm:text-xl">🌱</span>
               </div>
-              <p class="text-xs sm:text-sm font-medium text-slate-600">Coins</p>
+              <p class="text-xs sm:text-sm font-medium text-slate-600">Seeds</p>
             </div>
-            <p class="text-2xl sm:text-3xl font-bold text-amber-600">{currentClassData?.mascot.coins || 0}</p>
+            <p class="text-2xl sm:text-3xl font-bold text-emerald-600">{currentClassData?.mascot.coins || 0}</p>
           </div>
         </div>
 
@@ -1762,10 +1926,8 @@
                           </svg>
                           {mission.xpReward} XP
                         </span>
-                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-md text-xs font-semibold">
-                          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68-.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd" />
-                          </svg>
+                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-md text-xs font-semibold">
+                          <span class="text-xs">🌱</span>
                           {mission.coinReward}
                         </span>
                       </div>
@@ -2915,12 +3077,12 @@
             />
           </div>
           <div>
-            <label for="mission-coins" class="block text-sm font-semibold text-slate-700 mb-2">
-              Coin Reward
+            <label for="mission-seeds" class="block text-sm font-semibold text-slate-700 mb-2">
+              🌱 Seed Reward
             </label>
             <input
               type="number"
-              id="mission-coins"
+              id="mission-seeds"
               bind:value={missionForm.coinReward}
               min="1"
               max="100"

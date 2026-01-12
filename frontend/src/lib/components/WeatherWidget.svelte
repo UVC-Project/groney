@@ -1,6 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
 
+  interface Props {
+    compact?: boolean;
+  }
+
+  let { compact = false }: Props = $props();
+
   const DEFAULT_LAT = 52.37;
   const DEFAULT_LON = 4.89;
   
@@ -134,45 +140,87 @@
 </script>
 
 {#if loading}
-  <div class="bg-gradient-to-br from-sky-400 to-blue-500 rounded-2xl p-4 shadow-lg animate-pulse min-w-[160px]">
-    <div class="h-8 w-8 bg-white/30 rounded-full mb-2"></div>
-    <div class="h-4 w-16 bg-white/30 rounded mb-1"></div>
-    <div class="h-3 w-20 bg-white/30 rounded"></div>
-  </div>
+  {#if compact}
+    <div class="bg-gradient-to-br from-sky-400 to-blue-500 rounded-2xl p-3 shadow-lg animate-pulse h-full flex items-center gap-3">
+      <div class="h-8 w-8 bg-white/30 rounded-full flex-shrink-0"></div>
+      <div class="flex-1">
+        <div class="h-4 w-12 bg-white/30 rounded mb-1"></div>
+        <div class="h-3 w-16 bg-white/30 rounded"></div>
+      </div>
+    </div>
+  {:else}
+    <div class="bg-gradient-to-br from-sky-400 to-blue-500 rounded-2xl p-4 shadow-lg animate-pulse min-w-[160px]">
+      <div class="h-8 w-8 bg-white/30 rounded-full mb-2"></div>
+      <div class="h-4 w-16 bg-white/30 rounded mb-1"></div>
+      <div class="h-3 w-20 bg-white/30 rounded"></div>
+    </div>
+  {/if}
 {:else if weather}
   {@const emojiKey = getWeatherEmoji(weather.weatherCode, weather.isDay)}
   {@const emoji = emojiMap[emojiKey] || emojiMap['partlycloudy']}
-  <div class="bg-gradient-to-br from-sky-400 to-blue-500 rounded-2xl p-4 shadow-lg text-white min-w-[160px] relative overflow-hidden">
-    <div class="absolute -right-4 -top-4 text-6xl opacity-20">
-      {emoji}
-    </div>
-    
-    <div class="relative z-10">
-      <p class="text-xs opacity-75 mb-1">
-        {weather.cityName}
-      </p>
-      
-      <div class="flex items-center gap-2 mb-1">
-        <span class="text-3xl">{emoji}</span>
-        <span class="text-2xl font-bold">{weather.temp}°</span>
+  
+  {#if compact}
+    <!-- Compact version for mobile -->
+    <div class="bg-gradient-to-br from-sky-400 to-blue-500 rounded-2xl p-3 shadow-lg text-white h-full relative overflow-hidden">
+      <div class="absolute -right-2 -top-2 text-4xl opacity-20">
+        {emoji}
       </div>
       
-      <p class="text-sm font-medium capitalize opacity-90 mb-2">
-        {getWeatherDescription(weather.weatherCode)}
-      </p>
-      
-      <div class="flex gap-3 text-xs opacity-80">
-        <span>{weather.humidity}%</span>
-        <span>{weather.windSpeed} km/h</span>
+      <div class="relative z-10 flex items-center gap-3">
+        <div class="flex items-center gap-1.5">
+          <span class="text-2xl">{emoji}</span>
+          <span class="text-xl font-bold">{weather.temp}°</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-medium opacity-90 truncate">
+            {getWeatherDescription(weather.weatherCode)}
+          </p>
+          <p class="text-[10px] opacity-70 truncate">
+            {weather.cityName}
+          </p>
+        </div>
+      </div>
+    </div>
+  {:else}
+    <!-- Full version for desktop -->
+    <div class="bg-gradient-to-br from-sky-400 to-blue-500 rounded-2xl p-4 shadow-lg text-white min-w-[160px] relative overflow-hidden">
+      <div class="absolute -right-4 -top-4 text-6xl opacity-20">
+        {emoji}
       </div>
       
-      <p class="text-xs mt-2 pt-2 border-t border-white/20 italic">
-        {getWeatherTip(weather.weatherCode)}
-      </p>
+      <div class="relative z-10">
+        <p class="text-xs opacity-75 mb-1">
+          {weather.cityName}
+        </p>
+        
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-3xl">{emoji}</span>
+          <span class="text-2xl font-bold">{weather.temp}°</span>
+        </div>
+        
+        <p class="text-sm font-medium capitalize opacity-90 mb-2">
+          {getWeatherDescription(weather.weatherCode)}
+        </p>
+        
+        <div class="flex gap-3 text-xs opacity-80">
+          <span>{weather.humidity}%</span>
+          <span>{weather.windSpeed} km/h</span>
+        </div>
+        
+        <p class="text-xs mt-2 pt-2 border-t border-white/20 italic">
+          {getWeatherTip(weather.weatherCode)}
+        </p>
+      </div>
     </div>
-  </div>
+  {/if}
 {:else if error}
-  <div class="bg-gray-200 rounded-2xl p-4 shadow-lg text-gray-600 min-w-[160px]">
-    <p class="text-sm">{error}</p>
-  </div>
+  {#if compact}
+    <div class="bg-gray-200 rounded-2xl p-3 shadow-lg text-gray-600 h-full flex items-center">
+      <p class="text-xs">{error}</p>
+    </div>
+  {:else}
+    <div class="bg-gray-200 rounded-2xl p-4 shadow-lg text-gray-600 min-w-[160px]">
+      <p class="text-sm">{error}</p>
+    </div>
+  {/if}
 {/if}

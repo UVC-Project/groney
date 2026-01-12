@@ -67,12 +67,7 @@
 				<button
 					type="submit"
 					disabled={loading}
-					class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600
-					text-white font-semibold rounded-lg
-					hover:from-emerald-600 hover:to-teal-700
-					transition-all shadow-lg shadow-emerald-500/30
-					disabled:opacity-50 disabled:cursor-not-allowed
-					flex items-center justify-center gap-2"
+					class="btn-primary w-full"
 				>
 					{#if loading}
 						<svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">

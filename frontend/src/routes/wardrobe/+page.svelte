@@ -25,6 +25,32 @@
 
   let selectedItem = $state<Item | null>(null);
 
+  // Feedback state
+  let bannerMsg = $state<string | null>(null);
+  let bannerType = $state<'error' | 'success'>('success');
+  let bannerEmoji = $state('');
+  let bannerTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  // Loading states
+  let isEquipping = $state(false);
+  let isUnequipping = $state(false);
+
+  function showBanner(msg: string, type: 'error' | 'success', emoji = '') {
+    // Clear any existing timeout to prevent glitchy disappearing
+    if (bannerTimeout) {
+      clearTimeout(bannerTimeout);
+    }
+    
+    bannerMsg = msg;
+    bannerType = type;
+    bannerEmoji = emoji || (type === 'success' ? '✨' : '😕');
+    
+    bannerTimeout = setTimeout(() => {
+      bannerMsg = null;
+      bannerTimeout = null;
+    }, 3000);
+  }
+
   // ✅ Use imported assets
   const groenyGifMap: Record<string, string> = {
     'hat-red-cap': RedHatGif,
@@ -81,27 +107,46 @@
   }
 
   async function selectItem(item: Item) {
+    if (isEquipping) return;
+    isEquipping = true;
+
+    // Optimistically update UI
     selectedItem = item;
     localStorage.setItem(STORAGE_KEY, item.id);
 
-    // ✅ keep DB in sync with selection
     try {
       await equipItem(item);
+      showBanner(`Groeny is now wearing ${item.name}!`, 'success', '👔');
     } catch (e) {
       console.error('Failed to equip item', e);
+      showBanner("Couldn't put that on. Try again!", 'error', '😅');
+      // Revert on failure
+      selectedItem = null;
+      localStorage.removeItem(STORAGE_KEY);
+    } finally {
+      isEquipping = false;
     }
   }
 
   async function clearSelection() {
-    // ✅ remove from DB too
+    if (isUnequipping || !selectedItem) return;
+    isUnequipping = true;
+
+    const prevItem = selectedItem;
+
     try {
       await unequipSelected();
+      selectedItem = null;
+      localStorage.removeItem(STORAGE_KEY);
+      showBanner('Item removed!', 'success', '👋');
     } catch (e) {
       console.error('Failed to unequip item', e);
+      showBanner("Couldn't remove that. Try again!", 'error', '😅');
+      // Keep the item on failure
+      selectedItem = prevItem;
+    } finally {
+      isUnequipping = false;
     }
-
-    selectedItem = null;
-    localStorage.removeItem(STORAGE_KEY);
   }
 
   onMount(() => {
@@ -114,79 +159,106 @@
 </script>
 
 <PageWrapper title="Wardrobe">
-  <div
-    class="w-full max-w-5xl mx-auto bg-white rounded-[40px] border border-gray-100 px-6 md:px-16 py-10 md:py-14"
-  >
-    <!-- Groeny -->
-    <div class="flex justify-center mb-10">
-      <div class="relative w-40 md:w-56">
+  {#if bannerMsg}
+    <div class="flex justify-center mb-4">
+      <div class={bannerType === 'success' ? 'feedback-toast-success' : 'feedback-toast-error'}>
+        <span>{bannerEmoji}</span>
+        <span>{bannerMsg}</span>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Groeny Preview -->
+  <div class="flex justify-center mb-6">
+    <div class="relative">
+      <div class="absolute -inset-3 rounded-full bg-gradient-to-br from-purple-200 via-pink-200 to-yellow-200 opacity-50 blur-md"></div>
+      <div class="relative w-36 md:w-44 p-4 rounded-full bg-gradient-to-br from-purple-50 to-pink-50 shadow-lg">
         <img src={groenySrc} alt="Groeny Wardrobe" class="w-full drop-shadow-lg" />
       </div>
     </div>
+  </div>
 
-    <h2 class="text-xl md:text-2xl font-extrabold text-center text-gray-800 mb-6">
-      Currently Wearing
-    </h2>
-
-    <div class="space-y-3 max-w-xl mx-auto mb-10">
-      {#if selectedItem}
-        <div class="flex justify-center mb-10">
-          <button
-            type="button"
-            onclick={clearSelection}
-            class="px-4 py-2 rounded-full border bg-white hover:bg-red-600 hover:text-white text-sm font-semibold text-gray-800 shadow"
-          >
-            Remove item
-          </button>
-        </div>
-      {/if}
-
-      <div
-        class="flex items-center justify-between bg-gray-300 rounded-full px-6 py-3 text-sm md:text-base"
-      >
-        <span class="text-gray-700 font-medium">Name:</span>
-        <span class="text-gray-600">{selectedItem ? selectedItem.name : 'None'}</span>
-      </div>
-
-      <div
-        class="flex items-center justify-between bg-gray-300 rounded-full px-6 py-3 text-sm md:text-base"
-      >
-        <span class="text-gray-700 font-medium">Type:</span>
-        <span class="text-gray-600">
-          {selectedItem ? (selectedItem.type ?? 'None') : 'None'}
-        </span>
-      </div>
+  <!-- Currently Wearing Section -->
+  <div class="card-playful max-w-sm mx-auto mb-6 text-center">
+    <div class="flex items-center justify-center gap-2 mb-4">
+      <span class="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-lg">👔</span>
+      <h2 class="text-lg font-bold text-gray-800">Currently Wearing</h2>
     </div>
 
-    <h3 class="text-xl md:text-2xl font-extrabold text-gray-800 mb-4">Your Collection</h3>
+    {#if selectedItem}
+      <div class="surface-info mb-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-gray-500 text-sm font-medium">Item:</span>
+          <span class="badge-playful bg-purple-100 text-purple-700 text-xs py-1">{selectedItem.name}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-gray-500 text-sm font-medium">Type:</span>
+          <span class="badge-playful bg-gray-100 text-gray-600 text-xs py-1">{selectedItem.type ?? 'Accessory'}</span>
+        </div>
+      </div>
+      <button
+        type="button"
+        onclick={clearSelection}
+        disabled={isUnequipping}
+        class="btn-danger w-full"
+      >
+        {#if isUnequipping}
+          <span class="spinner-sm"></span>
+          <span>Removing...</span>
+        {:else}
+          Remove Item
+        {/if}
+      </button>
+    {:else}
+      <div class="surface-info">
+        <p class="text-gray-500 text-sm">No item equipped</p>
+        <p class="text-gray-400 text-xs mt-1">Select an item from your collection below!</p>
+      </div>
+    {/if}
+  </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+  <!-- Collection Section -->
+  <div class="flex items-center gap-2 mb-4">
+    <span class="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-lg">✨</span>
+    <h3 class="text-lg font-bold text-gray-800">Your Collection</h3>
+    <span class="badge-playful bg-gray-100 text-gray-600 text-xs py-1 ml-auto">{ownedItems.length} items</span>
+  </div>
+
+  {#if ownedItems.length === 0}
+    <div class="empty-state">
+      <div class="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+        <span class="text-3xl">🛍️</span>
+      </div>
+      <p class="font-bold text-gray-700 text-lg">No items yet</p>
+      <p class="text-gray-500 text-sm mt-1">Visit the shop to get some cool accessories!</p>
+    </div>
+  {:else}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
       {#each ownedItems as item}
         <button
           type="button"
           onclick={() => selectItem(item)}
-          class={`relative bg-white rounded-[28px] shadow-md border-2 hover:shadow-lg transition p-4 flex flex-col items-center ${
-            selectedItem?.id === item.id ? 'border-yellow-400' : 'border-gray-200'
-          }`}
+          disabled={isEquipping}
+          class="card-item-blue relative p-4 flex flex-col items-center min-h-[130px] hover:shadow-lg active:scale-[0.98] transition-all duration-150 disabled:opacity-70 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 {selectedItem?.id === item.id ? 'ring-2 ring-yellow-400 border-yellow-300' : ''}"
         >
           {#if selectedItem?.id === item.id}
-            <div
-              class="absolute top-3 left-3 bg-sky-100 text-sky-700 text-[10px] font-semibold px-2 py-1 rounded-full flex items-center gap-1"
-            >
-              ✅<span>Equipped</span>
+            <div class="absolute top-2 right-2 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-md">
+              ✓
             </div>
           {/if}
 
-          <div class="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-2">
+          <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-50 to-white shadow-sm flex items-center justify-center mb-2 border border-gray-100">
             {#if getItemImage(item)}
               <img src={getItemImage(item)} alt={item.name} class="w-10" />
+            {:else}
+              <span class="text-2xl">🎁</span>
             {/if}
           </div>
 
-          <p class="text-sm font-semibold text-gray-800">{item.name}</p>
-          <p class="text-xs text-gray-500 mt-1 text-center">{item.description}</p>
+          <p class="text-sm font-bold text-gray-800">{item.name}</p>
+          <p class="text-xs text-gray-500 mt-1 text-center leading-relaxed line-clamp-2">{item.description}</p>
         </button>
       {/each}
     </div>
-  </div>
+  {/if}
 </PageWrapper>

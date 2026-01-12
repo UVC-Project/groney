@@ -97,7 +97,7 @@
 		try {
 			const classId = authState.classes?.[0]?.id;
 			if (!classId) {
-				throw new Error('No class found');
+				throw new Error('You need to be in a class to do missions!');
 			}
 
 			const res = await fetch(`${API_BASE_URL}/api/student/missions/${selectedMission.id}/accept`, {
@@ -117,12 +117,24 @@
 			const responseData = await res.json().catch(() => ({}));
 
 			if (!res.ok) {
-				throw new Error(responseData.message || 'Failed to accept mission');
+				// kid-friendly messages
+				const backendMsg = responseData.message?.toLowerCase() || '';
+				let friendlyMsg = "Couldn't start this mission right now. Try again!";
+				
+				if (backendMsg.includes('already') || backendMsg.includes('taken')) {
+					friendlyMsg = 'Someone else just took this mission! Try another one.';
+				} else if (backendMsg.includes('cooldown')) {
+					friendlyMsg = 'This mission needs a break. Try again later!';
+				} else if (backendMsg.includes('max') || backendMsg.includes('limit')) {
+					friendlyMsg = 'This mission has been done enough times today!';
+				}
+				
+				throw new Error(friendlyMsg);
 			}
 
 			const missionId = selectedMission.id;
 
-			successMessage = 'Mission accepted! Go complete it and come back to submit.';
+			successMessage = "You're on! Go complete it and take a photo! 📸";
 			
 			await refreshSectors();
 			
@@ -132,7 +144,7 @@
 			}, 1000);
 		} catch (err) {
 			console.error('Accept mission error:', err);
-			errorMessage = err instanceof Error ? err.message : 'Could not accept mission. Try again later.';
+			errorMessage = err instanceof Error ? err.message : 'Oops! Something went wrong. Try again!';
 		} finally {
 			isAccepting = false;
 		}
@@ -160,7 +172,10 @@
 	}
 </script>
 
-<div class="container mx-auto px-4 py-6 max-w-4xl">
+<div class="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-4xl">
+	<h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white drop-shadow-lg mb-4 sm:mb-6 text-center tracking-tight">
+		Schoolyard Map
+	</h1>
 	<StudentMap
 		sectors={displaySectors}
 		{decorations}
@@ -173,65 +188,81 @@
 {#if selectedMission}
 	{@const missionAction = getMissionAction(selectedMission)}
 	<div
-		class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+		class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center"
 		onclick={closeModal}
+		onkeydown={(e) => e.key === 'Escape' && closeModal()}
+		role="presentation"
 	>
 		<div
-			class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in"
+			class="card-modal w-full sm:max-w-md animate-scale-in rounded-t-3xl sm:rounded-3xl sm:mx-4"
 			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="mission-modal-title"
+			tabindex="-1"
 		>
-			<div class="px-6 py-4 text-white bg-gradient-to-r from-emerald-500 to-teal-600">
+			<!-- Header -->
+			<div class="px-4 sm:px-6 py-4 sm:py-5 text-white bg-gradient-to-r from-emerald-500 to-teal-600">
 				<div class="flex items-center justify-between">
 					<div>
 						<div class="flex items-center gap-2">
-							<h3 class="text-xl font-bold">{selectedMission.title}</h3>
+							<span class="text-lg sm:text-xl">🎯</span>
+							<h3 id="mission-modal-title" class="text-base sm:text-lg md:text-xl font-bold">{selectedMission.title}</h3>
 						</div>
 						{#if selectedSector}
-							<p class="text-emerald-100 text-sm mt-1">📍 {selectedSector.name}</p>
+							<p class="text-emerald-100 text-xs sm:text-sm mt-1 font-medium flex items-center gap-1">
+								<span>📍</span> {selectedSector.name}
+							</p>
 						{/if}
 					</div>
 					{#if selectedMission.missionStatus === 'my_active'}
-						<span class="px-3 py-1 bg-white/20 rounded-full text-sm font-semibold">
+						<span class="badge-playful bg-white/20 text-white text-xs py-1">
 							📋 Your Mission
 						</span>
 					{/if}
 				</div>
 			</div>
 
-			<div class="p-6">
-				<p class="text-slate-700 mb-4">{selectedMission.description}</p>
+			<!-- Content -->
+			<div class="p-4 sm:p-6 max-h-[70vh] sm:max-h-none overflow-y-auto">
+				<p class="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">{selectedMission.description}</p>
 
-				<div class="flex flex-wrap gap-2 mb-4">
-					<span class="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">
+				<!-- Rewards -->
+				<div class="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+					<span class="badge-playful bg-purple-100 text-purple-700 text-xs sm:text-sm">
 						⭐ +{selectedMission.xpReward} XP
 					</span>
-					<span class="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-sm font-semibold">
-						🪙 +{selectedMission.coinReward} Coins
+					<span class="badge-playful bg-emerald-100 text-emerald-700 text-xs sm:text-sm">
+						🌱 +{selectedMission.coinReward} Seeds
 					</span>
 				</div>
 
+				<!-- Mascot Boosts -->
 				{#if selectedMission.thirstBoost || selectedMission.hungerBoost || selectedMission.happinessBoost || selectedMission.cleanlinessBoost}
-					<div class="mb-4">
-						<p class="text-sm font-semibold text-slate-600 mb-2">Mascot Boosts:</p>
-						<div class="flex flex-wrap gap-2">
+					<div class="surface-info mb-3 sm:mb-4">
+						<p class="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1">
+							<span>💪</span> Mascot Boosts
+						</p>
+						<div class="flex flex-wrap gap-1.5 sm:gap-2">
 							{#if selectedMission.thirstBoost}
-								<span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-sm">
-									💧 +{selectedMission.thirstBoost} Thirst
+								<span class="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
+									💧 +{selectedMission.thirstBoost}
 								</span>
 							{/if}
 							{#if selectedMission.hungerBoost}
-								<span class="px-2 py-1 bg-orange-50 text-orange-700 rounded text-sm">
-									🍎 +{selectedMission.hungerBoost} Hunger
+								<span class="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-orange-100 text-orange-700 rounded-lg text-xs font-semibold">
+									🍎 +{selectedMission.hungerBoost}
 								</span>
 							{/if}
 							{#if selectedMission.happinessBoost}
-								<span class="px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-sm">
-									😊 +{selectedMission.happinessBoost} Happiness
+								<span class="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-yellow-100 text-yellow-700 rounded-lg text-xs font-semibold">
+									😊 +{selectedMission.happinessBoost}
 								</span>
 							{/if}
 							{#if selectedMission.cleanlinessBoost}
-								<span class="px-2 py-1 bg-green-50 text-green-700 rounded text-sm">
-									✨ +{selectedMission.cleanlinessBoost} Cleanliness
+								<span class="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-green-100 text-green-700 rounded-lg text-xs font-semibold">
+									✨ +{selectedMission.cleanlinessBoost}
 								</span>
 							{/if}
 						</div>
@@ -239,51 +270,53 @@
 				{/if}
 
 				{#if selectedMission.missionStatus === 'taken'}
-					<div class="p-3 bg-orange-50 border border-orange-200 rounded-lg text-orange-700 text-sm mb-4">
-						🔒 This mission is currently being done by {selectedMission.takenBy?.firstName || 'someone'}.
+					<div class="p-2.5 sm:p-3 bg-orange-50 border border-orange-200 rounded-xl text-orange-700 text-xs sm:text-sm mb-3 sm:mb-4">
+						🔒 This mission is currently being done by <span class="font-semibold">{selectedMission.takenBy?.firstName || 'someone'}</span>.
 					</div>
 				{:else if selectedMission.missionStatus === 'cooldown'}
-					<div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 text-sm mb-4">
-						⏱️ Available in {selectedMission.cooldownStatus?.hoursRemaining}h
+					<div class="p-2.5 sm:p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 text-xs sm:text-sm mb-3 sm:mb-4">
+						⏱️ Available in <span class="font-semibold">{selectedMission.cooldownStatus?.hoursRemaining}h</span>
 					</div>
 				{:else if selectedMission.missionStatus === 'max_reached'}
-					<div class="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm mb-4">
+					<div class="p-2.5 sm:p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-xs sm:text-sm mb-3 sm:mb-4">
 						✅ Max completions reached
 					</div>
 				{:else if selectedMission.myPendingSubmissionId && selectedMission.mySubmissionHasPhoto}
-    				<div class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm mb-4 flex items-start gap-2">
-    				    <span class="text-lg">📤</span>
+    				<div class="p-2.5 sm:p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-xs sm:text-sm mb-3 sm:mb-4 flex items-start gap-2">
+    				    <span class="text-base sm:text-lg">📤</span>
     				    <div>
-    				        <p class="font-bold">Submission Received</p>
-    				        <p>You have already sent a photo. Please wait for your teacher to review it.</p>
+    				        <p class="font-bold text-blue-800">Submission Received</p>
+    				        <p class="text-blue-600">Please wait for your teacher to review it.</p>
     				    </div>
     				</div>
 				{:else if selectedMission.myPendingSubmissionId && !selectedMission.mySubmissionHasPhoto}
-    				<div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm mb-4 flex items-start gap-2">
-    				    <span class="text-lg">📷</span>
+    				<div class="p-2.5 sm:p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-xs sm:text-sm mb-3 sm:mb-4 flex items-start gap-2">
+    				    <span class="text-base sm:text-lg">📷</span>
     				    <div>
-    				        <p class="font-bold">Photo Required</p>
-    				        <p>You've accepted this mission. Upload a photo to complete it!</p>
+    				        <p class="font-bold text-amber-800">Photo Required</p>
+    				        <p class="text-amber-600">Upload a photo to complete this mission!</p>
     				    </div>
     				</div>
 				{/if}
 
 				{#if errorMessage}
-					<div class="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-4">
-						{errorMessage}
+					<div class="feedback-box-error mb-3 sm:mb-4">
+						<span class="text-base sm:text-lg">😕</span>
+						<span class="text-xs sm:text-sm">{errorMessage}</span>
 					</div>
 				{/if}
 
 				{#if successMessage}
-					<div class="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm mb-4">
-						✅ {successMessage}
+					<div class="feedback-box-success mb-3 sm:mb-4">
+						<span class="text-base sm:text-lg">🎉</span>
+						<span class="text-xs sm:text-sm">{successMessage}</span>
 					</div>
 				{/if}
 
-				<div class="flex gap-3">
+				<div class="flex gap-2 sm:gap-3">
 					<button
 						onclick={closeModal}
-						class="flex-1 px-4 py-3 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors"
+						class="btn-secondary flex-1 text-sm sm:text-base py-2.5 sm:py-3"
 					>
 						Close
 					</button>
@@ -292,10 +325,10 @@
 						<button
 							onclick={acceptMission}
 							disabled={isAccepting || !!successMessage || missionAction.disabled}
-							class="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+							class="btn-primary flex-1 text-sm sm:text-base py-2.5 sm:py-3"
 						>
 							{#if isAccepting}
-								<svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+								<svg class="animate-spin h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24">
 									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 								</svg>
@@ -309,14 +342,14 @@
 					{:else if missionAction.action === 'submit'}
 						<button
 							onclick={() => goto(`/missions/${selectedMission.id}/submit`)}
-							class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+							class="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-2.5 sm:py-3 px-4 sm:px-6 rounded-2xl shadow-lg shadow-blue-500/25 hover:from-blue-600 hover:to-blue-700 active:scale-[0.98] transition-all duration-150 min-h-[44px] sm:min-h-[48px] focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 text-sm sm:text-base"
 						>
 							{missionAction.label}
 						</button>
 					{:else}
 						<button
 							disabled={true}
-							class="flex-1 px-4 py-3 bg-slate-200 text-slate-500 font-semibold rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
+							class="flex-1 inline-flex items-center justify-center gap-2 bg-gray-100 text-gray-400 font-bold py-2.5 sm:py-3 px-4 sm:px-6 rounded-2xl cursor-not-allowed min-h-[44px] sm:min-h-[48px] text-sm sm:text-base"
 						>
 							{missionAction.label}
 						</button>

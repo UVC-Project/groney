@@ -12,9 +12,9 @@ export const pageIntros: Record<string, IntroContent> = {
     title: 'This is your Groeny Home',
     subtitle: 'Here you can track Groeny and your class progress.',
     bullets: [
-      'Check Groeny’s stats (health, thirst, happiness…).',
-      'Earn coins by completing missions.',
-      'See class activity in “Recent activities”.'
+      "Check Groeny's stats (health, thirst, happiness…).",
+      'Earn seeds by completing missions.',
+      'See class activity in "Recent activities".'
     ],
     tipText: 'Do at least one mission daily to keep your streak alive!'
   },
@@ -34,25 +34,25 @@ export const pageIntros: Record<string, IntroContent> = {
   '/wardrobe': {
     emoji: '🧢',
     title: 'Welcome to Wardrobe',
-    subtitle: 'Customize Groeny with items you’ve earned.',
+    subtitle: "Customize Groeny with items you've earned.",
     bullets: [
       'Equip hats and accessories for Groeny.',
       'Try different combinations to see what looks best.',
-      'Some items may require a certain level or coins.'
+      'Some items may require a certain level or seeds.'
     ],
-    tipText: 'Save coins for rare items later!'
+    tipText: 'Save seeds for rare items later!'
   },
 
   '/shop': {
     emoji: '🛒',
     title: 'Welcome to the Shop',
-    subtitle: 'Spend coins to buy items and upgrades.',
+    subtitle: 'Spend seeds to buy items and upgrades.',
     bullets: [
-      'Browse items you can purchase with coins.',
+      'Browse items you can purchase with seeds.',
       'Buy upgrades that help Groeny or your progress.',
-      'Check requirements (level/coins) before buying.'
+      'Check requirements (level/seeds) before buying.'
     ],
-    tipText: 'Don’t spend everything—keep some coins for emergencies.'
+    tipText: "Don't spend everything—keep some seeds for emergencies."
   },
 
   '/supplies': {
@@ -76,6 +76,6 @@ export const pageIntros: Record<string, IntroContent> = {
       'Learn terms related to gardening and ecosystems.',
       'Use the wiki to help with mission decisions.'
     ],
-    tipText: 'If you’re stuck on a mission, the wiki often has the answer.'
+    tipText: "If you're stuck on a mission, the wiki often has the answer."
   }
 };
