@@ -453,26 +453,56 @@
     goto('/login');
   }
 </script>
-<div class="container mx-auto px-4 py-6 max-w-4xl relative">
+<div class="container mx-auto px-4 py-4 sm:py-6 max-w-4xl relative">
 
-  <!-- Weather Widget - Absolute positioned -->
-  <div class="absolute top-20 right-0 z-10 hidden sm:block">
-    <WeatherWidget />
-  </div>
-
-  <!-- Welcome + Controls -->
-  <div class="flex justify-between items-center mb-4">
-    <p class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-gray-100 bg-white text-sm font-bold text-gray-800 shadow-md">
-      Welcome{displayName ? `, ${displayName}` : ''}! 👋
-    </p>
-    <div class="flex items-center gap-3">
-      <BackgroundPicker />
+  <!-- Mobile Header -->
+  <div class="sm:hidden mb-4">
+    <!-- Top row: Welcome + Logout -->
+    <div class="flex justify-between items-center mb-3">
+      <p class="text-sm font-bold text-gray-800">
+        Welcome{displayName ? `, ${displayName}` : ''}! 👋
+      </p>
       <button
-        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] text-sm font-bold text-gray-700 shadow-md transition-all min-h-[44px] focus:outline-none focus-visible:ring-4 focus-visible:ring-gray-400/40 focus-visible:ring-offset-2"
+        class="px-3 py-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-600 shadow-sm transition-all"
         onclick={() => showLogoutModal = true}
       >
         Logout
       </button>
+    </div>
+    
+    <!-- Weather + Background picker row -->
+    <div class="flex gap-2 items-stretch">
+      <!-- Compact Weather Widget for Mobile -->
+      <div class="flex-1">
+        <WeatherWidget compact={true} />
+      </div>
+      <div class="flex-shrink-0">
+        <BackgroundPicker />
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop Header -->
+  <div class="hidden sm:block">
+    <!-- Weather Widget - Absolute positioned on desktop -->
+    <div class="absolute top-20 right-0 z-10">
+      <WeatherWidget />
+    </div>
+
+    <!-- Welcome + Controls -->
+    <div class="flex justify-between items-center mb-4">
+      <p class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-gray-100 bg-white text-sm font-bold text-gray-800 shadow-md">
+        Welcome{displayName ? `, ${displayName}` : ''}! 👋
+      </p>
+      <div class="flex items-center gap-3">
+        <BackgroundPicker />
+        <button
+          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] text-sm font-bold text-gray-700 shadow-md transition-all min-h-[44px] focus:outline-none focus-visible:ring-4 focus-visible:ring-gray-400/40 focus-visible:ring-offset-2"
+          onclick={() => showLogoutModal = true}
+        >
+          Logout
+        </button>
+      </div>
     </div>
   </div>
 
