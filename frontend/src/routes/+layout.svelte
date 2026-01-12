@@ -15,15 +15,6 @@
   
   let { children }: { children: Snippet } = $props();
 
-  let isTeacherRoute = $derived(page.url.pathname.startsWith('/teacher'));
-  let isAuthRoute = $derived(
-    page.url.pathname.startsWith('/login') || page.url.pathname.startsWith('/register')
-  );
-  let showBottomNav = $derived(!isTeacherRoute && !isAuthRoute);
-
-  let isMobileNavVisible = $state(false);
-  let bgClass = $derived($selectedBackground.className);
-
 	const PUBLIC_ROUTES = [
 		'/verify-email'
 	];
@@ -34,6 +25,15 @@
     '/forgot-password',
     '/reset-password'
   ];
+
+  let isTeacherRoute = $derived(page.url.pathname.startsWith('/teacher'));
+  let isAuthRoute = $derived(
+    AUTH_ONLY_ROUTES.some(route => page.url.pathname.startsWith(route))
+  );
+  let showBottomNav = $derived(!isTeacherRoute && !isAuthRoute);
+
+  let isMobileNavVisible = $state(false);
+  let bgClass = $derived($selectedBackground.className);
 
   function isPublicRoute(path: string) {
     return PUBLIC_ROUTES.some(

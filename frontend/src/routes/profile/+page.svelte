@@ -42,6 +42,28 @@
     saving = true;
     message = '';
 
+    // Validate required fields
+    if (!firstName.trim()) {
+      message = "First name can't be empty.";
+      messageType = 'error';
+      saving = false;
+      return;
+    }
+
+    if (!lastName.trim()) {
+      message = "Last name can't be empty.";
+      messageType = 'error';
+      saving = false;
+      return;
+    }
+
+    if (!username.trim()) {
+      message = "Username can't be empty.";
+      messageType = 'error';
+      saving = false;
+      return;
+    }
+
     // Validate password confirmation
     if (password.trim() && password !== confirmPassword) {
       message = "Passwords don't match!";
