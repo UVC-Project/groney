@@ -187,6 +187,78 @@ app.get('/api/mascot/by-user/:userId', async (req, res) => {
 
 
 /**
+ * POST /api/mascot/:classId/pet
+ * Pet the mascot - adds a small happiness boost (used for interactive clicks)
+ * Limited to prevent spam (cooldown tracked per user)
+ */
+const petCooldowns = new Map<string, number>(); // userId -> lastPetTime
+const PET_COOLDOWN_MS = 60000; // 1 minute cooldown between pets
+const PET_HAPPINESS_BOOST = 1;
+
+app.post('/api/mascot/:classId/pet', async (req, res) => {
+  const { classId } = req.params;
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  // Check cooldown
+  const lastPet = petCooldowns.get(userId) || 0;
+  const now = Date.now();
+  if (now - lastPet < PET_COOLDOWN_MS) {
+    return res.status(429).json({ 
+      error: 'Too many pets!', 
+      cooldownRemaining: PET_COOLDOWN_MS - (now - lastPet) 
+    });
+  }
+
+  try {
+    const mascot = await prisma.mascot.findUnique({
+      where: { classId },
+    });
+
+    if (!mascot) {
+      return res.status(404).json({ error: 'Mascot not found' });
+    }
+
+    // Update cooldown
+    petCooldowns.set(userId, now);
+
+    // Add happiness (capped at 100)
+    const newHappiness = Math.min(100, mascot.happiness + PET_HAPPINESS_BOOST);
+
+    const updated = await prisma.mascot.update({
+      where: { id: mascot.id },
+      data: {
+        happiness: newHappiness,
+      },
+    });
+
+    const health = calculateHealth({
+      thirst: updated.thirst,
+      hunger: updated.hunger,
+      happiness: newHappiness,
+      cleanliness: updated.cleanliness,
+    });
+
+    console.log(`🐾 User ${userId} petted mascot in class ${classId}. Happiness: ${mascot.happiness} -> ${newHappiness}`);
+
+    res.json({
+      success: true,
+      happiness: newHappiness,
+      health,
+      state: getGroenyState(health),
+      message: 'Groeny loved that! 💚',
+    });
+  } catch (error) {
+    console.error('Error petting mascot:', error);
+    res.status(500).json({ error: 'Failed to pet mascot' });
+  }
+});
+
+
+/**
  * PATCH /api/mascot/:classId/decay-rates
  * Update decay rates (teacher customization)
  */

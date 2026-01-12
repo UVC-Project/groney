@@ -452,6 +452,70 @@
     localStorage.removeItem('auth');
     goto('/login');
   }
+
+  // Pet Groeny interaction
+  let isJumping = $state(false);
+  let petCooldown = $state(false);
+  let showPetFeedback = $state(false);
+
+  async function petGroeny() {
+    if (petCooldown || isJumping) return;
+
+    // Start jump animation
+    isJumping = true;
+    
+    // Get user and class info
+    let userId = '';
+    let classId = '';
+    const authData = localStorage.getItem('auth');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      userId = parsed?.user?.id ?? '';
+      classId = parsed?.classes?.[0]?.id ?? '';
+    }
+
+    if (!userId || !classId) {
+      console.warn('Pet Groeny: Missing userId or classId', { userId, classId });
+      // Still show animation even if we can't save
+      setTimeout(() => { isJumping = false; }, 500);
+      return;
+    }
+
+    try {
+      console.log('Petting Groeny...', { classId, userId });
+      const res = await fetch(`${MASCOT_ENGINE_URL}/api/mascot/${classId}/pet`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+
+      console.log('Pet response status:', res.status);
+      
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Pet response data:', data);
+        // Update local state immediately for responsiveness
+        if (liveMascot) {
+          liveMascot = { ...liveMascot, happiness: data.happiness, health: data.health, state: data.state };
+        }
+        // Show feedback
+        showPetFeedback = true;
+        setTimeout(() => { showPetFeedback = false; }, 1500);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('Pet Groeny failed:', res.status, errorData);
+      }
+    } catch (err) {
+      console.error('Error petting Groeny:', err);
+    }
+
+    // End jump animation
+    setTimeout(() => { isJumping = false; }, 500);
+    
+    // Set cooldown (1 minute)
+    petCooldown = true;
+    setTimeout(() => { petCooldown = false; }, 60000);
+  }
 </script>
 <div class="container mx-auto px-4 py-4 sm:py-6 max-w-4xl relative">
 
@@ -646,14 +710,30 @@
 
   <!-- Mascot Container -->
   <div class="flex justify-center mb-4">
-    <div class="relative">
+    <button 
+      class="relative group cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-400/50 focus-visible:ring-offset-4 rounded-full"
+      onclick={petGroeny}
+      disabled={petCooldown}
+      aria-label="Pet Groeny"
+    >
       <!-- Decorative ring -->
-      <div class="absolute -inset-2 rounded-full bg-gradient-to-br from-sky-200 via-emerald-200 to-teal-200 opacity-60 blur-sm"></div>
+      <div class="absolute -inset-2 rounded-full bg-gradient-to-br from-sky-200 via-emerald-200 to-teal-200 opacity-60 blur-sm group-hover:opacity-80 transition-opacity"></div>
       <!-- Main mascot circle -->
-      <div class="relative w-64 h-64 md:w-72 md:h-72 rounded-full border-4 border-white flex items-center justify-center bg-gradient-to-br from-sky-50 to-emerald-50 shadow-xl">
-        <img src={groenySrc} class="w-48 md:w-56 drop-shadow-lg" alt="Groeny" />
+      <div class="relative w-64 h-64 md:w-72 md:h-72 rounded-full border-4 border-white flex items-center justify-center bg-gradient-to-br from-sky-50 to-emerald-50 shadow-xl group-hover:shadow-2xl transition-shadow overflow-hidden">
+        <img 
+          src={groenySrc} 
+          class="w-48 md:w-56 drop-shadow-lg transition-transform duration-300 {isJumping ? 'groeny-jump' : ''} {!petCooldown ? 'group-hover:scale-105' : ''}" 
+          alt="Groeny - Click to pet!" 
+        />
+        
+        <!-- Pet feedback popup -->
+        {#if showPetFeedback}
+          <div class="absolute top-4 left-1/2 -translate-x-1/2 animate-float-up pointer-events-none">
+            <span class="text-2xl">🥰 +1</span>
+          </div>
+        {/if}
       </div>
-    </div>
+    </button>
   </div>
 
   <!-- Health Badge -->
