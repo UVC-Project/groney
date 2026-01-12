@@ -708,7 +708,7 @@
       role="presentation"
     >
       <div
-        class="sector-panel-modal bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-lg animate-slide-up sm:mx-4"
+        class="sector-panel-modal bg-white rounded-3xl shadow-2xl w-full sm:max-w-lg animate-slide-up sm:mx-4 mx-2 mb-2"
         onclick={(e) => e.stopPropagation()}
         onkeydown={(e) => e.stopPropagation()}
         role="dialog"
@@ -717,7 +717,7 @@
       >
         <!-- Header - fixed height -->
         <div
-          class="px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between relative overflow-hidden rounded-t-3xl sm:rounded-t-3xl"
+          class="px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between relative overflow-hidden rounded-t-3xl"
           style="background: linear-gradient(135deg, {config.gradientFrom} 0%, {config.gradientTo} 100%);"
         >
           <div
@@ -762,7 +762,7 @@
         </div>
 
         <!-- Scrollable content area -->
-        <div class="sector-panel-content p-3 sm:p-4 bg-slate-50">
+        <div class="sector-panel-content p-3 sm:p-4 bg-slate-50 rounded-b-3xl">
           {#if selectedSector.missions && selectedSector.missions.length > 0}
             <div class="space-y-3">
               {#each sortMissions(selectedSector.missions) as mission}
