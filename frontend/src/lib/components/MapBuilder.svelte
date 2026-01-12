@@ -71,10 +71,17 @@
   let placedSectors = $derived(sectors.filter(s => s.gridX >= 0 && s.gridY >= 0));
   let unplacedSectors = $derived(sectors.filter(s => s.gridX < 0 || s.gridY < 0));
 
-  // Responsive cell size
+  // Responsive cell size - optimized for mobile
   let containerRef = $state<HTMLDivElement | null>(null);
   let containerWidth = $state(800);
-  let CELL_SIZE = $derived(Math.max(28, Math.min(50, Math.floor((containerWidth - 40) / mapWidth))));
+  let isMobile = $derived(containerWidth < 480);
+  let CELL_SIZE = $derived.by(() => {
+    // On mobile, use smaller cells and less padding
+    const padding = isMobile ? 20 : 40;
+    const minSize = isMobile ? 18 : 28;
+    const maxSize = isMobile ? 32 : 50;
+    return Math.max(minSize, Math.min(maxSize, Math.floor((containerWidth - padding) / mapWidth)));
+  });
 
   $effect(() => {
     if (!containerRef) return;
@@ -558,29 +565,29 @@
 <div class="map-builder select-none" bind:this={containerRef}>
   <!-- Unplaced Sectors Palette (only show when there are unplaced sectors) -->
   {#if editable && unplacedSectors.length > 0}
-    <div class="mb-4 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+    <div class="mb-3 sm:mb-4 p-3 sm:p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
       <div class="flex items-center justify-between mb-2">
-        <h4 class="text-sm font-semibold text-slate-700">
+        <h4 class="text-xs sm:text-sm font-semibold text-slate-700">
           Unplaced Sectors ({unplacedSectors.length})
         </h4>
-        <p class="text-xs text-slate-400">Drag to place on map</p>
+        <p class="text-[10px] sm:text-xs text-slate-400">Drag to place on map</p>
       </div>
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-wrap gap-1.5 sm:gap-2">
         {#each unplacedSectors as sector}
           {@const config = getConfig(sector.type)}
           <div
             draggable="true"
             ondragstart={(e) => handlePaletteDragStart(e, sector.id)}
-            class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
+            class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
             style="background-color: {config.bgColor}; border-color: {config.color};"
             role="button"
             tabindex="0"
           >
-            <span class="text-xl">{config.icon}</span>
+            <span class="text-base sm:text-xl">{config.icon}</span>
             <div>
-              <span class="text-sm font-semibold" style="color: {config.color};">{sector.name}</span>
+              <span class="text-xs sm:text-sm font-semibold" style="color: {config.color};">{sector.name}</span>
               {#if sector.missions && sector.missions.length > 0}
-                <span class="text-xs text-slate-500 ml-1">({sector.missions.length})</span>
+                <span class="text-[10px] sm:text-xs text-slate-500 ml-1">({sector.missions.length})</span>
               {/if}
             </div>
           </div>
@@ -591,34 +598,34 @@
 
   <!-- Add Elements Palette (edit mode only) -->
   {#if editable}
-    <div class="mb-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="mb-3 sm:mb-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <!-- Tab Headers -->
       <div class="flex border-b border-slate-200">
         <button
-          class="flex-1 px-4 py-3 text-sm font-semibold transition-colors relative"
+          class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold transition-colors relative"
           class:bg-emerald-50={paletteTab === 'sectors'}
           class:text-emerald-700={paletteTab === 'sectors'}
           class:text-slate-500={paletteTab !== 'sectors'}
           class:hover:bg-slate-50={paletteTab !== 'sectors'}
           onclick={() => paletteTab = 'sectors'}
         >
-          <span class="flex items-center justify-center gap-2">
-            🌳 Add Sectors
+          <span class="flex items-center justify-center gap-1.5 sm:gap-2">
+            🌳 <span class="hidden xs:inline">Add</span> Sectors
           </span>
           {#if paletteTab === 'sectors'}
             <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500"></div>
           {/if}
         </button>
         <button
-          class="flex-1 px-4 py-3 text-sm font-semibold transition-colors relative"
+          class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold transition-colors relative"
           class:bg-slate-100={paletteTab === 'decorations'}
           class:text-slate-700={paletteTab === 'decorations'}
           class:text-slate-500={paletteTab !== 'decorations'}
           class:hover:bg-slate-50={paletteTab !== 'decorations'}
           onclick={() => paletteTab = 'decorations'}
         >
-          <span class="flex items-center justify-center gap-2">
-            🏫 Add Decorations
+          <span class="flex items-center justify-center gap-1.5 sm:gap-2">
+            🏫 <span class="hidden xs:inline">Add</span> Decorations
           </span>
           {#if paletteTab === 'decorations'}
             <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-500"></div>
@@ -627,38 +634,38 @@
       </div>
       
       <!-- Tab Content -->
-      <div class="p-4">
-        <p class="text-xs text-slate-400 mb-3">Drag items to place on map</p>
+      <div class="p-3 sm:p-4">
+        <p class="text-[10px] sm:text-xs text-slate-400 mb-2 sm:mb-3">Drag items to place on map</p>
         
         {#if paletteTab === 'sectors'}
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap gap-1.5 sm:gap-2">
             {#each Object.entries(sectorConfig) as [type, config]}
               <div
                 draggable="true"
                 ondragstart={(e) => handlePaletteDragStart(e, undefined, type)}
-                class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
+                class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
                 style="background-color: {config.bgColor}; border-color: {config.color};"
                 role="button"
                 tabindex="0"
               >
-              <span class="text-xl">{config.icon}</span>
-              <span class="text-sm font-semibold" style="color: {config.color};">{config.label}</span>
+              <span class="text-base sm:text-xl">{config.icon}</span>
+              <span class="text-xs sm:text-sm font-semibold" style="color: {config.color};">{config.label}</span>
             </div>
           {/each}
         </div>
       {:else}
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-1.5 sm:gap-2">
           {#each Object.entries(decorationConfig) as [type, config]}
             <div
               draggable="true"
               ondragstart={(e) => handlePaletteDragStart(e, undefined, undefined, type)}
-              class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
+              class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-2 hover:scale-105"
               style="background-color: {config.bgColor}; border-color: {config.color};"
               role="button"
               tabindex="0"
             >
-              <span class="text-xl">{config.icon}</span>
-              <span class="text-sm font-semibold" style="color: {config.color};">{config.label}</span>
+              <span class="text-base sm:text-xl">{config.icon}</span>
+              <span class="text-xs sm:text-sm font-semibold" style="color: {config.color};">{config.label}</span>
             </div>
           {/each}
         </div>
@@ -669,9 +676,9 @@
   
   <!-- Edit Controls & Hints -->
   {#if editable}
-    <div class="mb-2 flex items-center justify-between gap-4 text-xs text-slate-500">
-      <!-- Editing hints -->
-      <div class="flex flex-wrap items-center gap-3">
+    <div class="mb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[10px] sm:text-xs text-slate-500">
+      <!-- Editing hints - hidden on very small screens -->
+      <div class="hidden sm:flex flex-wrap items-center gap-3">
         <div class="flex items-center gap-1">
           <span class="text-[10px]">✋</span>
           <span>Drag to move</span>
@@ -695,7 +702,7 @@
       </div>
       
       <!-- Grid size controls -->
-      <div class="flex items-center gap-2 flex-shrink-0">
+      <div class="flex items-center justify-center sm:justify-end gap-2 flex-shrink-0">
         <span>Map size:</span>
         <input
           type="number"
@@ -703,7 +710,7 @@
           max="30"
           value={mapWidth}
           onchange={(e) => onMapResize?.(Math.max(5, parseInt(e.currentTarget.value) || 5), mapHeight)}
-          class="w-12 px-1.5 py-0.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 text-center"
+          class="w-10 sm:w-12 px-1 sm:px-1.5 py-0.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 text-center text-xs"
         />
         <span>×</span>
         <input
@@ -712,37 +719,37 @@
           max="30"
           value={mapHeight}
           onchange={(e) => onMapResize?.(mapWidth, Math.max(5, parseInt(e.currentTarget.value) || 5))}
-          class="w-12 px-1.5 py-0.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 text-center"
+          class="w-10 sm:w-12 px-1 sm:px-1.5 py-0.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 text-center text-xs"
         />
       </div>
     </div>
   {/if}
 
   <!-- Grid Container with Scale -->
-  <div class="rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 shadow-inner overflow-hidden flex justify-center">
-    <div class="relative inline-block" style="padding: 24px 16px 16px 28px;">
+  <div class="rounded-xl sm:rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 shadow-inner overflow-x-auto">
+    <div class="relative inline-block min-w-full flex justify-center" style="padding: {isMobile ? '16px 8px 8px 20px' : '24px 16px 16px 28px'};">
       <!-- Top Scale (X-axis) -->
-      <div class="absolute top-1 left-7 right-4 flex" style="height: 20px;">
+      <div class="absolute top-1 flex" style="left: {isMobile ? '20px' : '28px'}; right: {isMobile ? '8px' : '16px'}; height: 16px;">
         {#each Array(Math.floor(mapWidth / 2) + 1) as _, i}
           <div 
             class="absolute flex flex-col items-center"
             style="left: {i * 2 * CELL_SIZE}px; transform: translateX(-50%);"
           >
-            <span class="text-[10px] text-slate-400 font-medium">{i}m</span>
-            <div class="w-px h-1.5 bg-slate-300"></div>
+            <span class="text-[8px] sm:text-[10px] text-slate-400 font-medium">{i}m</span>
+            <div class="w-px h-1 sm:h-1.5 bg-slate-300"></div>
           </div>
         {/each}
       </div>
 
       <!-- Left Scale (Y-axis) -->
-      <div class="absolute top-6 left-0 bottom-4 flex flex-col" style="width: 24px;">
+      <div class="absolute bottom-2 flex flex-col" style="top: {isMobile ? '16px' : '24px'}; left: 0; width: {isMobile ? '18px' : '24px'};">
         {#each Array(Math.floor(mapHeight / 2) + 1) as _, i}
           <div 
             class="absolute flex items-center gap-0.5"
             style="top: {i * 2 * CELL_SIZE}px; transform: translateY(-50%); right: 0;"
           >
-            <span class="text-[10px] text-slate-400 font-medium">{i}m</span>
-            <div class="h-px w-1.5 bg-slate-300"></div>
+            <span class="text-[8px] sm:text-[10px] text-slate-400 font-medium">{i}m</span>
+            <div class="h-px w-1 sm:w-1.5 bg-slate-300"></div>
           </div>
         {/each}
       </div>
@@ -1047,10 +1054,10 @@
   </div>
 
   <!-- Scale Legend -->
-  <div class="mt-2 flex items-center justify-center gap-2 text-xs text-slate-400">
+  <div class="mt-1.5 sm:mt-2 flex items-center justify-center gap-2 text-[10px] sm:text-xs text-slate-400">
     <div class="flex items-center gap-1">
-      <div class="w-4 h-px bg-slate-300"></div>
-      <div class="w-4 h-px bg-slate-300"></div>
+      <div class="w-3 sm:w-4 h-px bg-slate-300"></div>
+      <div class="w-3 sm:w-4 h-px bg-slate-300"></div>
     </div>
     <span>2 cells = 1 meter</span>
   </div>
