@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
   import { auth } from '$lib/stores/auth';
+  import LogoutModal from '$lib/components/LogoutModal.svelte';
 
   let loading = $state(true);
   let saving = $state(false);
@@ -14,7 +16,10 @@
   let username = $state('');
   let email = $state('');
   let password = $state('');
+  let confirmPassword = $state('');
   let currentPassword = $state('');
+
+  let showLogoutModal = $state(false);
 
   onMount(async () => {
     try {
@@ -37,6 +42,14 @@
     saving = true;
     message = '';
 
+    // Validate password confirmation
+    if (password.trim() && password !== confirmPassword) {
+      message = "Passwords don't match!";
+      messageType = 'error';
+      saving = false;
+      return;
+    }
+
     const payload: any = {
       firstName,
       lastName,
@@ -57,13 +70,24 @@
       message = res.message ?? 'Changes saved! ✨';
       messageType = 'success';
       password = '';
+      confirmPassword = '';
       currentPassword = '';
-    } catch (e) {
-      message = "Couldn't save changes. Try again!";
+    } catch (e: any) {
+      // Extract error message from API response if available
+      message = e?.message || "Couldn't save changes. Try again!";
       messageType = 'error';
     } finally {
       saving = false;
     }
+  }
+
+  function logout() {
+    showLogoutModal = false;
+    localStorage.removeItem('userId');
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('auth');
+    goto('/login');
   }
 </script>
 
@@ -180,6 +204,15 @@
 							focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
 							outline-none transition-all bg-white"
             />
+
+            <input
+              type="password"
+              bind:value={confirmPassword}
+              placeholder="Confirm new password"
+              class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400
+              focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500
+              outline-none transition-all bg-white"
+            />
           </div>
 
           <!-- Save button -->
@@ -196,7 +229,24 @@
               <span>Save Changes</span>
             {/if}
           </button>
+
+          <!-- Logout button -->
+          <button
+            type="button"
+            onclick={() => showLogoutModal = true}
+            class="w-full mt-2 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-300 active:scale-[0.98] text-sm font-bold text-red-600 transition-all"
+          >
+            <span>👋</span>
+            <span>Logout</span>
+          </button>
         </form>
       {/if}
   </div>
 </div>
+
+<!-- Logout Modal -->
+<LogoutModal 
+  open={showLogoutModal} 
+  onConfirm={logout} 
+  onCancel={() => showLogoutModal = false} 
+/>

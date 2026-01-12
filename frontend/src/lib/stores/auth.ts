@@ -321,7 +321,13 @@ function createAuthStore() {
 				body: JSON.stringify(payload),
 			});
 
-			return res.json();
+			const data = await res.json();
+			
+			if (!res.ok) {
+				throw new Error(data.message || 'Failed to update profile');
+			}
+			
+			return data;
 		},
 	};
 }
