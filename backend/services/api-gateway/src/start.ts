@@ -9,6 +9,7 @@ import studentRoutes from './routes/studentRoutes';
 import supplyRoutes from './routes/supplyRoutes';
 import mascotRoutes from './routes/mascotRoutes';
 import filesRoutes from './routes/filesRoutes';
+import calculationRoutes from './routes/calculationRoutes';
 
 
 config();
@@ -32,6 +33,7 @@ app.use(express.json());
 app.use('/api', shopRoutes);
 app.use('/api', mascotRoutes);
 app.use('/api', supplyRoutes);
+app.use('/api', calculationRoutes);
 
 // 4. Health Checks (Available at both locations for compatibility)
 const healthHandler = (_req: any, res: any) => {

@@ -102,6 +102,7 @@ The Gateway maps incoming public `/api` paths to internal service names using Do
 | `/api/mascot/*` | `http://mascot-engine:3002` |
 | `/api/shop/*` | `http://shop-service:3005` |
 | `/api/supply/*` | `http://supply-service:3007` |
+| `/api/calculate/*` | `http://calculation-service:3006` (CO2 Impact) |
 | `/api/health` | Gateway Internal |
 
 ---
