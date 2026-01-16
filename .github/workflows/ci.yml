@@ -233,7 +233,8 @@ jobs:
     name: 🐳 Docker Build
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Build on main push (and push to registry), or validate on PR (build only, no push)
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
     permissions:
       contents: read
       packages: write
@@ -288,7 +289,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.service.context }}
-          push: true
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
