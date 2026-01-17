@@ -91,25 +91,31 @@ npm run prisma:studio
 
 ### Choose Your Development Approach
 
-#### Option 1: Full Stack with Docker (⚠️ Uses ~5GB RAM)
+#### Option 1: Full Stack with Docker (Uses ~5-8GB RAM)
 
+The project uses a multi-file Docker Compose setup. `docker-compose.yml` contains the production settings, while `docker-compose.override.yml` provides the development optimizations (hot-reloading, local volume mounts).
+
+**For Development (with Hot-Reloading):**
 ```bash
-# Start all services (first build takes 5-10 minutes)
-docker-compose up -d
+# Start all services in development mode
+# (docker-compose.override.yml is loaded automatically)
+docker compose up -d
 
-# IMPORTANT: After first start, generate Prisma Client in containers
+# Check logs
+docker compose logs -f frontend
+```
+
+**For Production Build (Local Testing):**
+```bash
+# Build and run the production-ready stack locally
+# This ignores the override file and uses production multi-stage builds
+docker compose -f docker-compose.yml up --build -d
+```
+
+**Post-Start Steps (First Time Only):**
+After first start, you may need to generate the Prisma Client for your local development:
+```bash
 ./scripts/fix-docker-prisma.sh
-
-# Or manually for each service that uses Prisma:
-docker exec groney-auth-service npx prisma generate --schema=/app/prisma/schema.prisma
-docker exec groney-mission-service npx prisma generate --schema=/app/prisma/schema.prisma
-docker exec groney-submission-service npx prisma generate --schema=/app/prisma/schema.prisma
-
-# Restart services after generating
-docker-compose restart auth-service mission-service submission-service
-
-# Stop all services
-docker-compose down
 ```
 
 **Services will be available at:**

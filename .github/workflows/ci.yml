@@ -260,7 +260,7 @@ jobs:
   # ============================================
   docker-build:
     name: 🐳 Docker Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     needs: build
     # Build on main push (and push to registry), or validate on PR (build only, no push)
     if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
@@ -272,23 +272,40 @@ jobs:
       matrix:
         service:
           - name: frontend
-            context: ./frontend
+            context: .
+            dockerfile: frontend/Dockerfile.prod
           - name: api-gateway
-            context: ./backend/services/api-gateway
+            context: .
+            dockerfile: backend/Dockerfile.prod
+            service_path: backend/services/api-gateway
           - name: auth-service
-            context: ./backend/services/auth-service
+            context: .
+            dockerfile: backend/Dockerfile.prod
+            service_path: backend/services/auth-service
           - name: mascot-engine
-            context: ./backend/services/mascot-engine
+            context: .
+            dockerfile: backend/Dockerfile.prod
+            service_path: backend/services/mascot-engine
           - name: mission-service
-            context: ./backend/services/mission-service
+            context: .
+            dockerfile: backend/Dockerfile.prod
+            service_path: backend/services/mission-service
           - name: submission-service
-            context: ./backend/services/submission-service
+            context: .
+            dockerfile: backend/Dockerfile.prod
+            service_path: backend/services/submission-service
           - name: shop-service
-            context: ./backend/services/shop-service
+            context: .
+            dockerfile: backend/Dockerfile.prod
+            service_path: backend/services/shop-service
           - name: calculation-service
-            context: ./backend/services/calculation-service
+            context: .
+            dockerfile: backend/Dockerfile.prod
+            service_path: backend/services/calculation-service
           - name: supply-service
-            context: ./backend/services/supply-service
+            context: .
+            dockerfile: backend/Dockerfile.prod
+            service_path: backend/services/supply-service
 
     steps:
       - name: Checkout code
@@ -318,9 +335,14 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.context }}/${{ matrix.service.dockerfile }}
+          platforms: linux/arm64
           push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VITE_API_URL=${{ secrets.VITE_API_URL }}
+            SERVICE_PATH=${{ matrix.service.service_path }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

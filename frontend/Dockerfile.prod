@@ -1,0 +1,46 @@
+# --- Build Stage ---
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy root package files for workspace context
+COPY package*.json ./
+COPY frontend/package*.json ./frontend/
+
+# Install dependencies (only what's needed for the workspace)
+RUN npm ci
+
+# Copy shared prisma schema (needed for frontend types if any)
+COPY prisma ./prisma
+
+# Copy frontend source
+COPY frontend ./frontend
+
+# Build the frontend
+# Note: VITE_API_URL should be passed as a build argument
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
+WORKDIR /app/frontend
+RUN npm run build
+
+# --- Production Stage ---
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+# Copy built assets and package files for workspace
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/frontend/package*.json ./frontend/
+COPY --from=builder /app/frontend/build ./frontend/build
+
+# Install only production dependencies
+RUN npm ci --omit=dev
+
+EXPOSE 5173
+
+ENV NODE_ENV=production
+# SvelteKit adapter-node default port or custom
+ENV PORT=5173
+
+CMD ["node", "frontend/build"]

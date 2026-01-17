@@ -42,9 +42,11 @@ echo "🧹 Cleaning up old Docker images..."
 docker image prune -f
 
 # 6. Launch the Docker Stack
-# We use '--profile prod' to ensure the Cloudflare Tunnel starts
+echo "🚚 Pulling latest images from GHCR..."
+docker compose --profile prod pull
+
 echo "🚀 Launching Production Stack for $PROJECT_NAME (App + DB + Redis + Tunnel)..."
-docker compose --profile prod up -d --build
+docker compose --profile prod up -d
 
 # 7. Fix Prisma Client (Shared Volume compatibility)
 echo "🔧 Running Prisma Client fix..."

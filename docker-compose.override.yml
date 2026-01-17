@@ -1,0 +1,113 @@
+version: '3.8'
+
+# 🛠️ Development Override
+# This file is automatically loaded by 'docker compose up' to provide a 
+# specialized environment for local development with hot-reloading.
+
+services:
+  # API Gateway (Dev Mode)
+  api-gateway:
+    build:
+      context: ./backend/services/api-gateway
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./backend/services/api-gateway:/app
+      - /app/node_modules
+
+  # Auth Service (Dev Mode)
+  auth-service:
+    build:
+      context: ./backend/services/auth-service
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./backend/services/auth-service:/app
+      - ./prisma:/app/prisma
+      - /app/node_modules
+
+  # Mascot Engine (Dev Mode)
+  mascot-engine:
+    build:
+      context: ./backend/services/mascot-engine
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./backend/services/mascot-engine:/app
+      - ./prisma:/app/prisma:ro
+      - /app/node_modules
+
+  # Mission Service (Dev Mode)
+  mission-service:
+    build:
+      context: ./backend/services/mission-service
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./backend/services/mission-service:/app
+      - ./prisma:/app/prisma:ro
+      - /app/node_modules
+
+  # Submission Service (Dev Mode)
+  submission-service:
+    build:
+      context: ./backend/services/submission-service
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./backend/services/submission-service:/app
+      - ./prisma:/app/prisma:ro
+      - /app/node_modules
+
+  # Shop Service (Dev Mode)
+  shop-service:
+    build:
+      context: ./backend/services/shop-service
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./backend/services/shop-service:/app
+      - ./prisma:/app/prisma:ro
+      - /app/node_modules
+
+  # Calculation Service (Dev Mode)
+  calculation-service:
+    build:
+      context: ./backend/services/calculation-service
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./backend/services/calculation-service:/app
+      - ./prisma:/app/prisma:ro
+      - /app/node_modules
+
+  # Supply Service (Dev Mode)
+  supply-service:
+    build:
+      context: ./backend/services/supply-service
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./backend/services/supply-service:/app
+      - ./prisma:/app/prisma:ro
+      - /app/node_modules
+
+  # Frontend (Dev Mode with Hot-Reloading)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
