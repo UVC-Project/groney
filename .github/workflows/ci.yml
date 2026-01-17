@@ -112,10 +112,24 @@ jobs:
       - name: Coverage Summary
         if: always()
         run: |
+          echo "## 📊 Code Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           if [ -f frontend/coverage/coverage-summary.json ]; then
-            echo "## 📊 Code Coverage Summary" >> $GITHUB_STEP_SUMMARY
+            LINES=$(cat frontend/coverage/coverage-summary.json | jq '.total.lines.pct // 0' 2>/dev/null || echo "N/A")
+            STATEMENTS=$(cat frontend/coverage/coverage-summary.json | jq '.total.statements.pct // 0' 2>/dev/null || echo "N/A")
+            FUNCTIONS=$(cat frontend/coverage/coverage-summary.json | jq '.total.functions.pct // 0' 2>/dev/null || echo "N/A")
+            BRANCHES=$(cat frontend/coverage/coverage-summary.json | jq '.total.branches.pct // 0' 2>/dev/null || echo "N/A")
+            echo "| Metric | Coverage |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|----------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Lines | ${LINES}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Statements | ${STATEMENTS}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Functions | ${FUNCTIONS}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Branches | ${BRANCHES}% |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Coverage report not found at frontend/coverage/coverage-summary.json" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            cat frontend/coverage/coverage-summary.json | jq -r '.total | "| Metric | Coverage |\n|--------|----------|\n| Lines | \(.lines.pct)% |\n| Statements | \(.statements.pct)% |\n| Functions | \(.functions.pct)% |\n| Branches | \(.branches.pct)% |"' >> $GITHUB_STEP_SUMMARY
+            echo "Files in frontend/coverage/:" >> $GITHUB_STEP_SUMMARY
+            ls -la frontend/coverage/ 2>/dev/null || echo "Directory does not exist" >> $GITHUB_STEP_SUMMARY
           fi
 
   # ============================================
@@ -154,10 +168,21 @@ jobs:
           echo "## 🔄 Cyclomatic Complexity Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           cd frontend
-          npx eslint . --format json --rule '{"complexity": ["warn", 10]}' > ../complexity-report.json 2>/dev/null || true
-          if [ -f ../complexity-report.json ]; then
-            COMPLEX_COUNT=$(cat ../complexity-report.json | jq '[.[] | .messages[] | select(.ruleId == "complexity")] | length')
-            echo "Functions with high complexity (>10): $COMPLEX_COUNT" >> $GITHUB_STEP_SUMMARY
+          npx eslint . --format json > ../complexity-report.json 2>/dev/null || true
+          cd ..
+          if [ -f complexity-report.json ] && [ -s complexity-report.json ]; then
+            # Count complexity warnings
+            COMPLEX_COUNT=$(cat complexity-report.json | jq '[.[] | .messages[] | select(.ruleId == "complexity")] | length' 2>/dev/null || echo "0")
+            # Count total warnings and errors
+            TOTAL_WARNINGS=$(cat complexity-report.json | jq '[.[] | .warningCount] | add // 0' 2>/dev/null || echo "0")
+            TOTAL_ERRORS=$(cat complexity-report.json | jq '[.[] | .errorCount] | add // 0' 2>/dev/null || echo "0")
+            echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Functions with high complexity (>15) | $COMPLEX_COUNT |" >> $GITHUB_STEP_SUMMARY
+            echo "| Total ESLint Warnings | $TOTAL_WARNINGS |" >> $GITHUB_STEP_SUMMARY
+            echo "| Total ESLint Errors | $TOTAL_ERRORS |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No complexity report generated" >> $GITHUB_STEP_SUMMARY
           fi
 
       # Code Duplication Detection (Code Smells)
@@ -166,14 +191,18 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 🔁 Code Duplication Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          jscpd frontend/src --reporters json --output ./duplication-report || true
+          jscpd frontend/src --reporters json --output ./duplication-report 2>/dev/null || true
           if [ -f ./duplication-report/jscpd-report.json ]; then
-            DUPLICATES=$(cat ./duplication-report/jscpd-report.json | jq '.statistics.total.duplicatedLines // 0')
-            PERCENTAGE=$(cat ./duplication-report/jscpd-report.json | jq '.statistics.total.percentage // 0')
+            DUPLICATES=$(cat ./duplication-report/jscpd-report.json | jq '.statistics.total.duplicatedLines // 0' 2>/dev/null || echo "0")
+            PERCENTAGE=$(cat ./duplication-report/jscpd-report.json | jq '.statistics.total.percentage // 0' 2>/dev/null || echo "0")
+            CLONES=$(cat ./duplication-report/jscpd-report.json | jq '.statistics.total.clones // 0' 2>/dev/null || echo "0")
             echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
             echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Code Clones Found | $CLONES |" >> $GITHUB_STEP_SUMMARY
             echo "| Duplicated Lines | $DUPLICATES |" >> $GITHUB_STEP_SUMMARY
-            echo "| Duplication % | $PERCENTAGE% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Duplication % | ${PERCENTAGE}% |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No duplication analysis available" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Upload Analysis Reports
