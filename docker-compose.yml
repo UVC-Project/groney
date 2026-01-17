@@ -45,9 +45,12 @@ services:
 
   # API Gateway
   api-gateway:
+    image: ghcr.io/uvc-project/groney/api-gateway:latest
     build:
-      context: ./backend/services/api-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile.prod
+      args:
+        - SERVICE_PATH=backend/services/api-gateway
     container_name: groney-api-gateway
     ports:
       - "${GATEWAY_PORT_MAP:-3000:3000}"
@@ -65,9 +68,6 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    volumes:
-      - ./backend/services/api-gateway:/app
-      - /app/node_modules
     logging:
       driver: "json-file"
       options:
@@ -76,9 +76,12 @@ services:
 
   # Auth Service
   auth-service:
+    image: ghcr.io/uvc-project/groney/auth-service:latest
     build:
-      context: ./backend/services/auth-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile.prod
+      args:
+        - SERVICE_PATH=backend/services/auth-service
     container_name: groney-auth-service
     ports:
       - "${AUTH_PORT_MAP:-3001:3001}"
@@ -99,10 +102,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ./backend/services/auth-service:/app
-      - ./prisma:/app/prisma
-      - /app/node_modules
     logging:
       driver: "json-file"
       options:
@@ -111,9 +110,12 @@ services:
 
   # Mascot Engine Service
   mascot-engine:
+    image: ghcr.io/uvc-project/groney/mascot-engine:latest
     build:
-      context: ./backend/services/mascot-engine
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile.prod
+      args:
+        - SERVICE_PATH=backend/services/mascot-engine
     container_name: groney-mascot-engine
     ports:
       - "${MASCOT_PORT_MAP:-3002:3002}"
@@ -124,10 +126,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./backend/services/mascot-engine:/app
-      - ./prisma:/app/prisma:ro
-      - /app/node_modules
     logging:
       driver: "json-file"
       options:
@@ -136,9 +134,12 @@ services:
 
   # Mission Service
   mission-service:
+    image: ghcr.io/uvc-project/groney/mission-service:latest
     build:
-      context: ./backend/services/mission-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile.prod
+      args:
+        - SERVICE_PATH=backend/services/mission-service
     container_name: groney-mission-service
     ports:
       - "${MISSION_PORT_MAP:-3003:3003}"
@@ -149,10 +150,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./backend/services/mission-service:/app
-      - ./prisma:/app/prisma:ro
-      - /app/node_modules
     logging:
       driver: "json-file"
       options:
@@ -161,9 +158,12 @@ services:
 
   # Submission Service
   submission-service:
+    image: ghcr.io/uvc-project/groney/submission-service:latest
     build:
-      context: ./backend/services/submission-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile.prod
+      args:
+        - SERVICE_PATH=backend/services/submission-service
     container_name: groney-submission-service
     ports:
       - "${SUBMISSION_PORT_MAP:-3004:3004}"
@@ -179,10 +179,6 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    volumes:
-      - ./backend/services/submission-service:/app
-      - ./prisma:/app/prisma:ro
-      - /app/node_modules
     logging:
       driver: "json-file"
       options:
@@ -191,9 +187,12 @@ services:
 
   # Shop Service
   shop-service:
+    image: ghcr.io/uvc-project/groney/shop-service:latest
     build:
-      context: ./backend/services/shop-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile.prod
+      args:
+        - SERVICE_PATH=backend/services/shop-service
     container_name: groney-shop-service
     ports:
       - "${SHOP_PORT_MAP:-3005:3005}"
@@ -204,10 +203,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./backend/services/shop-service:/app
-      - ./prisma:/app/prisma:ro
-      - /app/node_modules
     logging:
       driver: "json-file"
       options:
@@ -216,9 +211,12 @@ services:
 
   # Calculation Service
   calculation-service:
+    image: ghcr.io/uvc-project/groney/calculation-service:latest
     build:
-      context: ./backend/services/calculation-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile.prod
+      args:
+        - SERVICE_PATH=backend/services/calculation-service
     container_name: groney-calculation-service
     ports:
       - "${CALCULATION_PORT_MAP:-3006:3006}"
@@ -229,10 +227,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./backend/services/calculation-service:/app
-      - ./prisma:/app/prisma:ro
-      - /app/node_modules
     logging:
       driver: "json-file"
       options:
@@ -241,9 +235,12 @@ services:
 
   # Supply Service
   supply-service:
+    image: ghcr.io/uvc-project/groney/supply-service:latest
     build:
-      context: ./backend/services/supply-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile.prod
+      args:
+        - SERVICE_PATH=backend/services/supply-service
     container_name: groney-supply-service
     ports:
       - "${SUPPLY_PORT_MAP:-3007:3007}"
@@ -254,10 +251,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./backend/services/supply-service:/app
-      - ./prisma:/app/prisma:ro
-      - /app/node_modules
     logging:
       driver: "json-file"
       options:
@@ -291,9 +284,12 @@ services:
 
   # Frontend (SvelteKit)
   frontend:
+    image: ghcr.io/uvc-project/groney/frontend:latest
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile.prod
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
     container_name: groney-frontend
     ports:
       - "${FRONTEND_PORT_MAP:-5173:5173}"
@@ -303,9 +299,6 @@ services:
       MISSION_SERVICE_URL: http://mission-service:3003
     depends_on:
       - api-gateway
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     logging:
       driver: "json-file"
       options:
