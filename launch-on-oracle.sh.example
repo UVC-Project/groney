@@ -15,7 +15,7 @@ echo "🔐 Fetching secrets..."
 SECRET_OCID="ocid1.vaultsecret.oc1.eu-madrid-1.amaaaaaa5wo6ujyajw7ewb6l5qyw5b2qoimevvlqql4z4vb557x4eaqbw2kq"
 
 # Ensure we have access to common binaries
-export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/home/ubuntu/bin
+export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/opt/oci-tools
 
 SECRET_CONTENT=$(oci secrets secret-bundle get \
     --secret-id "$SECRET_OCID" \
