@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# 1. Configuration
+PROJECT_NAME="Groney"
+
+echo "🚀 Fetching latest code for $PROJECT_NAME..."
+git fetch origin main
+git reset --hard origin main
+
+echo "🚀 Starting deployment for $PROJECT_NAME on Oracle VM..."
+echo "🔐 Fetching secrets from OCI Vault..."
+
+# 2. Fetch secrets using utility script
+echo "🔐 Fetching secrets..."
+SECRET_OCID="ocid1.vaultsecret.oc1.eu-madrid-1.amaaaaaa5wo6ujyajw7ewb6l5qyw5b2qoimevvlqql4z4vb557x4eaqbw2kq"
+
+# Ensure we have access to common binaries
+export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/home/ubuntu/bin
+
+SECRET_CONTENT=$(oci secrets secret-bundle get \
+    --secret-id "$SECRET_OCID" \
+    --auth instance_principal \
+    --query "data.\"secret-bundle-content\".content" \
+    --raw-output | base64 -d -i)
+
+if [ -z "$SECRET_CONTENT" ]; then
+    echo "❌ Error: Could not fetch secrets. Make sure OCI CLI is configured or running on an OCI Instance with proper permissions."
+    exit 1
+fi
+
+# 3. Inject secrets into the Shell Environment
+echo "📦 Processing secrets..."
+set -a
+eval "$SECRET_CONTENT"
+set +a
+
+echo "   -> VITE_API_URL is now: $VITE_API_URL"
+if [ ! -z "$POSTGRES_PASSWORD" ]; then
+    echo "   -> POSTGRES_PASSWORD detected."
+fi
+
+echo "✅ Secrets injected into RAM."
+
+# 4. Pre-deployment Backup (Safety first!)
+# Only backup if the postgres container is already running
+if [ "$(docker ps -q -f name=groney-postgres)" ]; then
+    echo "🛡️  Database running. (Backup script not implemented yet, skipping backup step)"
+    # ./scripts/backup-db.sh "pre-deploy-"
+else
+    echo "ℹ️  Postgres not running (initial deploy?). Skipping safety backup."
+fi
+
+# 5. Clean up old resources (Saves disk space)
+echo "🧹 Cleaning up old Docker images and cache..."
+docker image prune -f
+# This keeps the last 24 hours of cache but nukes the rest
+docker builder prune -f --filter "until=24h"
+
+# 6. Launch the Docker Stack
+echo "🚚 Pulling latest images from GHCR..."
+docker compose --profile prod pull
+
+echo "🚀 Launching Production Stack for $PROJECT_NAME (App + DB + Redis + Tunnel)..."
+docker compose --profile prod up -d
+
+# 7. Run Database Migrations
+# We use the auth-service container to run migrations since it has direct DB access and the schema mounted
+docker exec groney-auth-service npx prisma migrate deploy --schema=/app/prisma/schema.prisma || {
+    echo "❌ Migration failed."
+    exit 1
+}
+echo "✅ Migrations applied successfully!"
+
+echo "🔄 Aligning schema (db push)..."
+docker exec groney-auth-service npx prisma db push --schema=/app/prisma/schema.prisma --skip-generate
+
+# Fix Prisma Client generation in Docker containers
+echo "🔧 Fixing Prisma Client in Docker containers..."
+SERVICES=("auth-service" "mascot-engine" "mission-service" "submission-service" "shop-service" "calculation-service" "supply-service")
+
+for SERVICE in "${SERVICES[@]}"; do
+  CONTAINER="groney-$SERVICE"
+  if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
+    echo "📦 Processing $SERVICE..."
+    docker exec "$CONTAINER" npx prisma generate --schema=/app/prisma/schema.prisma || echo "  ⚠️  Failed for $SERVICE"
+  fi
+done
+
+echo "🔄 Restarting backend services..."
+docker restart groney-auth-service groney-mascot-engine groney-mission-service groney-submission-service groney-shop-service groney-calculation-service groney-supply-service 2>/dev/null || true
+
+
+echo "🌐 Deployment Complete!"
+echo "Check status with: docker compose ps"
