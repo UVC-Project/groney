@@ -10,3 +10,6 @@ else
   echo "❌ Migration failed."
   exit 1
 fi
+
+echo "🔄 Aligning schema (db push)..."
+docker exec groney-auth-service npx prisma db push --schema=/app/prisma/schema.prisma --skip-generate

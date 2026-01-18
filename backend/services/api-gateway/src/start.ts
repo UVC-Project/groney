@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { config } from 'dotenv';
+import cookieParser from 'cookie-parser';
 import shopRoutes from './routes/shopRoutes';
 import teacherRoutes from './routes/teacherRoutes';
 import authRoutes from './routes/authRoutes';
@@ -17,7 +18,11 @@ config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+app.use(cookieParser());
 app.use(morgan('dev'));
 
 // 1. Auth & Proxy routes (Must come before express.json() for proxying)

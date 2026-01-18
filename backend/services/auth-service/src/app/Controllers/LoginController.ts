@@ -350,6 +350,14 @@ export default class LoginController {
 
 			const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
+			// Set HTTP-only cookie for image access
+			res.cookie('access_token', token, {
+				httpOnly: true,
+				secure: process.env.NODE_ENV === 'production',
+				sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+				maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+			});
+
 			// Include previous streak if it was broken (for UI to show reset message)
 			const streakResetInfo = streakData?.streakBroken ? {
 				previousStreak: user.currentStreak,

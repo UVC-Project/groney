@@ -16,12 +16,15 @@ declare global {
 }
 
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+	let token: string | undefined;
+
 	const header = req.headers.authorization;
-	if (!header) {
-		return res.status(401).json({ message: "Missing Authorization header" });
+	if (header && header.startsWith('Bearer ')) {
+		token = header.split(' ')[1];
+	} else if (req.cookies && req.cookies.access_token) {
+		token = req.cookies.access_token;
 	}
 
-	const token = header.split(" ")[1];
 	if (!token) {
 		return res.status(401).json({ message: "Missing token" });
 	}
