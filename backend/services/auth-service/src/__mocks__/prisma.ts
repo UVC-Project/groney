@@ -7,7 +7,14 @@ export const prisma = {
     create: vi.fn(),
     update: vi.fn(),
   },
-
+  
+  passwordResetToken: {
+    deleteMany: vi.fn(),
+    create: vi.fn(),
+    findUnique: vi.fn(),
+    delete: vi.fn(),
+  },
+  
   class: {
     findUnique: vi.fn(),
     create: vi.fn(),

@@ -2,16 +2,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { prisma } from '../../../__mocks__/prisma';
 import { mockRequest, mockResponse } from './helper';
 
-/* -------------------------------------------------------------------------- */
-/*                                   MOCKS                                    */
-/* -------------------------------------------------------------------------- */
-
 vi.mock('@prisma/client', () => ({
   PrismaClient: vi.fn(() => prisma),
   UserRole: { TEACHER: 'TEACHER' },
 }));
 
-// 🔴 CRITICAL: mock email sender EXACTLY
 vi.mock('../../utils/VerifyEmailMailer', () => ({
   sendVerifyEmail: vi.fn(() => Promise.resolve()),
 }));
@@ -31,10 +26,6 @@ beforeEach(async () => {
   EmailVerificationController =
     (await import('../EmailVerificationController')).default;
 });
-
-/* -------------------------------------------------------------------------- */
-/*                                   VERIFY                                   */
-/* -------------------------------------------------------------------------- */
 
 describe('EmailVerificationController.verify', () => {
   it('returns 400 if token invalid', async () => {
@@ -66,10 +57,6 @@ describe('EmailVerificationController.verify', () => {
     });
   });
 });
-
-/* -------------------------------------------------------------------------- */
-/*                                   RESEND                                   */
-/* -------------------------------------------------------------------------- */
 
 describe('EmailVerificationController.resend', () => {
   it('returns 400 if email missing', async () => {
