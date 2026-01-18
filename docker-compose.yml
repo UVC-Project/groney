@@ -65,6 +65,7 @@ services:
       CALCULATION_SERVICE_URL: ${CALCULATION_SERVICE_URL:-http://calculation-service:3006}
       SUPPLY_SERVICE_URL: ${SUPPLY_SERVICE_URL:-http://supply-service:3007}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
     depends_on:
       redis:
         condition: service_healthy
