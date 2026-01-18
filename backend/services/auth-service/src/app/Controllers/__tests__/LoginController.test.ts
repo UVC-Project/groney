@@ -3,7 +3,7 @@ import { prisma } from '../../../__mocks__/prisma';
 import { mockRequest, mockResponse } from './helper';
 
 /**
- * Mock's setup
+ * Mock setup
  */
 vi.mock('@prisma/client', () => {
   return {
@@ -32,34 +32,45 @@ let LoginController: typeof import('../LoginController').default;
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  // IMPORTANT: re-import after clearing mocks (ESM-safe pattern)
   LoginController = (await import('../LoginController')).default;
 });
 
 /**
- * Login test
+ * Login tests
  */
 describe('LoginController.login', () => {
   it('returns 400 if username or password is missing', async () => {
-    const req = mockRequest({ username: 'test' });
+    const req = mockRequest({
+      body: { username: 'test' }, // ✅ body is required
+    });
     const res = mockResponse();
 
     await LoginController.login(req, res);
 
     expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Missing username or password',
+    });
   });
 
   it('returns 401 if user does not exist', async () => {
     prisma.user.findUnique.mockResolvedValue(null);
 
     const req = mockRequest({
-      username: 'wrong',
-      password: 'password123',
+      body: {
+        username: 'wrong',
+        password: 'password123',
+      },
     });
     const res = mockResponse();
 
     await LoginController.login(req, res);
 
     expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Invalid username or password',
+    });
   });
 
   it('logs in successfully', async () => {
@@ -93,8 +104,10 @@ describe('LoginController.login', () => {
     prisma.authLog.create.mockResolvedValue({});
 
     const req = mockRequest({
-      username: 'student1',
-      password: 'password123',
+      body: {
+        username: 'student1',
+        password: 'password123',
+      },
     });
     const res = mockResponse();
 
@@ -104,6 +117,12 @@ describe('LoginController.login', () => {
       expect.objectContaining({
         message: 'Login successful',
         token: 'fake-jwt-token',
+        user: expect.objectContaining({
+          id: '1',
+          username: 'student1',
+          role: 'STUDENT',
+        }),
+        classes: expect.any(Array),
       })
     );
   });

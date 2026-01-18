@@ -25,6 +25,5 @@ export const prisma = {
     create: vi.fn(),
   },
 
-  // Prisma transaction wrapper
   $transaction: vi.fn(),
 };

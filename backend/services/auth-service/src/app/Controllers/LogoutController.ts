@@ -9,7 +9,9 @@ export default class LogoutController {
      * Log the user out
      */
     static async logout(req: Request, res: Response) {
-        const authHeader = req.headers.authorization;
+    const authHeader =
+            req.headers?.authorization ??
+        (req.headers?.['authorization'] as string | undefined);
 
         if (!authHeader) {
             return res.status(400).json({ message: "No token provided" });

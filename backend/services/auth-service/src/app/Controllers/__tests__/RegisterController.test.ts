@@ -3,6 +3,9 @@ import { prisma } from '../../../__mocks__/prisma';
 import RegisterController from '../RegisterController';
 import { mockRequest, mockResponse } from './helper';
 
+/**
+ * Mocks setup
+ */
 vi.mock('@prisma/client', async () => {
   const actual = await vi.importActual<any>('@prisma/client');
   return {
@@ -26,13 +29,13 @@ beforeEach(() => {
 });
 
 /**
- * Registering a teacher test
+ * Registering a teacher
  */
 describe('RegisterController.registerTeacher', () => {
   it('registers a teacher successfully', async () => {
     prisma.user.findUnique
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null);
+      .mockResolvedValueOnce(null) // username check
+      .mockResolvedValueOnce(null); // email check
 
     prisma.class.findUnique.mockResolvedValue(null);
 
@@ -62,13 +65,15 @@ describe('RegisterController.registerTeacher', () => {
     );
 
     const req = mockRequest({
-      firstName: 'Ali',
-      lastName: 'Ahmad',
-      username: 'ali123',
-      email: 'ali@test.com',
-      password: 'password123',
-      className: '4 Amanah',
-      schoolName: 'SK Test',
+      body: {
+        firstName: 'Ali',
+        lastName: 'Ahmad',
+        username: 'ali123',
+        email: 'ali@test.com',
+        password: 'password123',
+        className: '4 Amanah',
+        schoolName: 'SK Test',
+      },
     });
 
     const res = mockResponse();
@@ -84,7 +89,9 @@ describe('RegisterController.registerTeacher', () => {
   });
 
   it('returns 400 if required fields are missing', async () => {
-    const req = mockRequest({ username: 'test' });
+    const req = mockRequest({
+      body: { username: 'test' }, // missing required fields
+    });
     const res = mockResponse();
 
     await RegisterController.registerTeacher(req, res);
@@ -99,13 +106,15 @@ describe('RegisterController.registerTeacher', () => {
     prisma.user.findUnique.mockResolvedValue({ id: 99 });
 
     const req = mockRequest({
-      firstName: 'Ali',
-      lastName: 'Ahmad',
-      username: 'ali123',
-      email: 'ali@test.com',
-      password: 'password123',
-      className: '4 Amanah',
-      schoolName: 'SK Test',
+      body: {
+        firstName: 'Ali',
+        lastName: 'Ahmad',
+        username: 'ali123',
+        email: 'ali@test.com',
+        password: 'password123',
+        className: '4 Amanah',
+        schoolName: 'SK Test',
+      },
     });
 
     const res = mockResponse();
@@ -117,18 +126,20 @@ describe('RegisterController.registerTeacher', () => {
 });
 
 /**
- * Registering a student test
+ * Registering a student
  */
 describe('RegisterController.registerStudent', () => {
   it('returns 404 for invalid class code', async () => {
     prisma.class.findUnique.mockResolvedValue(null);
 
     const req = mockRequest({
-      firstName: 'Aisyah',
-      lastName: 'Zainal',
-      username: 'aisyah1',
-      password: 'password123',
-      classCode: 'WRONG',
+      body: {
+        firstName: 'Aisyah',
+        lastName: 'Zainal',
+        username: 'aisyah1',
+        password: 'password123',
+        classCode: 'WRONG',
+      },
     });
 
     const res = mockResponse();
@@ -146,11 +157,13 @@ describe('RegisterController.registerStudent', () => {
     prisma.user.findUnique.mockResolvedValue({ id: 5 });
 
     const req = mockRequest({
-      firstName: 'Aisyah',
-      lastName: 'Zainal',
-      username: 'aisyah1',
-      password: 'password123',
-      classCode: 'ABC123',
+      body: {
+        firstName: 'Aisyah',
+        lastName: 'Zainal',
+        username: 'aisyah1',
+        password: 'password123',
+        classCode: 'ABC123',
+      },
     });
 
     const res = mockResponse();
@@ -180,11 +193,13 @@ describe('RegisterController.registerStudent', () => {
     );
 
     const req = mockRequest({
-      firstName: 'Aisyah',
-      lastName: 'Zainal',
-      username: 'aisyah1',
-      password: 'password123',
-      classCode: 'ABC123',
+      body: {
+        firstName: 'Aisyah',
+        lastName: 'Zainal',
+        username: 'aisyah1',
+        password: 'password123',
+        classCode: 'ABC123',
+      },
     });
 
     const res = mockResponse();
