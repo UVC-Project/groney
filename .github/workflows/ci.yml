@@ -461,14 +461,15 @@ jobs:
           sudo dpkg -i cloudflared.deb
 
       - name: Execute Remote Deployment
-        uses: appleboy/ssh-action@v1.0.3
-        env:
-          CF_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
-          CF_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        uses: appleboy/ssh-action@master  # Switch to master for proxy_command support
         with:
           host: ${{ secrets.ORACLE_SSH_HOSTNAME }}
           username: groney_cd_deployer
           key: ${{ secrets.ORACLE_SSH_KEY }}
-          proxy_command: |
-            cloudflared access ssh --hostname ${{ secrets.ORACLE_SSH_HOSTNAME }} --id $CF_ID --secret $CF_SECRET
-          script: "trigger-forced-command" # This text is ignored by the server
+          # Using '>' ensures the command is passed as a single line to the runner
+          proxy_command: >
+            cloudflared access ssh 
+            --hostname ${{ secrets.ORACLE_SSH_HOSTNAME }} 
+            --service-token-id ${{ secrets.CF_ACCESS_CLIENT_ID }} 
+            --service-token-secret ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          script: "trigger-forced-command"
