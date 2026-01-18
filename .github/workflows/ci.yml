@@ -461,15 +461,27 @@ jobs:
           sudo dpkg -i cloudflared.deb
 
       - name: Execute Remote Deployment
-        uses: appleboy/ssh-action@master  # Switch to master for proxy_command support
-        with:
-          host: ${{ secrets.ORACLE_SSH_HOSTNAME }}
-          username: groney_cd_deployer
-          key: ${{ secrets.ORACLE_SSH_KEY }}
-          # Using '>' ensures the command is passed as a single line to the runner
-          proxy_command: >
-            cloudflared access ssh 
-            --hostname ${{ secrets.ORACLE_SSH_HOSTNAME }} 
-            --service-token-id ${{ secrets.CF_ACCESS_CLIENT_ID }} 
-            --service-token-secret ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
-          script: "trigger-forced-command"
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          SSH_HOST: ${{ secrets.ORACLE_SSH_HOSTNAME }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          # Setup SSH key
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          
+          # Create SSH config with ProxyCommand for Cloudflare Access
+          cat > ~/.ssh/config << EOF
+          Host deploy-target
+            HostName $SSH_HOST
+            User groney_cd_deployer
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking no
+            ProxyCommand cloudflared access ssh --hostname %h --id $CF_ACCESS_CLIENT_ID --secret $CF_ACCESS_CLIENT_SECRET
+          EOF
+          chmod 600 ~/.ssh/config
+          
+          # Execute deployment
+          ssh deploy-target "echo 'Connected successfully' && launch"
