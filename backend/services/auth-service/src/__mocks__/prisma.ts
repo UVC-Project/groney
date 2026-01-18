@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 
 export const prisma = {
   user: {
+    findFirst: vi.fn(),
     findUnique: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),

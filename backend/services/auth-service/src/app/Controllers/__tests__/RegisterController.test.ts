@@ -17,10 +17,6 @@ vi.mock('bcrypt', () => ({
   },
 }));
 
-vi.mock('../../utils/VerifyEmailMailer', () => ({
-  sendVerifyEmail: vi.fn(),
-}));
-
 beforeEach(() => {
   vi.clearAllMocks();
 });
