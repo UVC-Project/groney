@@ -442,3 +442,33 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================
+  # JOB 9: Continuous Deployment (CD)
+  # ============================================
+  deploy:
+    name: 🚀 Deploy via Cloudflare Tunnel
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Install Cloudflared
+        run: |
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "x86_64" ]; then CF_ARCH="amd64"; else CF_ARCH="arm64"; fi
+          curl -L -o cloudflared.deb "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$CF_ARCH.deb"
+          sudo dpkg -i cloudflared.deb
+
+      - name: Execute Remote Deployment
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          CF_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        with:
+          host: ssh.groney.datahap.org
+          username: groney_cd_deployer
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          proxy_command: |
+            cloudflared access ssh --hostname ssh.groney.datahap.org --id $CF_ID --secret $CF_SECRET
+          script: "trigger-forced-command" # This text is ignored by the server
