@@ -466,9 +466,9 @@ jobs:
           CF_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
           CF_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         with:
-          host: ssh.groney.datahap.org
+          host: ${{ secrets.ORACLE_SSH_HOSTNAME }}
           username: groney_cd_deployer
           key: ${{ secrets.ORACLE_SSH_KEY }}
           proxy_command: |
-            cloudflared access ssh --hostname ssh.groney.datahap.org --id $CF_ID --secret $CF_SECRET
+            cloudflared access ssh --hostname ${{ secrets.ORACLE_SSH_HOSTNAME }} --id $CF_ID --secret $CF_SECRET
           script: "trigger-forced-command" # This text is ignored by the server
