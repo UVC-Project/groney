@@ -2,9 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { prisma } from '../../../__mocks__/prisma';
 import { mockRequest, mockResponse } from './helper';
 
-/**
- * Mock setup
- */
 vi.mock('@prisma/client', () => {
   return {
     PrismaClient: vi.fn(() => prisma),
@@ -32,13 +29,9 @@ let LoginController: typeof import('../LoginController').default;
 
 beforeEach(async () => {
   vi.clearAllMocks();
-  // IMPORTANT: re-import after clearing mocks (ESM-safe pattern)
   LoginController = (await import('../LoginController')).default;
 });
 
-/**
- * Login tests
- */
 describe('LoginController.login', () => {
   it('returns 400 if username or password is missing', async () => {
     const req = mockRequest({

@@ -3,9 +3,6 @@ import { prisma } from '../../../__mocks__/prisma';
 import RegisterController from '../RegisterController';
 import { mockRequest, mockResponse } from './helper';
 
-/**
- * Mocks setup
- */
 vi.mock('@prisma/client', async () => {
   const actual = await vi.importActual<any>('@prisma/client');
   return {
@@ -28,14 +25,11 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-/**
- * Registering a teacher
- */
 describe('RegisterController.registerTeacher', () => {
   it('registers a teacher successfully', async () => {
     prisma.user.findUnique
-      .mockResolvedValueOnce(null) // username check
-      .mockResolvedValueOnce(null); // email check
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
 
     prisma.class.findUnique.mockResolvedValue(null);
 
@@ -90,7 +84,7 @@ describe('RegisterController.registerTeacher', () => {
 
   it('returns 400 if required fields are missing', async () => {
     const req = mockRequest({
-      body: { username: 'test' }, // missing required fields
+      body: { username: 'test' },
     });
     const res = mockResponse();
 
@@ -125,9 +119,6 @@ describe('RegisterController.registerTeacher', () => {
   });
 });
 
-/**
- * Registering a student
- */
 describe('RegisterController.registerStudent', () => {
   it('returns 404 for invalid class code', async () => {
     prisma.class.findUnique.mockResolvedValue(null);
