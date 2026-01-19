@@ -1,3 +1,26 @@
+<script lang="ts" module>
+	export function getMissionAction(mission: any): { label: string; action: 'accept' | 'submit' | 'none'; disabled: boolean } {
+		switch (mission.missionStatus) {
+			case 'my_active':
+            	// Only show "Under Review" if they've actually uploaded a photo
+            	if (mission.myPendingSubmissionId && mission.mySubmissionHasPhoto) {
+                	return { label: '⏳ Under Review', action: 'none', disabled: true };
+            	}
+            	return { label: '📸 Submit Photo', action: 'submit', disabled: false };
+			case 'available':
+				return { label: '🎯 Accept Mission', action: 'accept', disabled: false };
+			case 'taken':
+				return { label: `🔒 Taken by ${mission.takenBy?.firstName || 'someone'}`, action: 'none', disabled: true };
+			case 'cooldown':
+				return { label: `⏱️ Available in ${mission.cooldownStatus?.hoursRemaining}h`, action: 'none', disabled: true };
+			case 'max_reached':
+				return { label: '✅ Max completions reached', action: 'none', disabled: true };
+			default:
+				return { label: '🎯 Accept Mission', action: 'accept', disabled: false };
+		}
+	}
+</script>
+
 <script lang="ts">
 	import type { PageData } from './$types';
 	import StudentMap from '$lib/components/StudentMap.svelte';
@@ -147,27 +170,6 @@
 			errorMessage = err instanceof Error ? err.message : 'Oops! Something went wrong. Try again!';
 		} finally {
 			isAccepting = false;
-		}
-	}
-
-	function getMissionAction(mission: any): { label: string; action: 'accept' | 'submit' | 'none'; disabled: boolean } {
-		switch (mission.missionStatus) {
-			case 'my_active':
-            	// Only show "Under Review" if they've actually uploaded a photo
-            	if (mission.myPendingSubmissionId && mission.mySubmissionHasPhoto) {
-                	return { label: '⏳ Under Review', action: 'none', disabled: true };
-            	}
-            	return { label: '📸 Submit Photo', action: 'submit', disabled: false };
-			case 'available':
-				return { label: '🎯 Accept Mission', action: 'accept', disabled: false };
-			case 'taken':
-				return { label: `🔒 Taken by ${mission.takenBy?.firstName || 'someone'}`, action: 'none', disabled: true };
-			case 'cooldown':
-				return { label: `⏱️ Available in ${mission.cooldownStatus?.hoursRemaining}h`, action: 'none', disabled: true };
-			case 'max_reached':
-				return { label: '✅ Max completions reached', action: 'none', disabled: true };
-			default:
-				return { label: '🎯 Accept Mission', action: 'accept', disabled: false };
 		}
 	}
 </script>
