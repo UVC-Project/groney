@@ -5,7 +5,7 @@ PROJECT_NAME="Groney"
 
 echo "🚀 Fetching latest code for $PROJECT_NAME..."
 git fetch origin main
-git reset --hard origin main
+git reset --hard origin/main
 
 echo "🚀 Starting deployment for $PROJECT_NAME on Oracle VM..."
 echo "🔐 Fetching secrets from OCI Vault..."
@@ -15,7 +15,7 @@ echo "🔐 Fetching secrets..."
 SECRET_OCID="ocid1.vaultsecret.oc1.eu-madrid-1.amaaaaaa5wo6ujyajw7ewb6l5qyw5b2qoimevvlqql4z4vb557x4eaqbw2kq"
 
 # Ensure we have access to common binaries
-export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/home/ubuntu/bin
+export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/opt/oci-tools
 
 SECRET_CONTENT=$(oci secrets secret-bundle get \
     --secret-id "$SECRET_OCID" \
@@ -58,10 +58,10 @@ docker builder prune -f --filter "until=24h"
 
 # 6. Launch the Docker Stack
 echo "🚚 Pulling latest images from GHCR..."
-docker compose --profile prod pull
+docker compose -f docker-compose.yml --profile prod pull
 
 echo "🚀 Launching Production Stack for $PROJECT_NAME (App + DB + Redis + Tunnel)..."
-docker compose --profile prod up -d
+docker compose -f docker-compose.yml --profile prod up -d --remove-orphans
 
 # 7. Run Database Migrations
 # We use the auth-service container to run migrations since it has direct DB access and the schema mounted
