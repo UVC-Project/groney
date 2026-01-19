@@ -18,6 +18,23 @@ function getAmsterdamYesterday(): Date {
 	return new Date(today.getTime() - 24 * 60 * 60 * 1000);
 }
 
+// Helper function to get a date N days ago in Amsterdam timezone (for testing)
+function getAmsterdamDaysAgo(daysAgo: number): Date {
+	const now = new Date();
+	const formatter = new Intl.DateTimeFormat('en-CA', {
+		timeZone: 'Europe/Amsterdam',
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+	});
+	const parts = formatter.formatToParts(now);
+	const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+	const month = parseInt(parts.find(p => p.type === 'month')?.value || '1') - 1;
+	const day = parseInt(parts.find(p => p.type === 'day')?.value || '1');
+	const today = new Date(Date.UTC(year, month, day));
+	return new Date(today.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+}
+
 describe('LoginController', () => {
 	describe('calculateStreak', () => {
 		describe('first login (no previous login date)', () => {
@@ -247,6 +264,95 @@ describe('LoginController', () => {
 				);
 
 				// Assert
+				expect(result.streakBroken).toBe(false);
+			});
+		});
+
+		describe('missed day login (gap of 2+ days)', () => {
+			it('should reset streak to 1 when user misses at least one day between logins', () => {
+				// User last logged in 2 days ago with streak of 5
+				const lastLoginDate = getAmsterdamDaysAgo(2);
+				const currentStreak = 5;
+				const longestStreak = 10;
+
+				// Act
+				const result = LoginController.calculateStreak(
+					lastLoginDate,
+					currentStreak,
+					longestStreak
+				);
+
+				// Assert
+				expect(result.currentStreak).toBe(1);
+			});
+
+			it('should reset streak to 1 when gap is multiple days (e.g., 7 days)', () => {
+				// User last logged in 7 days ago with streak of 12
+				const lastLoginDate = getAmsterdamDaysAgo(7);
+				const currentStreak = 12;
+				const longestStreak = 20;
+
+				// Act
+				const result = LoginController.calculateStreak(
+					lastLoginDate,
+					currentStreak,
+					longestStreak
+				);
+
+				// Assert
+				expect(result.currentStreak).toBe(1);
+			});
+
+			it('should preserve longest streak when streak is reset due to missed days', () => {
+				// User last logged in 3 days ago with streak of 8, longest was 15
+				const lastLoginDate = getAmsterdamDaysAgo(3);
+				const currentStreak = 8;
+				const longestStreak = 15;
+
+				// Act
+				const result = LoginController.calculateStreak(
+					lastLoginDate,
+					currentStreak,
+					longestStreak
+				);
+
+				// streak resets but longest is preserved
+				expect(result.currentStreak).toBe(1);
+				expect(result.longestStreak).toBe(15);
+			});
+
+			it('should mark streak as broken when user had an active streak', () => {
+				// User last logged in 2 days ago with streak of 10
+				const lastLoginDate = getAmsterdamDaysAgo(2);
+				const currentStreak = 10;
+				const longestStreak = 10;
+
+				// Act
+				const result = LoginController.calculateStreak(
+					lastLoginDate,
+					currentStreak,
+					longestStreak
+				);
+
+				// Assert
+				expect(result.streakBroken).toBe(true);
+			});
+
+			it('should not mark streak as broken when user had no active streak (streak was already 0)', () => {
+				// User last logged in 5 days ago with no active streak
+				const lastLoginDate = getAmsterdamDaysAgo(5);
+				const currentStreak = 0;
+				const longestStreak = 5;
+
+				// Act
+				const result = LoginController.calculateStreak(
+					lastLoginDate,
+					currentStreak,
+					longestStreak
+				);
+
+				//  streak starts at 1 but wasn't "broken" since there was no active streak
+				expect(result.currentStreak).toBe(1);
 				expect(result.streakBroken).toBe(false);
 			});
 		});
