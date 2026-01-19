@@ -73,5 +73,76 @@ describe('LoginController', () => {
 				expect(result.streakBroken).toBe(false);
 			});
 		});
+
+		describe('same-day login (already logged in today)', () => {
+			it('should not change current streak when logging in again on the same day', () => {
+				// User already logged in today with an active streak
+				const lastLoginDate = new Date(); // Today
+				const currentStreak = 5;
+				const longestStreak = 10;
+
+				// Act
+				const result = LoginController.calculateStreak(
+					lastLoginDate,
+					currentStreak,
+					longestStreak
+				);
+
+				// Assert
+				expect(result.currentStreak).toBe(5);
+			});
+
+			it('should not change longest streak when logging in again on the same day', () => {
+				// User already logged in today
+				const lastLoginDate = new Date(); // Today
+				const currentStreak = 5;
+				const longestStreak = 10;
+
+				// Act
+				const result = LoginController.calculateStreak(
+					lastLoginDate,
+					currentStreak,
+					longestStreak
+				);
+
+				// Assert
+				expect(result.longestStreak).toBe(10);
+			});
+
+			it('should return the same streak values for multiple logins on the same day', () => {
+				// User logged in earlier today with streak of 1
+				const lastLoginDate = new Date(); // Today
+				const currentStreak = 1;
+				const longestStreak = 1;
+
+				// Act
+				const result = LoginController.calculateStreak(
+					lastLoginDate,
+					currentStreak,
+					longestStreak
+				);
+
+				// Assert - both values should remain unchanged
+				expect(result.currentStreak).toBe(1);
+				expect(result.longestStreak).toBe(1);
+			});
+
+			it('should not mark streak as broken on same-day login', () => {
+				// User already logged in today
+				const lastLoginDate = new Date(); // Today
+				const currentStreak = 7;
+				const longestStreak = 14;
+
+				// Act
+				const result = LoginController.calculateStreak(
+					lastLoginDate,
+					currentStreak,
+					longestStreak
+				);
+
+				// Assert
+				expect(result.streakBroken).toBe(false);
+			});
+		});
 	});
 });
