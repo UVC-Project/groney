@@ -3,6 +3,10 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { config } from 'dotenv';
 import shopRoutes from './routes/shopRoutes';
+import teacherRoutes from './routes/teacherRoutes';
+import authRoutes from './routes/authRoutes';
+import { noAuthMiddleware } from './middleware/noAuthMiddleware';
+import mapRoutes from './routes/mapRoutes';
 
 config();
 
@@ -13,14 +17,22 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 
-// 👇 all shop endpoints under /api
+// Shop endpoints
 app.use('/api', shopRoutes);
+
+app.use('/api/auth', noAuthMiddleware, authRoutes);
+
+// Teacher endpoints (protected with auth middleware)
+app.use('/api/teacher', teacherRoutes);
+
+// Mission endpoints
+app.use('/map', mapRoutes);
 
 app.get('/', (_req, res) => {
   res.json({
     service: 'api-gateway',
     version: '1.0.0',
-    status: 'running'
+    status: 'running',
   });
 });
 
@@ -32,7 +44,7 @@ app.get('/health', (_req, res) => {
 app.use((_req, res) => {
   res.status(404).json({
     error: 'Not Found',
-    message: 'The requested endpoint does not exist'
+    message: 'The requested endpoint does not exist',
   });
 });
 

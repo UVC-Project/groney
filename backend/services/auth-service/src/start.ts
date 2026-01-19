@@ -1,5 +1,10 @@
 import express from 'express';
 import { config } from 'dotenv';
+import RegisterController from './app/Controllers/RegisterController';
+import LoginController from './app/Controllers/LoginController';
+import LogoutController from './app/Controllers/LogoutController';
+import PasswordResetController from './app/Controllers/PasswordResetController';
+import teacherRoutes from './routes/teacher.routes';
 
 config();
 
@@ -21,6 +26,20 @@ app.get('/', (_req, res) => {
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'auth-service' });
 });
+
+// Teacher routes
+app.use('/api/teacher', teacherRoutes);
+
+// Auth routes
+app.post("/login", LoginController.login);
+
+app.post("/register/teacher", RegisterController.registerTeacher);
+app.post("/register/student", RegisterController.registerStudent);
+
+app.post("/logout", LogoutController.logout);
+
+app.post("/password/forgot", PasswordResetController.requestReset);
+app.post("/password/reset", PasswordResetController.resetPassword);
 
 // 404 handler for undefined routes
 app.use((_req, res) => {

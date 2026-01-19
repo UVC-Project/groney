@@ -2,20 +2,18 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { config } from 'dotenv';
-import { shopItems, getMascotByClassId } from './shopData';
+import { shopItems, getMascotByClassId, purchases } from './shopData';
+import type { Mascot, Purchase } from './types';
 
 config();
 
 const app = express();
-
-// Use PORT or SHOP_SERVICE_PORT, fallback 3005
 const PORT = Number(process.env.PORT ?? process.env.SHOP_SERVICE_PORT ?? 3005);
 
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 
-// Root endpoint (kept from your previous file)
 app.get('/', (_req, res) => {
   res.json({
     service: 'shop-service',
@@ -24,21 +22,27 @@ app.get('/', (_req, res) => {
   });
 });
 
-// Health check endpoint
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'shop-service' });
 });
 
-// ==============================
-//      SHOP API ENDPOINTS
-// ==============================
+app.get('/api/shop/items', (req, res) => {
+  const userId = req.query.userId as string | undefined;
 
-// GET /api/shop/items  -> in-memory catalog
-app.get('/api/shop/items', (_req, res) => {
-  res.json(shopItems);
+  const ownedIds = new Set(
+      purchases
+          .filter((p) => !userId || p.userId === userId)
+          .map((p) => p.itemId)
+  );
+
+  const itemsWithOwned = shopItems.map((item) => ({
+    ...item,
+    owned: ownedIds.has(item.id)
+  }));
+
+  res.json(itemsWithOwned);
 });
 
-// GET /api/mascot/:classId -> in-memory mascot coins
 app.get('/api/mascot/:classId', (req, res) => {
   const { classId } = req.params;
   const mascot = getMascotByClassId(classId);
@@ -50,7 +54,85 @@ app.get('/api/mascot/:classId', (req, res) => {
   res.json(mascot);
 });
 
-// 404 handler for undefined routes
+app.post('/api/shop/purchase', (req, res) => {
+  const { userId, classId, itemId } = req.body as {
+    userId?: string;
+    classId?: string;
+    itemId?: string;
+  };
+
+  if (!userId || !classId || !itemId) {
+    return res.status(400).json({ message: 'Missing userId, classId or itemId' });
+  }
+
+  const mascot = getMascotByClassId(classId);
+  if (!mascot) {
+    return res.status(404).json({ message: 'Mascot not found' });
+  }
+
+  const item = shopItems.find((i) => i.id === itemId);
+  if (!item) {
+    return res.status(404).json({ message: 'Item not found' });
+  }
+
+  const alreadyOwned = purchases.some(
+      (p) => p.userId === userId && p.itemId === itemId
+  );
+  if (alreadyOwned) {
+    return res.status(400).json({ message: 'Item already owned' });
+  }
+
+  if (mascot.coins < item.price) {
+    return res.status(400).json({ message: 'Not enough coins' });
+  }
+
+  mascot.coins -= item.price;
+  mascot.updatedAt = new Date().toISOString();
+
+  const purchase: Purchase = {
+    id: `purchase-${Date.now()}`,
+    userId,
+    classId,
+    itemId,
+    purchasedAt: new Date().toISOString()
+  };
+
+  purchases.push(purchase);
+  res.json({ mascot, purchase });
+});
+
+app.post('/api/mascot/equip', (req, res) => {
+  const { classId, itemId } = req.body as {
+    classId?: string;
+    itemId?: string;
+  };
+
+  if (!classId || !itemId) {
+    return res.status(400).json({ message: 'Missing classId or itemId' });
+  }
+
+  const mascot = getMascotByClassId(classId);
+  if (!mascot) {
+    return res.status(404).json({ message: 'Mascot not found' });
+  }
+
+  const item = shopItems.find((i) => i.id === itemId);
+  if (!item) {
+    return res.status(404).json({ message: 'Wearable item not found' });
+  }
+
+  if (item.type === 'hat') {
+    mascot.equippedHat = item.id;
+  } else if (item.type === 'accessory') {
+    mascot.equippedAccessory = item.id;
+  } else {
+    return res.status(400).json({ message: 'This item type cannot be equipped' });
+  }
+
+  mascot.updatedAt = new Date().toISOString();
+  res.json(mascot);
+});
+
 app.use((_req, res) => {
   res.status(404).json({
     error: 'Not Found',

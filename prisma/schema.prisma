@@ -12,19 +12,27 @@ datasource db {
 
 // User model for both students and teachers
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  password  String
-  role      UserRole
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String?  @unique
+  username      String   @unique
+  password      String
+  role          UserRole
+  classId       String?
+  activeClassId String?  // For teachers managing multiple classes
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   classMember ClassUser[]
-
   submissions Submission[]
   purchases   Purchase[]
   activities  Activity[]
 
+  passwordResetTokens PasswordResetToken[]
+
+  @@index([classId])
+  @@index([activeClassId])
   @@map("users")
 }
 
@@ -33,12 +41,29 @@ enum UserRole {
   TEACHER
 }
 
+// Password reset model
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
 // Class model
 model Class {
   id         String   @id @default(cuid())
   name       String
   school     String
   classCode  String   @unique
+  // Map configuration
+  mapWidth   Int      @default(20)  // Grid width in cells (each cell ~0.5m)
+  mapHeight  Int      @default(16)  // Grid height in cells
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -93,6 +118,12 @@ model Sector {
   classId   String
   name      String
   type      SectorType
+  // Grid position and size (for map builder)
+  gridX     Int        @default(0)  // X position on grid
+  gridY     Int        @default(0)  // Y position on grid
+  gridWidth Int        @default(2)  // Width in grid cells
+  gridHeight Int       @default(2)  // Height in grid cells
+  color     String?    // Optional custom color
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
@@ -107,8 +138,12 @@ enum SectorType {
   TREES
   FLOWERS
   POND
-  CHICKENS
+  ANIMALS
   GARDEN
+  PLAYGROUND
+  COMPOST
+  OTHER
+  CHICKENS // @deprecated - use ANIMALS instead
 }
 
 enum MissionCategory {
