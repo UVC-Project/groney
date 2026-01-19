@@ -1,6 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import LoginController from '../app/Controllers/LoginController';
 
+// Helper function to get yesterday's date in Amsterdam timezone (for testing)
+function getAmsterdamYesterday(): Date {
+	const now = new Date();
+	const formatter = new Intl.DateTimeFormat('en-CA', {
+		timeZone: 'Europe/Amsterdam',
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+	});
+	const parts = formatter.formatToParts(now);
+	const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+	const month = parseInt(parts.find(p => p.type === 'month')?.value || '1') - 1;
+	const day = parseInt(parts.find(p => p.type === 'day')?.value || '1');
+	const today = new Date(Date.UTC(year, month, day));
+	return new Date(today.getTime() - 24 * 60 * 60 * 1000);
+}
+
 describe('LoginController', () => {
 	describe('calculateStreak', () => {
 		describe('first login (no previous login date)', () => {
@@ -130,6 +147,95 @@ describe('LoginController', () => {
 			it('should not mark streak as broken on same-day login', () => {
 				// User already logged in today
 				const lastLoginDate = new Date(); // Today
+				const currentStreak = 7;
+				const longestStreak = 14;
+
+				// Act
+				const result = LoginController.calculateStreak(
+					lastLoginDate,
+					currentStreak,
+					longestStreak
+				);
+
+				// Assert
+				expect(result.streakBroken).toBe(false);
+			});
+		});
+
+		describe('next-day login (logged in yesterday)', () => {
+			it('should increment current streak by 1 when logging in the day after previous login', () => {
+				// User logged in yesterday with streak of 1
+				const lastLoginDate = getAmsterdamYesterday();
+				const currentStreak = 1;
+				const longestStreak = 1;
+
+				// Act
+				const result = LoginController.calculateStreak(
+					lastLoginDate,
+					currentStreak,
+					longestStreak
+				);
+
+				// Assert
+				expect(result.currentStreak).toBe(2);
+			});
+
+			it('should increment streak from any value when logging in the next day', () => {
+				// User logged in yesterday with streak of 5
+				const lastLoginDate = getAmsterdamYesterday();
+				const currentStreak = 5;
+				const longestStreak = 10;
+
+				// Act
+				const result = LoginController.calculateStreak(
+					lastLoginDate,
+					currentStreak,
+					longestStreak
+				);
+
+				// Assert
+				expect(result.currentStreak).toBe(6);
+			});
+
+			it('should update longest streak when new streak exceeds previous longest', () => {
+				// User logged in yesterday with streak of 10, longest was 10
+				const lastLoginDate = getAmsterdamYesterday();
+				const currentStreak = 10;
+				const longestStreak = 10;
+
+				// Act
+				const result = LoginController.calculateStreak(
+					lastLoginDate,
+					currentStreak,
+					longestStreak
+				);
+
+				// Assert - new streak of 11 should become the longest
+				expect(result.currentStreak).toBe(11);
+				expect(result.longestStreak).toBe(11);
+			});
+
+			it('should preserve longest streak when new streak does not exceed it', () => {
+				// User logged in yesterday with streak of 5, longest was 20
+				const lastLoginDate = getAmsterdamYesterday();
+				const currentStreak = 5;
+				const longestStreak = 20;
+
+				// Act
+				const result = LoginController.calculateStreak(
+					lastLoginDate,
+					currentStreak,
+					longestStreak
+				);
+
+				// Assert - streak increments but longest stays the same
+				expect(result.currentStreak).toBe(6);
+				expect(result.longestStreak).toBe(20);
+			});
+
+			it('should not mark streak as broken when logging in the next day', () => {
+				// User logged in yesterday, continuing their streak
+				const lastLoginDate = getAmsterdamYesterday();
 				const currentStreak = 7;
 				const longestStreak = 14;
 
