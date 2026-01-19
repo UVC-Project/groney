@@ -1,38 +1,169 @@
+<!-- src/routes/teacher/+page.svelte -->
 <style>
-  @keyframes slide-up {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
+    @keyframes slide-up {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
     }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
 
-  .animate-slide-up {
-    animation: slide-up 0.3s ease-out;
-  }
-
-  /* Respect user's motion preferences */
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
+    .animate-slide-up {
+        animation: slide-up 0.3s ease-out;
     }
-  }
 
-  /* Ensure minimum touch target size on mobile */
-  @media (max-width: 768px) {
-    button,
-    select {
-      min-height: 48px;
+    /* Floating Dock Styles */
+    .dock-container {
+        pointer-events: none;
     }
-  }
+
+    .dock {
+        pointer-events: auto;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 2px;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 22px;
+        padding: 6px 10px 8px;
+        box-shadow: 
+            0 2px 20px rgba(0, 0, 0, 0.08),
+            0 0 0 1px rgba(0, 0, 0, 0.05),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .dock-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 10px 4px;
+        border-radius: 14px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+        min-width: 50px;
+        color: #6b7280;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+    }
+
+    .dock-item:hover {
+        background: rgba(0, 0, 0, 0.04);
+    }
+
+    .dock-item:active {
+        transform: scale(0.95);
+    }
+
+    .dock-item.active {
+        color: #10b981;
+    }
+
+    .dock-item.active .dock-icon {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    }
+
+    .dock-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 5px;
+    }
+
+    .dock-icon svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    .dock-label {
+        font-size: 10px;
+        font-weight: 600;
+        margin-top: 3px;
+        white-space: nowrap;
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .dock-item.active .dock-label {
+        color: #10b981;
+    }
+
+    .submission-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px;
+        font-size: 9px;
+        font-weight: 700;
+        color: white;
+        background: #ef4444;
+        border-radius: 8px;
+    }
+
+    /* Focus styles for accessibility */
+    .dock-item:focus {
+        outline: none;
+    }
+
+    .dock-item:focus-visible {
+        outline: 2px solid #10b981;
+        outline-offset: 2px;
+    }
+
+    /* Respect user's motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+
+    /* Ensure minimum touch target size on mobile */
+    @media (max-width: 768px) {
+        button,
+        select {
+            min-height: 48px;
+        }
+    }
+
+    /* Smaller screens - tighter dock spacing */
+    @media (max-width: 480px) {
+        .dock {
+            gap: 0;
+            padding: 5px 6px 6px;
+        }
+        .dock-item {
+            padding: 5px 6px 3px;
+            min-width: 42px;
+        }
+        .dock-icon {
+            width: 28px;
+            height: 28px;
+        }
+        .dock-label {
+            font-size: 9px;
+        }
+    }
 </style>
 
 <script lang="ts">
@@ -41,22 +172,74 @@
   import LoadingSkeleton from '$lib/components/LoadingSkeleton.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import MapBuilder from '$lib/components/MapBuilder.svelte';
-  import { API_BASE_URL } from '$lib/config';
-  import { TEST_TEACHER, getAuthHeaders } from '$lib/auth/context';
-  import { invalidateAll } from '$app/navigation';
+  import SectorQRGenerator from '$lib/components/SectorQRGenerator.svelte';
+  import { API_BASE_URL, SUPPLY_API_URL, MASCOT_ENGINE_URL } from '$lib/config';
+  import { getAuthHeaders } from '$lib/auth/context';
+  import { auth, user } from '$lib/stores/auth';
+  import { invalidateAll, goto } from '$app/navigation';
+  import { get } from 'svelte/store';
+
+  // -----------------------------
+  // Supply-service DTO types
+  // -----------------------------
+  type SupplyRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+  type SupplyDTO = {
+    id: string;
+    name: string;
+    description?: string;
+    imageUrl: string;
+  };
+
+  type SupplyUserDTO = {
+    id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+  };
+
+  type SupplyRequestDTO = {
+    id: string;
+    supplyId: string;
+    userId: string;
+    classId: string;
+    status: SupplyRequestStatus;
+    createdAt: string;
+    updatedAt: string;
+    supply: SupplyDTO;
+    user: SupplyUserDTO;
+  };
 
   let { data }: { data: PageData } = $props();
+
+  // User state from store
+  let userData = $state(get(user));
   
+  $effect(() => {
+    const unsubscribe = user.subscribe(value => {
+      userData = value;
+    });
+    return unsubscribe;
+  });
+
   // Reactive data from load function - updates when invalidateAll() is called
   let currentClassData = $derived(data.currentClass || null);
   let allClassesData = $derived(data.allClasses || []);
   let sectorsData = $derived(data.sectors || []);
+  let decorationsData = $derived(data.decorations || []);
   let loadError = $derived(data.error);
-  
+
   // Local state for data that can be modified optimistically
   let missionsData = $state<Mission[]>(data.missions || []);
   let submissionsData = $state<Submission[]>(data.submissions || []);
-  
+
+  // Supply requests local state (loaded from supply-service)
+  let supplyRequestsData = $state<SupplyRequestDTO[]>([]);
+  let supplyFilter = $state<SupplyRequestStatus>('PENDING');
+  let isRefreshingSupplies = $state(false);
+  let updatingSupplyRequestId = $state<string | null>(null);
+  let hasLoadedSuppliesOnce = $state(false);
+
   // Sync local state when data changes from server
   $effect(() => {
     missionsData = data.missions || [];
@@ -65,7 +248,7 @@
     submissionsData = data.submissions || [];
   });
 
-  let activeTab = $state<'overview' | 'missions' | 'submissions' | 'map'>('overview');
+  let activeTab = $state<'overview' | 'missions' | 'submissions' | 'map' | 'supplies' | 'settings'>('overview');
   let isCreateClassDialogOpen = $state(false);
   let isCreateMissionDialogOpen = $state(false);
   let isCreateSectorDialogOpen = $state(false);
@@ -79,16 +262,19 @@
   let reviewingSubmissionId = $state<string | null>(null);
   let missionFormErrors = $state<Record<string, string>>({});
   let sectorFormErrors = $state<Record<string, string>>({});
-  
+
   // Map builder state
   let isMapEditMode = $state(false);
   let isSavingMap = $state(false);
-  
+
   // Sector edit dialog state
   let editingSector = $state<{ id: string; name: string; type: string } | null>(null);
   let editingSectorName = $state<string>('');
   let editSectorInputRef = $state<HTMLInputElement | null>(null);
   
+  // Confirmation dialog state
+  let confirmAction = $state<{ type: 'remove' | 'delete' | 'removeSector' | 'deleteDecoration'; sectorId?: string; decorationId?: string; sectorName?: string; decorationName?: string } | null>(null);
+
   // Toast notification state
   let toastMessage = $state<string>('');
   let toastType = $state<'success' | 'error'>('success');
@@ -121,19 +307,34 @@
     hungerBoost: 0,
     happinessBoost: 0,
     cleanlinessBoost: 0,
+    cooldownHours: 24,
+    maxCompletions: null as number | null,
+    category: 'THIRST' as 'THIRST' | 'HUNGER' | 'HAPPINESS' | 'CLEANLINESS',
   });
 
+  // Decay rates state (for settings tab)
+  let decayRates = $state({
+    thirst: 1.0,
+    hunger: 2.0,
+    happiness: 3.0,
+    cleanliness: 2.0,
+  });
+  let isSavingDecayRates = $state(false);
+  let hasLoadedDecayRates = $state(false);
+
   const tabs = [
-    { id: 'overview' as const, label: 'Overview', icon: '📊' },
-    { id: 'missions' as const, label: 'Missions', icon: '🎯' },
-    { id: 'submissions' as const, label: 'Submissions', icon: '📝' },
-    { id: 'map' as const, label: 'Map', icon: '🗺️' },
+    { id: 'overview' as const, label: 'Overview', icon: '📊', iconId: 'overview' },
+    { id: 'missions' as const, label: 'Missions', icon: '🎯', iconId: 'missions' },
+    { id: 'submissions' as const, label: 'Submissions', icon: '📝', iconId: 'submissions' },
+    { id: 'map' as const, label: 'Map', icon: '🗺️', iconId: 'map' },
+    { id: 'supplies' as const, label: 'Supplies', icon: '🧤', iconId: 'supplies' },
+    { id: 'settings' as const, label: 'Settings', icon: '⚙️', iconId: 'settings' },
   ];
 
   // Computed values
   let hasMultipleClasses = $derived(allClassesData.length > 1);
   let currentClassId = $derived(currentClassData?.id || '');
-  
+
   // Helper function to get sector display properties
   function getSectorDisplay(type: string) {
     const displays: Record<string, { icon: string; color: string }> = {
@@ -155,10 +356,21 @@
     toastMessage = message;
     toastType = type;
     toastVisible = true;
-    
+
     setTimeout(() => {
       toastVisible = false;
     }, 3000);
+  }
+
+  // Helper function to resolve photo URLs (handles both relative API paths and absolute URLs)
+  function resolvePhotoUrl(photoUrl: string | null): string | null {
+    if (!photoUrl) return null; // No fallback - let UI handle missing photos
+    // If it's a relative path starting with /api, prepend API_BASE_URL
+    if (photoUrl.startsWith('/api/')) {
+      return `${API_BASE_URL}${photoUrl}`;
+    }
+    // Otherwise return as-is (for absolute URLs)
+    return photoUrl;
   }
 
   // Group missions by sector
@@ -192,11 +404,7 @@
       return mapped;
     })
   );
-  
-  // Debug: log when sectors data changes
-  $effect(() => {
-    console.log('📍 Sectors data updated:', sectorsData.length, 'sectors');
-  });
+
 
   // Sector color hex values for styling
   function getSectorColorHex(type: string): string {
@@ -214,6 +422,176 @@
     return colors[type?.toUpperCase()] || '#64748b';
   }
 
+  // -----------------------------
+  // Decay rates handlers
+  // -----------------------------
+  async function loadDecayRates() {
+    if (!currentClassId || hasLoadedDecayRates) return;
+    
+    try {
+      const res = await fetch(`${MASCOT_ENGINE_URL}/api/mascot/${currentClassId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+      });
+
+      if (res.ok) {
+        const mascot = await res.json();
+        if (mascot.decayRates) {
+          decayRates = {
+            thirst: mascot.decayRates.thirst ?? 1.0,
+            hunger: mascot.decayRates.hunger ?? 2.0,
+            happiness: mascot.decayRates.happiness ?? 3.0,
+            cleanliness: mascot.decayRates.cleanliness ?? 2.0,
+          };
+        }
+        hasLoadedDecayRates = true;
+      }
+    } catch (e) {
+      console.error('Failed to load decay rates:', e);
+    }
+  }
+
+  async function saveDecayRates() {
+    if (!currentClassId || isSavingDecayRates) return;
+    isSavingDecayRates = true;
+
+    try {
+      const res = await fetch(`${MASCOT_ENGINE_URL}/api/mascot/${currentClassId}/decay-rates`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          thirstDecayRate: decayRates.thirst,
+          hungerDecayRate: decayRates.hunger,
+          happinessDecayRate: decayRates.happiness,
+          cleanlinessDecayRate: decayRates.cleanliness,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to save decay rates');
+      }
+
+      showToast('Decay rates saved! 🎮', 'success');
+    } catch (e) {
+      console.error('Failed to save decay rates:', e);
+      showToast('Failed to save decay rates', 'error');
+    } finally {
+      isSavingDecayRates = false;
+    }
+  }
+
+  // Default decay rates (matching Prisma schema defaults)
+  const DEFAULT_DECAY_RATES = {
+    thirst: 1.0,
+    hunger: 2.0,
+    happiness: 3.0,
+    cleanliness: 2.0,
+  };
+
+  function restoreDefaultDecayRates() {
+    decayRates = { ...DEFAULT_DECAY_RATES };
+    showToast('Decay rates restored to defaults. Click Save to apply.', 'success');
+  }
+
+  // Load decay rates when settings tab is opened
+  $effect(() => {
+    if (activeTab === 'settings' && currentClassId && !hasLoadedDecayRates) {
+      loadDecayRates();
+    }
+  });
+
+  // Reset decay rates cache when class changes
+  $effect(() => {
+    if (currentClassId) {
+      hasLoadedDecayRates = false;
+    }
+  });
+
+  // -----------------------------
+  // Supply requests handlers
+  // -----------------------------
+  async function refreshSupplyRequests() {
+    if (!currentClassId) return;
+    isRefreshingSupplies = true;
+
+    try {
+      const res = await fetch(
+        `${SUPPLY_API_URL}/api/teacher/supply-requests?classId=${currentClassId}&status=${supplyFilter}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+          },
+        }
+      );
+
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        throw new Error(msg?.message || `Failed to fetch supply requests (${res.status})`);
+      }
+
+      supplyRequestsData = await res.json();
+      console.log(supplyRequestsData);
+      hasLoadedSuppliesOnce = true;
+    } catch (e) {
+      console.error('Failed to refresh supply requests:', e);
+      showToast('Failed to load supply requests', 'error');
+    } finally {
+      isRefreshingSupplies = false;
+    }
+  }
+
+  async function updateSupplyRequestStatus(id: string, status: SupplyRequestStatus) {
+    if (updatingSupplyRequestId) return;
+    updatingSupplyRequestId = id;
+
+    const original = [...supplyRequestsData];
+    supplyRequestsData = supplyRequestsData.map((r) => (r.id === id ? { ...r, status } : r));
+
+    try {
+      const res = await fetch(`${SUPPLY_API_URL}/api/teacher/supply-requests/${id}/status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        throw new Error(msg?.message || `Failed to update request (${res.status})`);
+      }
+
+      // If viewing PENDING, remove resolved items
+      if (supplyFilter === 'PENDING' && (status === 'APPROVED' || status === 'REJECTED')) {
+        supplyRequestsData = supplyRequestsData.filter((r) => r.id !== id);
+      }
+
+      showToast(status === 'APPROVED' ? 'Request approved ✅' : 'Request rejected ❌', 'success');
+    } catch (e) {
+      console.error('Failed to update supply request:', e);
+      supplyRequestsData = original;
+      showToast('Failed to update request', 'error');
+    } finally {
+      updatingSupplyRequestId = null;
+    }
+  }
+
+  // Auto-load supplies the first time you open the tab (or if class changes)
+  $effect(() => {
+    if (activeTab === 'supplies' && currentClassId) {
+      if (!hasLoadedSuppliesOnce) {
+        refreshSupplyRequests();
+      }
+    }
+  });
+
   // Map builder handlers
   async function handleSectorMove(sectorId: string, x: number, y: number) {
     try {
@@ -221,7 +599,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ gridX: x, gridY: y }),
       });
@@ -243,7 +621,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ gridWidth: width, gridHeight: height }),
       });
@@ -265,7 +643,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ mapWidth: width, mapHeight: height }),
       });
@@ -311,7 +689,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           name,
@@ -332,7 +710,7 @@
       console.log('Created sector:', newSector);
 
       showToast(`${name} added to map! 🎉`, 'success');
-      
+
       // Force page data refresh by invalidating all load functions
       // Use a small delay to ensure the backend has committed the transaction
       setTimeout(async () => {
@@ -351,7 +729,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ gridX: x, gridY: y }),
       });
@@ -362,7 +740,7 @@
 
       const sector = sectorsData.find(s => s.id === sectorId);
       showToast(`${sector?.name || 'Sector'} placed on map! 🎉`, 'success');
-      
+
       await invalidateAll();
     } catch (error) {
       console.error('Failed to place sector:', error);
@@ -377,7 +755,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ name: newName }),
       });
@@ -401,7 +779,7 @@
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ gridX: -1, gridY: -1 }),
       });
@@ -422,7 +800,7 @@
   function handleSectorEdit(sector: { id: string; name: string; type: string }) {
     editingSector = sector;
     editingSectorName = sector.name;
-    
+
     // Focus the input after the dialog opens
     setTimeout(() => {
       editSectorInputRef?.focus();
@@ -433,7 +811,7 @@
   // Handler for saving sector name changes
   async function handleSectorEditSubmit() {
     if (!editingSector || !editingSectorName.trim()) return;
-    
+
     await handleSectorRename(editingSector.id, editingSectorName.trim());
     closeSectorEditDialog();
   }
@@ -442,22 +820,31 @@
   async function handleSectorEditRemove() {
     if (!editingSector) return;
     
-    const confirmed = confirm(`Remove "${editingSector.name}" from the map?\n\nThe sector will be moved back to the palette and can be placed again later.`);
-    if (confirmed) {
-      await handleSectorRemoveFromMap(editingSector.id);
-      closeSectorEditDialog();
+    const sectorId = editingSector.id;
+    const sectorName = editingSector.name;
+
+    // Show confirm BEFORE closing dialog
+    if (!confirm(`Remove "${sectorName}" from the map?\n\nThe sector will be moved back to the palette and can be placed again later.`)) {
+      return;
     }
+    
+    closeSectorEditDialog();
+    await handleSectorRemoveFromMap(sectorId);
   }
 
   // Handler for deleting sector via edit dialog
   async function handleSectorEditDelete() {
     if (!editingSector) return;
+    const sectorId = editingSector.id;
+    const sectorName = editingSector.name;
     
-    const confirmed = confirm(`Permanently delete "${editingSector.name}"?\n\nThis will also delete all missions in this sector. This action cannot be undone.`);
-    if (confirmed) {
-      await handleDeleteSector(editingSector.id);
-      closeSectorEditDialog();
+    // Show confirm BEFORE closing dialog
+    if (!confirm(`Permanently delete "${sectorName}"?\n\nThis will also delete all missions in this sector. This action cannot be undone.`)) {
+      return;
     }
+    
+    closeSectorEditDialog();
+    await handleDeleteSectorDirect(sectorId);
   }
 
   // Close the sector edit dialog
@@ -466,9 +853,118 @@
     editingSectorName = '';
   }
 
+  // ==================== DECORATION HANDLERS ====================
+
+  async function handleAddDecoration(type: string, x: number, y: number) {
+    const classId = localStorage.getItem('teacher_selected_class_id') || currentClassData?.id;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/decorations${classId ? `?classId=${classId}` : ''}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          type,
+          gridX: x,
+          gridY: y,
+          gridWidth: 2,
+          gridHeight: 2,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to create decoration');
+      }
+
+      showToast('Decoration added! 🏫', 'success');
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to add decoration:', error);
+      showToast('Failed to add decoration. Please try again.', 'error');
+    }
+  }
+
+  async function handleDecorationMove(decorationId: string, x: number, y: number) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/decorations/${decorationId}/position`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ gridX: x, gridY: y }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update decoration position');
+      }
+
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to move decoration:', error);
+      showToast('Failed to update decoration position', 'error');
+    }
+  }
+
+  async function handleDecorationResize(decorationId: string, width: number, height: number) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/decorations/${decorationId}/position`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ gridWidth: width, gridHeight: height }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update decoration size');
+      }
+
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to resize decoration:', error);
+      showToast('Failed to update decoration size', 'error');
+    }
+  }
+
+  async function handleDecorationDelete(decorationId: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teacher/decorations/${decorationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete decoration');
+      }
+
+      showToast('Decoration removed 🗑️', 'success');
+      await invalidateAll();
+    } catch (error) {
+      console.error('Failed to delete decoration:', error);
+      showToast('Failed to delete decoration', 'error');
+    }
+  }
+
+  // Handler for keyboard delete confirmation requests from MapBuilder
+  function handleMapConfirmRequest(type: 'removeSector' | 'deleteDecoration', id: string, name: string) {
+    if (type === 'removeSector') {
+      confirmAction = { type: 'removeSector', sectorId: id, sectorName: name };
+    } else {
+      confirmAction = { type: 'deleteDecoration', decorationId: id, decorationName: name };
+    }
+  }
+
   function handleLogout() {
-    // TODO: Implement logout functionality
-    window.location.href = '/';
+    auth.logout();
+    goto('/login');
   }
 
   function copyClassCode() {
@@ -506,7 +1002,7 @@
 
   async function handleCreateClass(event: Event) {
     event.preventDefault();
-    
+
     if (!classForm.className || !classForm.schoolName) {
       showToast('Please fill in all required fields', 'error');
       return;
@@ -520,7 +1016,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           className: classForm.className,
@@ -538,21 +1034,21 @@
 
       // Initialize the class with sectors and missions
       await initializeClass(newClass.id);
-      
+
       // Automatically switch to the newly created class
       await switchToNewClass(newClass.id);
-      
+
       // Show success toast
       showToast(`Class "${newClass.name}" created successfully! 🎉`, 'success');
-      
+
       // Reset form
       classForm = {
         className: '',
         schoolName: '',
       };
-      
+
       closeCreateClassDialog();
-      
+
       // Refresh data without full page reload
       await invalidateAll();
     } catch (error) {
@@ -569,7 +1065,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ classId })
       });
@@ -606,7 +1102,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ classId })
       });
@@ -620,6 +1116,10 @@
 
       // Save selected class to localStorage for persistence
       localStorage.setItem('teacher_selected_class_id', classId);
+
+      // Reset supplies cache when switching class
+      supplyRequestsData = [];
+      hasLoadedSuppliesOnce = false;
 
       // Refresh data without full page reload
       await invalidateAll();
@@ -638,7 +1138,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ classId })
       });
@@ -652,6 +1152,10 @@
 
       // Save selected class to localStorage for persistence
       localStorage.setItem('teacher_selected_class_id', classId);
+
+      // Reset supplies cache when switching class
+      supplyRequestsData = [];
+      hasLoadedSuppliesOnce = false;
     } catch (error) {
       console.error('❌ Failed to switch to new class:', error);
       // Don't show error toast here as it would interfere with the success message
@@ -680,6 +1184,9 @@
       hungerBoost: 0,
       happinessBoost: 0,
       cleanlinessBoost: 0,
+      cooldownHours: 24,
+      maxCompletions: null,
+      category: 'THIRST',
     };
     // Clear errors
     missionFormErrors = {};
@@ -707,7 +1214,7 @@
 
   async function handleCreateMission(event: Event) {
     event.preventDefault();
-    
+
     // Validate form
     if (!validateMissionForm()) {
       showToast('Please fix the form errors', 'error');
@@ -722,7 +1229,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify(missionForm)
       });
@@ -733,15 +1240,15 @@
       }
 
       const newMission = await response.json();
-      
+
       // Add new mission to local state
       missionsData = [...missionsData, newMission];
-      
+
       console.log('✅ Created mission:', newMission);
-      
+
       // Show success toast
       showToast('Mission created successfully! 🎯', 'success');
-      
+
       closeCreateMissionDialog();
     } catch (error) {
       console.error('❌ Failed to create mission:', error);
@@ -785,7 +1292,7 @@
 
   async function handleCreateSector(event: Event) {
     event.preventDefault();
-    
+
     // Validate form
     if (!validateSectorForm()) {
       showToast('Please fix the form errors', 'error');
@@ -795,12 +1302,15 @@
     isCreatingSector = true;
 
     try {
-      // Call API endpoint with authentication
-      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors`, {
+      // Get current class ID from localStorage or current class data
+      const classId = localStorage.getItem('teacher_selected_class_id') || currentClassData?.id;
+
+      // Call API endpoint with authentication and classId
+      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors${classId ? `?classId=${classId}` : ''}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify(sectorForm)
       });
@@ -811,14 +1321,14 @@
       }
 
       const newSector = await response.json();
-      
+
       console.log('✅ Created sector:', newSector);
-      
+
       // Show success toast
       showToast('Sector created successfully! 🌱', 'success');
-      
+
       closeCreateSectorDialog();
-      
+
       // Refresh data to show new sector
       await invalidateAll();
     } catch (error) {
@@ -837,16 +1347,28 @@
     const sector = sectorsData.find(s => s.id === sectorId);
     const sectorName = sector?.name || 'Unknown sector';
 
-    const confirmed = confirm(`Are you sure you want to delete "${sectorName}"? This will also delete all missions in this sector.`);
-    if (!confirmed) return;
+    if (!confirm(`Are you sure you want to delete "${sectorName}"? This will also delete all missions in this sector.`)) {
+      return;
+    }
 
+    await handleDeleteSectorDirect(sectorId);
+  }
+
+  // Direct delete without confirm (for use when confirm already shown)
+  async function handleDeleteSectorDirect(sectorId: string) {
+    if (deletingSectorId) return;
+    
     deletingSectorId = sectorId;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/teacher/sectors/${sectorId}`, {
+      // Get current class ID from localStorage or current class data
+      const classId = localStorage.getItem('teacher_selected_class_id') || currentClassData?.id;
+      const url = `${API_BASE_URL}/api/teacher/sectors/${sectorId}${classId ? `?classId=${classId}` : ''}`;
+      
+      const response = await fetch(url, {
         method: 'DELETE',
         headers: {
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
       });
 
@@ -855,13 +1377,10 @@
         throw new Error(errorData.message || 'Failed to delete sector');
       }
 
-      const result = await response.json();
-      console.log('Deleted sector:', result);
-
       showToast(`Sector deleted successfully!`, 'success');
       await invalidateAll();
     } catch (error) {
-      console.error('❌ Failed to delete sector:', error);
+      console.error('Failed to delete sector:', error);
       showToast('Failed to delete sector. Please try again.', 'error');
     } finally {
       deletingSectorId = null;
@@ -890,7 +1409,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ status: 'completed' })
       });
@@ -904,8 +1423,8 @@
 
       // Show success toast
       showToast('Submission approved successfully! 🎉', 'success');
-      
-      // TODO: Refresh mascot stats (pending backend implementation)
+
+      await invalidateAll();
     } catch (error) {
       console.error('❌ Failed to approve submission:', error);
       // Rollback on error
@@ -934,7 +1453,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(TEST_TEACHER),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ status: 'rejected' })
       });
@@ -948,6 +1467,8 @@
 
       // Show success toast
       showToast('Submission rejected.', 'success');
+
+      await invalidateAll();
     } catch (error) {
       console.error('❌ Failed to reject submission:', error);
       // Rollback on error
@@ -960,7 +1481,7 @@
   }
 </script>
 
-<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/40 font-teacher">
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/40 font-teacher pb-20">
   <!-- Header -->
   <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-40 shadow-sm">
     <div class="container mx-auto px-4 lg:px-6 py-4">
@@ -974,7 +1495,7 @@
               Teacher Dashboard
             </h1>
             <p class="text-xs sm:text-sm text-slate-500 hidden sm:block">
-              Welcome, John!
+              Welcome, {userData?.firstName || 'Teacher'}!
             </p>
           </div>
         </div>
@@ -1087,32 +1608,74 @@
     </div>
   </header>
 
-  <!-- Tab Navigation -->
-  <nav class="bg-white/60 backdrop-blur-sm border-b border-slate-200/60 sticky top-[72px] z-30">
-    <div class="container mx-auto px-4 lg:px-6">
-      <div class="flex gap-1 overflow-x-auto scrollbar-hide">
-        {#each tabs as tab}
-          <button
-            onclick={() => (activeTab = tab.id)}
-            class="relative flex items-center gap-2 px-4 sm:px-6 py-3.5 font-medium transition-all min-h-touch-target whitespace-nowrap group"
-            class:text-emerald-600={activeTab === tab.id}
-            class:text-slate-600={activeTab !== tab.id}
-            class:hover:text-slate-900={activeTab !== tab.id}
-            aria-current={activeTab === tab.id ? 'page' : undefined}
-          >
-            <span class="text-lg transition-transform group-hover:scale-110">{tab.icon}</span>
-            <span class="text-sm sm:text-base font-semibold">{tab.label}</span>
-            {#if activeTab === tab.id}
-              <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"></div>
+  <!-- Tab Navigation - Floating Dock Style -->
+  <nav
+    class="dock-container fixed bottom-0 left-0 right-0 z-50 flex justify-center px-3 pb-2"
+    style="padding-bottom: max(env(safe-area-inset-bottom), 8px);"
+  >
+    <div class="dock">
+      {#each tabs as tab}
+        <button
+          onclick={() => (activeTab = tab.id)}
+          class="dock-item"
+          class:active={activeTab === tab.id}
+          aria-label={tab.label}
+          aria-current={activeTab === tab.id ? 'page' : undefined}
+        >
+          <div class="dock-icon">
+            {#if tab.iconId === 'overview'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+            {:else if tab.iconId === 'missions'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <circle cx="12" cy="12" r="6"/>
+                <circle cx="12" cy="12" r="2"/>
+              </svg>
+            {:else if tab.iconId === 'submissions'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+            {:else if tab.iconId === 'map'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+                <line x1="8" y1="2" x2="8" y2="18"/>
+                <line x1="16" y1="6" x2="16" y2="22"/>
+              </svg>
+            {:else if tab.iconId === 'supplies'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+              </svg>
+            {:else if tab.iconId === 'settings'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
             {/if}
-          </button>
-        {/each}
-      </div>
+          </div>
+          <span class="dock-label">
+            {tab.label}
+            {#if tab.id === 'submissions' && submissionsData.length > 0}
+              <span class="submission-badge">{submissionsData.length > 99 ? '99+' : submissionsData.length}</span>
+            {/if}
+          </span>
+        </button>
+      {/each}
     </div>
   </nav>
 
   <!-- Main Content -->
-  <main class="container mx-auto px-4 lg:px-6 py-6 sm:py-8 max-w-7xl">
+  <main class="container mx-auto px-4 lg:px-6 py-6 sm:py-8 max-w-7xl pb-24">
     <!-- Welcome State for New Teachers (No Class) -->
     {#if !currentClassData && !loadError}
       <div class="max-w-2xl mx-auto">
@@ -1200,7 +1763,7 @@
               </button>
             </div>
           </div>
-          
+
           <div class="p-4 sm:p-6">
             <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
               <div class="flex items-center gap-2 px-4 py-2.5 bg-blue-50 rounded-xl border border-blue-200 flex-1 sm:flex-initial">
@@ -1269,18 +1832,15 @@
             <p class="text-2xl sm:text-3xl font-bold text-purple-600">{currentClassData?.mascot.xp || 0}</p>
           </div>
 
-          <!-- Coins Card -->
+          <!-- Seeds Card -->
           <div class="bg-white/80 backdrop-blur-sm rounded-xl shadow-md shadow-slate-200/50 border border-slate-200/60 p-4 sm:p-5 hover:shadow-lg transition-shadow">
             <div class="flex items-center gap-2 sm:gap-3 mb-2">
-              <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd" />
-                </svg>
+              <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <span class="text-lg sm:text-xl">🌱</span>
               </div>
-              <p class="text-xs sm:text-sm font-medium text-slate-600">Coins</p>
+              <p class="text-xs sm:text-sm font-medium text-slate-600">Seeds</p>
             </div>
-            <p class="text-2xl sm:text-3xl font-bold text-amber-600">{currentClassData?.mascot.coins || 0}</p>
+            <p class="text-2xl sm:text-3xl font-bold text-emerald-600">{currentClassData?.mascot.coins || 0}</p>
           </div>
         </div>
 
@@ -1366,10 +1926,8 @@
                           </svg>
                           {mission.xpReward} XP
                         </span>
-                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-md text-xs font-semibold">
-                          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd" />
-                          </svg>
+                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-md text-xs font-semibold">
+                          <span class="text-xs">🌱</span>
                           {mission.coinReward}
                         </span>
                       </div>
@@ -1406,7 +1964,19 @@
                 <div class="text-center py-8">
                   <div class="text-4xl mb-2">{sector.icon}</div>
                   <p class="text-slate-500">No missions yet for {sector.name}</p>
-                  <p class="text-sm text-slate-400 mt-1">Click "Create Mission" to add one</p>
+                  <p class="text-sm text-slate-400 mt-1 mb-4">Add a mission to get started</p>
+                  <button
+                    onclick={() => {
+                      missionForm.sectorId = sector.id;
+                      openCreateMissionDialog();
+                    }}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors shadow-sm"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Create Mission
+                  </button>
                 </div>
               {/if}
             </div>
@@ -1421,7 +1991,6 @@
             <h2 class="text-2xl font-bold text-slate-800">Pending Submissions</h2>
             <p class="text-sm text-slate-600 mt-1">Review and approve student mission submissions</p>
           </div>
-          
           <!-- View Toggle -->
           <div class="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
             <button
@@ -1460,84 +2029,91 @@
           {#if submissionsView === 'grid'}
             <!-- Grid View -->
             <div class="grid gap-6 lg:grid-cols-2">
-            {#each submissionsData as submission}
-              <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
-                <!-- Submission Photo -->
-                <div class="relative aspect-video bg-slate-100">
-                  <img
-                    src={submission.photoUrl}
-                    alt="{submission.mission.title} by {submission.student.firstName}"
-                    class="w-full h-full object-cover"
-                  />
-                  <div class="absolute top-3 right-3 px-3 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
-                    Pending Review
+              {#each submissionsData as submission}
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
+                  <!-- Submission Photo -->
+                  <div class="relative aspect-video bg-slate-100">
+                    {#if submission.photoUrl}
+                      <img
+                        src={resolvePhotoUrl(submission.photoUrl)}
+                        alt="{submission.mission.title} by {submission.student.firstName}"
+                        class="w-full h-full object-cover"
+                      />
+                    {:else}
+                      <div class="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                        <span class="text-4xl mb-2">📷</span>
+                        <span class="text-sm font-medium">Awaiting photo upload</span>
+                      </div>
+                    {/if}
+                    <div class="absolute top-3 right-3 px-3 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
+                      Pending Review
+                    </div>
                   </div>
-                </div>
 
-                <!-- Submission Details -->
-                <div class="p-4 sm:p-5">
-                  <!-- Student Info -->
-                  <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                      {submission.student.firstName[0]}{submission.student.lastName[0]}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <p class="font-semibold text-slate-800 truncate">
-                        {submission.student.firstName} {submission.student.lastName}
-                      </p>
-                      <p class="text-sm text-slate-500 truncate">@{submission.student.username}</p>
-                    </div>
-                    <span class="text-xs text-slate-500">
+                  <!-- Submission Details -->
+                  <div class="p-4 sm:p-5">
+                    <!-- Student Info -->
+                    <div class="flex items-center gap-3 mb-4">
+                      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                        {submission.student.firstName[0]}{submission.student.lastName[0]}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-slate-800 truncate">
+                          {submission.student.firstName} {submission.student.lastName}
+                        </p>
+                        <p class="text-sm text-slate-500 truncate">@{submission.student.username}</p>
+                      </div>
+                      <span class="text-xs text-slate-500">
                       {new Date(submission.submittedAt).toLocaleDateString()}
                     </span>
-                  </div>
+                    </div>
 
-                  <!-- Mission Info -->
-                  <div class="mb-4">
-                    <h3 class="font-semibold text-slate-800 mb-1">{submission.mission.title}</h3>
-                    <p class="text-sm text-slate-600">{submission.mission.description}</p>
-                  </div>
+                    <!-- Mission Info -->
+                    <div class="mb-4">
+                      <h3 class="font-semibold text-slate-800 mb-1">{submission.mission.title}</h3>
+                      <p class="text-sm text-slate-600">{submission.mission.description}</p>
+                    </div>
 
-                  <!-- Action Buttons -->
-                  <div class="flex gap-3">
-                    <button
-                      onclick={() => handleApproveSubmission(submission.id)}
-                      disabled={reviewingSubmissionId === submission.id}
-                      class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-all min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {#if reviewingSubmissionId === submission.id}
-                        <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      {:else}
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                      {/if}
-                      <span>Approve</span>
-                    </button>
-                    <button
-                      onclick={() => handleRejectSubmission(submission.id)}
-                      disabled={reviewingSubmissionId === submission.id}
-                      class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-all min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {#if reviewingSubmissionId === submission.id}
-                        <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      {:else}
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      {/if}
-                      <span>Reject</span>
-                    </button>
+                    <!-- Action Buttons -->
+                    <div class="flex gap-3">
+                      <button
+                        onclick={() => handleApproveSubmission(submission.id)}
+                        disabled={reviewingSubmissionId === submission.id}
+                        class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-all min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {#if reviewingSubmissionId === submission.id}
+                          <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        {:else}
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                        {/if}
+                        <span>Approve</span>
+                      </button>
+                      <button
+                        onclick={() => handleRejectSubmission(submission.id)}
+                        disabled={reviewingSubmissionId === submission.id}
+                        class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-all min-h-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {#if reviewingSubmissionId === submission.id}
+                          <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        {:else}
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        {/if}
+                        <span>Reject</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            {/each}
+              {/each}
             </div>
           {:else}
             <!-- List View -->
@@ -1547,11 +2123,18 @@
                   <div class="flex flex-col sm:flex-row">
                     <!-- Photo Thumbnail -->
                     <div class="relative w-full sm:w-48 h-48 sm:h-auto bg-slate-100 flex-shrink-0">
-                      <img
-                        src={submission.photoUrl}
-                        alt="{submission.mission.title} by {submission.student.firstName}"
-                        class="w-full h-full object-cover"
-                      />
+                      {#if submission.photoUrl}
+                        <img
+                          src={resolvePhotoUrl(submission.photoUrl)}
+                          alt="{submission.mission.title} by {submission.student.firstName}"
+                          class="w-full h-full object-cover"
+                        />
+                      {:else}
+                        <div class="w-full h-full min-h-[120px] flex flex-col items-center justify-center text-slate-400">
+                          <span class="text-3xl mb-1">📷</span>
+                          <span class="text-xs font-medium">Awaiting photo</span>
+                        </div>
+                      {/if}
                       <div class="absolute top-2 right-2 px-2 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
                         Pending
                       </div>
@@ -1636,6 +2219,7 @@
           </div>
         {/if}
       </div>
+
     {:else if currentClassData && activeTab === 'map'}
       <div class="space-y-6">
         <!-- Header -->
@@ -1685,6 +2269,7 @@
           {#if sectorsData.length > 0 || isMapEditMode}
             <MapBuilder
               sectors={mapSectorsData}
+              decorations={decorationsData}
               mapWidth={currentClassData.mapWidth || 20}
               mapHeight={currentClassData.mapHeight || 16}
               editable={isMapEditMode}
@@ -1698,6 +2283,11 @@
               onSectorDelete={handleDeleteSector}
               onSectorRemoveFromMap={handleSectorRemoveFromMap}
               onSectorEdit={handleSectorEdit}
+              onAddDecoration={handleAddDecoration}
+              onDecorationMove={handleDecorationMove}
+              onDecorationResize={handleDecorationResize}
+              onDecorationDelete={handleDecorationDelete}
+              onRequestConfirm={handleMapConfirmRequest}
             />
           {:else}
             <!-- Empty State -->
@@ -1753,83 +2343,521 @@
           </div>
         {/if}
       </div>
+
+    {:else if currentClassData && activeTab === 'supplies'}
+      <!-- ✅ Supplies tab -->
+      <div class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-800">Supply Requests</h2>
+            <p class="text-sm text-slate-600 mt-1">Approve or reject student supply requests</p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <select
+              bind:value={supplyFilter}
+              onchange={() => {
+                // when filter changes, fetch new list
+                refreshSupplyRequests();
+              }}
+              class="px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium"
+              aria-label="Filter supply requests"
+            >
+              <option value="PENDING">Pending</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+
+            <button
+              onclick={refreshSupplyRequests}
+              disabled={isRefreshingSupplies}
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {#if isRefreshingSupplies}
+                <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Refreshing...
+              {:else}
+                🔄 Refresh
+              {/if}
+            </button>
+          </div>
+        </div>
+
+        {#if supplyRequestsData.length === 0}
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-12 text-center">
+            <div class="text-6xl mb-4">🧤</div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">No Requests</h3>
+            <p class="text-slate-600">No {supplyFilter.toLowerCase()} supply requests right now.</p>
+            <p class="text-sm text-slate-500 mt-2">
+              {#if !hasLoadedSuppliesOnce}
+                Click “Refresh” to load requests.
+              {:else}
+                New requests will appear here.
+              {/if}
+            </p>
+          </div>
+        {:else}
+          <div class="grid gap-4 lg:grid-cols-2">
+            {#each supplyRequestsData as req (req.id)}
+              <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
+                <div class="p-5 flex gap-4">
+                  <img
+                    src={req.supply.imageUrl}
+                    alt={req.supply.name}
+                    class="w-16 h-16 rounded-xl object-cover bg-slate-100 border border-slate-200 flex-shrink-0"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <h3 class="font-bold text-slate-800 truncate">{req.supply.name}</h3>
+                        <p class="text-sm text-slate-600 line-clamp-2">{req.supply.description || ''}</p>
+                      </div>
+                      <span
+                        class="px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0"
+                        class:bg-amber-100={req.status === 'PENDING'}
+                        class:text-amber-800={req.status === 'PENDING'}
+                        class:bg-emerald-100={req.status === 'APPROVED'}
+                        class:text-emerald-800={req.status === 'APPROVED'}
+                        class:bg-red-100={req.status === 'REJECTED'}
+                        class:text-red-800={req.status === 'REJECTED'}
+                      >
+                        {req.status}
+                      </span>
+                    </div>
+
+                    <div class="mt-3 flex items-center justify-between gap-3">
+                      <div class="text-sm text-slate-600">
+                        <span class="font-semibold text-slate-800">
+                          {req.user.firstName} {req.user.lastName}
+                        </span>
+                        <span class="text-slate-500"> (@{req.user.username})</span>
+                        <div class="text-xs text-slate-500 mt-1">
+                          Requested: {new Date(req.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+
+                      {#if supplyFilter === 'PENDING'}
+                        <div class="flex gap-2">
+                          <button
+                            onclick={() => updateSupplyRequestStatus(req.id, 'APPROVED')}
+                            disabled={updatingSupplyRequestId === req.id}
+                            class="px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {#if updatingSupplyRequestId === req.id}
+                              ...
+                            {:else}
+                              ✅ Approve
+                            {/if}
+                          </button>
+                          <button
+                            onclick={() => updateSupplyRequestStatus(req.id, 'REJECTED')}
+                            disabled={updatingSupplyRequestId === req.id}
+                            class="px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {#if updatingSupplyRequestId === req.id}
+                              ...
+                            {:else}
+                              ❌ Reject
+                            {/if}
+                          </button>
+                        </div>
+                      {/if}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+    {:else if currentClassData && activeTab === 'settings'}
+      <!-- Settings tab -->
+      <div class="space-y-6">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-800">Groeny Settings</h2>
+          <p class="text-sm text-slate-600 mt-1">Customize how Groeny's needs decay over time</p>
+        </div>
+
+        <!-- Decay Rates Card -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
+          <div class="bg-gradient-to-r from-purple-500 to-indigo-600 px-4 sm:px-6 py-5">
+            <h3 class="text-lg font-bold text-white">Decay Rates</h3>
+            <p class="text-sm text-white/80 mt-1">
+              Set how fast each need decreases per hour during school hours (8am-4pm, Mon-Fri)
+            </p>
+          </div>
+
+          <div class="p-4 sm:p-6 space-y-6">
+            <!-- Thirst -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="thirst-decay" class="flex items-center gap-2 font-medium text-slate-700">
+                  <span class="text-2xl">💧</span>
+                  Thirst
+                </label>
+                <span class="text-sm text-slate-500">{decayRates.thirst} pts/hour</span>
+              </div>
+              <input
+                id="thirst-decay"
+                type="range"
+                min="0"
+                max="10"
+                step="0.5"
+                bind:value={decayRates.thirst}
+                class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <p class="text-xs text-slate-500">Slower decay - plants don't need constant watering</p>
+            </div>
+
+            <!-- Hunger -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="hunger-decay" class="flex items-center gap-2 font-medium text-slate-700">
+                  <span class="text-2xl">🍎</span>
+                  Hunger
+                </label>
+                <span class="text-sm text-slate-500">{decayRates.hunger} pts/hour</span>
+              </div>
+              <input
+                id="hunger-decay"
+                type="range"
+                min="0"
+                max="10"
+                step="0.5"
+                bind:value={decayRates.hunger}
+                class="w-full h-2 bg-orange-200 rounded-lg appearance-none cursor-pointer accent-orange-600"
+              />
+              <p class="text-xs text-slate-500">Medium decay - feeding animals and garden care</p>
+            </div>
+
+            <!-- Happiness -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="happiness-decay" class="flex items-center gap-2 font-medium text-slate-700">
+                  <span class="text-2xl">🥰</span>
+                  Happiness
+                </label>
+                <span class="text-sm text-slate-500">{decayRates.happiness} pts/hour</span>
+              </div>
+              <input
+                id="happiness-decay"
+                type="range"
+                min="0"
+                max="10"
+                step="0.5"
+                bind:value={decayRates.happiness}
+                class="w-full h-2 bg-sky-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+              />
+              <p class="text-xs text-slate-500">Faster decay - needs constant attention and play</p>
+            </div>
+
+            <!-- Cleanliness -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="cleanliness-decay" class="flex items-center gap-2 font-medium text-slate-700">
+                  <span class="text-2xl">🧹</span>
+                  Cleanliness
+                </label>
+                <span class="text-sm text-slate-500">{decayRates.cleanliness} pts/hour</span>
+              </div>
+              <input
+                id="cleanliness-decay"
+                type="range"
+                min="0"
+                max="10"
+                step="0.5"
+                bind:value={decayRates.cleanliness}
+                class="w-full h-2 bg-pink-200 rounded-lg appearance-none cursor-pointer accent-pink-600"
+              />
+              <p class="text-xs text-slate-500">Medium decay - keeping the schoolyard clean</p>
+            </div>
+
+            <!-- Save Button -->
+            <div class="pt-4 border-t border-slate-200 flex flex-col sm:flex-row gap-3">
+              <button
+                onclick={saveDecayRates}
+                disabled={isSavingDecayRates}
+                class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all shadow-lg shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {#if isSavingDecayRates}
+                  <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                  Saving...
+                {:else}
+                  💾 Save Decay Rates
+                {/if}
+              </button>
+              <button
+                onclick={restoreDefaultDecayRates}
+                disabled={isSavingDecayRates}
+                class="w-full sm:w-auto px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                🔄 Restore Defaults
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200 p-4 sm:p-6">
+          <div class="flex gap-3">
+            <span class="text-2xl">💡</span>
+            <div>
+              <h4 class="font-semibold text-amber-800">How Decay Works</h4>
+              <ul class="mt-2 text-sm text-amber-700 space-y-1">
+                <li>• Stats only decay during school hours (8am-4pm, Monday-Friday)</li>
+                <li>• Higher decay rate = needs decrease faster = more missions needed</li>
+                <li>• Set to 0 to disable decay for a specific need</li>
+                <li>• Completing missions boosts stats back up</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Groeny States Info -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-4 sm:p-6">
+          <h3 class="text-lg font-bold text-slate-800 mb-4">Groeny's Health States</h3>
+          <div class="grid sm:grid-cols-3 gap-4">
+            <div class="flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
+              <span class="text-3xl">😊</span>
+              <div>
+                <p class="font-semibold text-green-800">Normal</p>
+                <p class="text-sm text-green-600">51-100% health</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 p-3 bg-yellow-50 rounded-xl border border-yellow-200">
+              <span class="text-3xl">😢</span>
+              <div>
+                <p class="font-semibold text-yellow-800">Sad</p>
+                <p class="text-sm text-yellow-600">25-50% health</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 p-3 bg-red-50 rounded-xl border border-red-200">
+              <span class="text-3xl">🤒</span>
+              <div>
+                <p class="font-semibold text-red-800">Sick</p>
+                <p class="text-sm text-red-600">1-24% health</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sector QR Codes -->
+        <div class="mt-6">
+          <SectorQRGenerator />
+        </div>
+      </div>
     {/if}
   </main>
 </div>
 
 <!-- Sector Edit Dialog -->
 {#if editingSector}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
   <div
     class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
     onclick={closeSectorEditDialog}
-    onkeydown={(e) => e.key === 'Escape' && closeSectorEditDialog()}
     role="presentation"
-    tabindex="-1"
   >
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
     <div
       class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
       onclick={(e) => e.stopPropagation()}
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-sector-dialog-title"
-      tabindex="0"
     >
       <div class="flex items-center gap-3 mb-4">
         <span class="text-2xl">{getSectorDisplay(editingSector.type).icon}</span>
         <h3 id="edit-sector-dialog-title" class="text-lg font-bold text-slate-800">Edit Sector</h3>
       </div>
 
-      <form onsubmit={(e) => { e.preventDefault(); handleSectorEditSubmit(); }}>
-        <div class="mb-4">
-          <label for="edit-sector-name" class="block text-sm font-medium text-slate-700 mb-2">
-            Sector Name
-          </label>
-          <input
-            id="edit-sector-name"
-            bind:this={editSectorInputRef}
-            bind:value={editingSectorName}
-            type="text"
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            placeholder="Enter sector name"
-            required
-            minlength="2"
-            maxlength="50"
-          />
-        </div>
+      <!-- Name input -->
+      <div class="mb-4">
+        <label for="edit-sector-name" class="block text-sm font-medium text-slate-700 mb-2">
+          Sector Name
+        </label>
+        <input
+          id="edit-sector-name"
+          bind:this={editSectorInputRef}
+          bind:value={editingSectorName}
+          type="text"
+          class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          placeholder="Enter sector name"
+        />
+      </div>
 
-        <div class="flex items-center gap-3">
-          <button
-            type="submit"
-            class="flex-1 px-4 py-2 bg-emerald-500 text-white font-medium rounded-lg hover:bg-emerald-600 transition-colors"
-            disabled={!editingSectorName.trim()}
-          >
-            Save Changes
-          </button>
+      <!-- Action buttons - NOT inside a form -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          class="flex-1 px-4 py-2 bg-emerald-500 text-white font-medium rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50"
+          disabled={!editingSectorName.trim()}
+          onclick={handleSectorEditSubmit}
+        >
+          Save Changes
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
+          onclick={closeSectorEditDialog}
+        >
+          Cancel
+        </button>
+      </div>
+      
+      <!-- Danger zone - separate section -->
+      <div class="mt-4 pt-4 border-t border-slate-200">
+        <p class="text-xs text-slate-500 mb-2">Danger Zone</p>
+        <div class="flex gap-2">
           <button
             type="button"
-            onclick={closeSectorEditDialog}
-            class="px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onclick={handleSectorEditRemove}
             class="px-4 py-2 bg-amber-100 text-amber-700 font-medium rounded-lg hover:bg-amber-200 transition-colors"
-            title="Remove from map"
+            onclick={() => {
+              const sectorId = editingSector?.id;
+              const sectorName = editingSector?.name;
+              if (sectorId && sectorName) {
+                confirmAction = { type: 'remove', sectorId, sectorName };
+              }
+            }}
           >
-            📤 Remove
+            📤 Remove from Map
           </button>
           <button
             type="button"
-            onclick={handleSectorEditDelete}
             class="px-4 py-2 bg-red-100 text-red-700 font-medium rounded-lg hover:bg-red-200 transition-colors"
-            title="Delete permanently"
+            onclick={() => {
+              const sectorId = editingSector?.id;
+              const sectorName = editingSector?.name;
+              if (sectorId && sectorName) {
+                confirmAction = { type: 'delete', sectorId, sectorName };
+              }
+            }}
           >
-            🗑️ Delete
+            🗑️ Delete Permanently
           </button>
         </div>
-      </form>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Confirmation Dialog -->
+{#if confirmAction}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
+  <div
+    class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4"
+    onclick={() => confirmAction = null}
+    role="presentation"
+  >
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
+    <div
+      class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6"
+      onclick={(e) => e.stopPropagation()}
+      role="alertdialog"
+      aria-modal="true"
+    >
+      {#if confirmAction.type === 'delete'}
+        <div class="text-center">
+          <div class="text-5xl mb-4">🗑️</div>
+          <h3 class="text-xl font-bold text-slate-800 mb-2">Delete Sector?</h3>
+          <p class="text-slate-600 mb-6">
+            Are you sure you want to permanently delete "<strong>{confirmAction.sectorName}</strong>"?
+            <br/><span class="text-red-600 text-sm">This will also delete all missions in this sector.</span>
+          </p>
+          <div class="flex gap-3">
+            <button
+              type="button"
+              class="flex-1 px-4 py-3 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
+              onclick={() => confirmAction = null}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="flex-1 px-4 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition-colors"
+              onclick={async () => {
+                const sectorId = confirmAction?.sectorId;
+                confirmAction = null;
+                closeSectorEditDialog();
+                if (sectorId) {
+                  await handleDeleteSectorDirect(sectorId);
+                }
+              }}
+            >
+              Yes, Delete
+            </button>
+          </div>
+        </div>
+      {:else if confirmAction.type === 'remove' || confirmAction.type === 'removeSector'}
+        <div class="text-center">
+          <div class="text-5xl mb-4">📤</div>
+          <h3 class="text-xl font-bold text-slate-800 mb-2">Remove from Map?</h3>
+          <p class="text-slate-600 mb-6">
+            Remove "<strong>{confirmAction.sectorName}</strong>" from the map?
+            <br/><span class="text-slate-500 text-sm">The sector will be moved back to the palette.</span>
+          </p>
+          <div class="flex gap-3">
+            <button
+              type="button"
+              class="flex-1 px-4 py-3 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
+              onclick={() => confirmAction = null}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="flex-1 px-4 py-3 bg-amber-500 text-white font-medium rounded-lg hover:bg-amber-600 transition-colors"
+              onclick={async () => {
+                const sectorId = confirmAction?.sectorId;
+                confirmAction = null;
+                closeSectorEditDialog();
+                if (sectorId) {
+                  await handleSectorRemoveFromMap(sectorId);
+                }
+              }}
+            >
+              Yes, Remove
+            </button>
+          </div>
+        </div>
+      {:else if confirmAction.type === 'deleteDecoration'}
+        <div class="text-center">
+          <div class="text-5xl mb-4">🗑️</div>
+          <h3 class="text-xl font-bold text-slate-800 mb-2">Delete Decoration?</h3>
+          <p class="text-slate-600 mb-6">
+            Delete this <strong>{confirmAction.decorationName}</strong>?
+          </p>
+          <div class="flex gap-3">
+            <button
+              type="button"
+              class="flex-1 px-4 py-3 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
+              onclick={() => confirmAction = null}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="flex-1 px-4 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition-colors"
+              onclick={async () => {
+                const decorationId = confirmAction?.decorationId;
+                confirmAction = null;
+                if (decorationId) {
+                  await handleDecorationDelete(decorationId);
+                }
+              }}
+            >
+              Yes, Delete
+            </button>
+          </div>
+        </div>
+      {/if}
     </div>
   </div>
 {/if}
@@ -1923,7 +2951,6 @@
     </div>
   </div>
 {/if}
-
 
 <!-- Create Mission Dialog -->
 {#if isCreateMissionDialogOpen}
@@ -2050,12 +3077,12 @@
             />
           </div>
           <div>
-            <label for="mission-coins" class="block text-sm font-semibold text-slate-700 mb-2">
-              Coin Reward
+            <label for="mission-seeds" class="block text-sm font-semibold text-slate-700 mb-2">
+              🌱 Seed Reward
             </label>
             <input
               type="number"
-              id="mission-coins"
+              id="mission-seeds"
               bind:value={missionForm.coinReward}
               min="1"
               max="100"
@@ -2121,6 +3148,62 @@
                 max="50"
                 class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               />
+            </div>
+          </div>
+        </div>
+
+        <!-- Mission Category -->
+        <div>
+          <label for="mission-category" class="block text-sm font-semibold text-slate-700 mb-2">
+            Category
+          </label>
+          <select
+            id="mission-category"
+            bind:value={missionForm.category}
+            class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+          >
+            <option value="THIRST">💧 Thirst</option>
+            <option value="HUNGER">🍎 Hunger</option>
+            <option value="HAPPINESS">😊 Happiness</option>
+            <option value="CLEANLINESS">✨ Cleanliness</option>
+          </select>
+          <p class="text-xs text-slate-500 mt-1">Primary stat this mission affects</p>
+        </div>
+
+        <!-- Cooldown Settings -->
+        <div>
+          <div class="block text-sm font-semibold text-slate-700 mb-3">
+            Cooldown Settings
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="mission-cooldown" class="block text-xs font-medium text-slate-600 mb-1">
+                ⏱️ Cooldown (hours)
+              </label>
+              <input
+                type="number"
+                id="mission-cooldown"
+                bind:value={missionForm.cooldownHours}
+                min="0"
+                max="168"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              />
+              <p class="text-xs text-slate-500 mt-1">Time before student can redo</p>
+            </div>
+            <div>
+              <label for="mission-max-completions" class="block text-xs font-medium text-slate-600 mb-1">
+                🔢 Max Completions
+              </label>
+              <input
+                type="number"
+                id="mission-max-completions"
+                bind:value={missionForm.maxCompletions}
+                min="1"
+                max="100"
+                placeholder="Unlimited"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              />
+              <p class="text-xs text-slate-500 mt-1">Leave empty for unlimited</p>
             </div>
           </div>
         </div>

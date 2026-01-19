@@ -26,7 +26,7 @@ async function getActiveClassId(userId: string, requestedClassId?: string): Prom
 		const hasAccess = await verifyTeacherOwnsClass(userId, requestedClassId);
 		return hasAccess ? requestedClassId : null;
 	}
-	
+
 	// Otherwise, get the most recent class the user is a member of
 	const membership = await prisma.classUser.findFirst({
 		where: { userId },
@@ -64,11 +64,12 @@ router.get('/submissions', requireTeacher, async (req: Request, res: Response) =
 			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
 		}
 
-		// Get all pending submissions for this class
+		// Get all pending submissions for this class that have photos uploaded
 		const submissions = await prisma.submission.findMany({
 			where: {
 				classId,
 				status: 'PENDING',
+				photoUrl: { not: null }, // Only show submissions with photos
 			},
 			include: {
 				mission: {
@@ -169,11 +170,10 @@ router.post('/submissions/:id/review', requireTeacher, async (req: Request, res:
 			});
 		}
 
-		// Update submission status
-		const dbStatus = status === 'completed' ? 'COMPLETED' : 'REJECTED';
-
 		const updatedSubmission = await prisma.$transaction(async (tx) => {
 			// Update submission
+			const dbStatus = status === 'completed' ? 'COMPLETED' : 'REJECTED';
+
 			const updated = await tx.submission.update({
 				where: { id },
 				data: {
@@ -182,33 +182,51 @@ router.post('/submissions/:id/review', requireTeacher, async (req: Request, res:
 				},
 			});
 
-			// If approved, award XP and coins to mascot
 			if (status === 'completed') {
+
+				await tx.mission.update({
+					where: { id: submission.missionId },
+					data: { status: 'COMPLETED' }
+				});
+
 				const mascot = await tx.mascot.findUnique({
 					where: { classId: submission.classId },
 				});
 
 				if (mascot) {
 					// Calculate new stats (capped at 100)
-					const newThirst = Math.min(100, mascot.thirst + submission.mission.thirstBoost);
-					const newHunger = Math.min(100, mascot.hunger + submission.mission.hungerBoost);
-					const newHappiness = Math.min(100, mascot.happiness + submission.mission.happinessBoost);
-					const newCleanliness = Math.min(100, mascot.cleanliness + submission.mission.cleanlinessBoost);
+					const newThirst = Math.min(100, mascot.thirst + (submission.mission.thirstBoost || 0));
+					const newHunger = Math.min(100, mascot.hunger + (submission.mission.hungerBoost || 0));
+					const newHappiness = Math.min(100, mascot.happiness + (submission.mission.happinessBoost || 0));
+					const newCleanliness = Math.min(100, mascot.cleanliness + (submission.mission.cleanlinessBoost || 0));
+					const newXp = mascot.xp + submission.mission.xpReward;
+
+					// Calculate new level based on XP thresholds
+					const XP_THRESHOLDS = [0, 100, 250, 500, 1000, 2000, 3500, 5500, 8000, 11000, 15000];
+					let newLevel = 1;
+					for (let level = 10; level >= 1; level--) {
+						if (newXp >= XP_THRESHOLDS[level - 1]) {
+							newLevel = level;
+							break;
+						}
+					}
+					const leveledUp = newLevel > mascot.level;
 
 					// Update mascot
 					await tx.mascot.update({
 						where: { id: mascot.id },
 						data: {
-							xp: mascot.xp + submission.mission.xpReward,
+							xp: newXp,
 							coins: mascot.coins + submission.mission.coinReward,
 							thirst: newThirst,
 							hunger: newHunger,
 							happiness: newHappiness,
 							cleanliness: newCleanliness,
+							level: newLevel,
 						},
 					});
 
-					// Create activity feed entry
+					// Create activity feed entry for mission completion
 					await tx.activity.create({
 						data: {
 							classId: submission.classId,
@@ -218,7 +236,25 @@ router.post('/submissions/:id/review', requireTeacher, async (req: Request, res:
 							imageUrl: submission.photoUrl,
 						},
 					});
+
+					// Create activity feed entry for level up
+					if (leveledUp) {
+						await tx.activity.create({
+							data: {
+								classId: submission.classId,
+								userId: submission.userId,
+								type: 'LEVEL_UP',
+								content: `Groeny reached level ${newLevel}! 🎉`,
+							},
+						});
+					}
 				}
+			} else {
+				// Free up the Mission (Reset to AVAILABLE)
+				await tx.mission.update({
+					where: { id: submission.missionId },
+					data: { status: 'AVAILABLE' }
+				});
 			}
 
 			return updated;

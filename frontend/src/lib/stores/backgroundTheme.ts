@@ -21,6 +21,11 @@ export const backgroundOptions: BackgroundOption[] = [
     id: 3,
     name: 'Forest',
     className: 'bg-gradient-to-b from-emerald-500 to-lime-400'
+  },
+  {
+    id: 4,
+    name: 'Dark',
+    className: 'bg-gradient-to-b from-gray-200 to-gray-800'
   }
 ];
 

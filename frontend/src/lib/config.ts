@@ -1,7 +1,7 @@
 // API Configuration for Teacher Dashboard
 
 // API Base URL - points to API Gateway
-export const API_BASE_URL = 'http://localhost:3000';
+export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -26,9 +26,6 @@ export const API_ENDPOINTS = {
 		list: '/api/teacher/submissions',
 		review: (id: string) => `/api/submissions/${id}/review`,
 	},
-	auth: {
-		login: '/login',
-	}
 };
 
 // Helper to build full URL
@@ -43,7 +40,14 @@ export const CONFIG = {
 		timeout: 10000, // 10 seconds
 	},
 	auth: {
+		// For your colleague's auth implementation
 		tokenKey: 'groney_auth_token',
 		refreshTokenKey: 'groney_refresh_token',
 	},
 };
+
+export const SUPPLY_API_URL = API_BASE_URL;
+
+export const MASCOT_ENGINE_URL = API_BASE_URL;
+
+export const SHOP_API_URL = API_BASE_URL;

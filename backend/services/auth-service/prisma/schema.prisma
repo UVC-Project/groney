@@ -1,0 +1,345 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for both students and teachers
+model User {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  username  String   @unique
+  email     String?  @unique
+  password  String
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isActive Boolean @default(true)
+
+  emailVerified Boolean  @default(false)
+  emailVerificationToken String?
+  emailVerificationExp   DateTime?
+
+  // Daily login streak tracking (for students)
+  currentStreak        Int       @default(0)
+  longestStreak        Int       @default(0)
+  lastLoginDate        DateTime? // Last login date (Amsterdam timezone day)
+  lastMilestoneReached Int       @default(0) // Highest streak milestone rewarded in current streak run
+
+  classMember ClassUser[]
+
+  submissions        Submission[]
+  purchases          Purchase[]
+  activities         Activity[]
+  supplyRequests     SupplyRequest[]
+  PasswordResetToken PasswordResetToken[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  STUDENT
+  TEACHER
+}
+
+model AuthLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Class model
+model Class {
+  id        String   @id @default(cuid())
+  name      String
+  school    String
+  classCode String   @unique
+  // Map configuration
+  mapWidth  Int      @default(20) // Grid width in cells (each cell ~0.5m)
+  mapHeight Int      @default(16) // Grid height in cells
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members        ClassUser[]
+  mascot         Mascot?
+  sectors        Sector[]
+  activities     Activity[]
+  submissions    Submission[]
+  purchases      Purchase[]
+  supplyRequests SupplyRequest[]
+
+  @@index([classCode])
+  @@map("classes")
+}
+
+model ClassUser {
+  classId String
+  userId  String
+
+  class Class @relation(fields: [classId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@id([classId, userId])
+  @@map("class_users")
+}
+
+// Mascot model
+model Mascot {
+  id                String   @id @default(cuid())
+  classId           String   @unique
+  thirst            Int      @default(100)
+  hunger            Int      @default(100)
+  happiness         Int      @default(100)
+  cleanliness       Int      @default(100)
+  level             Int      @default(1)
+  xp                Int      @default(0)
+  coins             Int      @default(0)
+  equippedHat       String?
+  equippedAccessory String?
+  lastDecayAt       DateTime @default(now())
+
+  // Decay rates per hour (teacher-customizable)
+  thirstDecayRate      Float @default(1.0)
+  hungerDecayRate      Float @default(2.0)
+  happinessDecayRate   Float @default(3.0)
+  cleanlinessDecayRate Float @default(2.0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@map("mascots")
+}
+
+enum SupplyRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Supply {
+  id          String   @id
+  name        String
+  description String   @default("")
+  imageUrl    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requests SupplyRequest[]
+
+  @@map("supplies")
+}
+
+model SupplyRequest {
+  id        String              @id @default(cuid())
+  supplyId  String
+  userId    String
+  classId   String
+  status    SupplyRequestStatus @default(PENDING)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  supply Supply @relation(fields: [supplyId], references: [id], onDelete: Cascade)
+  class  Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@index([userId])
+  @@index([status])
+  @@map("supply_requests")
+}
+
+// Sector model (areas of the schoolyard)
+model Sector {
+  id         String     @id @default(cuid())
+  classId    String
+  name       String
+  type       SectorType
+  // Grid position and size (for map builder)
+  gridX      Int        @default(0) // X position on grid
+  gridY      Int        @default(0) // Y position on grid
+  gridWidth  Int        @default(2) // Width in grid cells
+  gridHeight Int        @default(2) // Height in grid cells
+  color      String? // Optional custom color
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  class    Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  missions Mission[]
+
+  @@index([classId])
+  @@map("sectors")
+}
+
+enum SectorType {
+  TREES
+  FLOWERS
+  POND
+  ANIMALS
+  GARDEN
+  PLAYGROUND
+  COMPOST
+  OTHER
+  CHICKENS // @deprecated - use ANIMALS instead
+}
+
+enum MissionCategory {
+  THIRST
+  HUNGER
+  HAPPINESS
+  CLEANLINESS
+}
+
+enum MissionStatus {
+  AVAILABLE
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
+// Mission model
+model Mission {
+  id               String          @id @default(cuid())
+  sectorId         String
+  title            String
+  description      String
+  xpReward         Int
+  coinReward       Int
+  thirstBoost      Int             @default(0)
+  hungerBoost      Int             @default(0)
+  happinessBoost   Int             @default(0)
+  cleanlinessBoost Int             @default(0)
+  requiresPhoto    Boolean         @default(true)
+  requiresQR       Boolean         @default(false)
+  cooldownHours    Int             @default(24) // Hours before same student can redo mission
+  maxCompletions   Int? // Optional: max times a student can complete this mission (null = unlimited)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  coordinates_x    Float           @default(50.0)
+  coordinates_y    Float           @default(50.0)
+  category         MissionCategory @default(THIRST)
+  status           MissionStatus   @default(AVAILABLE)
+
+  sector      Sector       @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+  submissions Submission[]
+
+  @@index([sectorId])
+  @@map("missions")
+}
+
+// Submission model (proof of work)
+model Submission {
+  id        String           @id @default(cuid())
+  missionId String
+  userId    String
+  classId   String
+  photoUrl  String?
+  qrScanned Boolean          @default(false)
+  status    SubmissionStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([missionId])
+  @@index([userId])
+  @@index([classId])
+  @@index([status])
+  @@map("submissions")
+}
+
+enum SubmissionStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+}
+
+// Shop Item model
+model ShopItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @default("")
+  type        ItemType
+  price       Int
+  imageUrl    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  purchases Purchase[]
+
+  @@map("shop_items")
+}
+
+enum ItemType {
+  HAT
+  ACCESSORY
+}
+
+// Purchase model
+model Purchase {
+  id        String   @id @default(cuid())
+  userId    String
+  itemId    String
+  classId   String
+  createdAt DateTime @default(now())
+
+  user  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item  ShopItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  class Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemId])
+  @@index([userId])
+  @@index([classId])
+  @@map("purchases")
+}
+
+// Activity Feed model
+model Activity {
+  id        String       @id @default(cuid())
+  classId   String
+  userId    String
+  type      ActivityType
+  content   String
+  imageUrl  String?
+  createdAt DateTime     @default(now())
+
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@index([createdAt])
+  @@map("activities")
+}
+
+enum ActivityType {
+  MISSION_COMPLETED
+  PURCHASE
+  LEVEL_UP
+  MASCOT_INTERACTION
+}

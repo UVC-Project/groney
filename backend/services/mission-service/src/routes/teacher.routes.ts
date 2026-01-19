@@ -9,7 +9,7 @@ const requireTeacher = (req: Request, res: Response, next: Function) => {
 	// TODO: Implement actual authentication middleware
 	// For now, we'll assume the user is authenticated and userId is in req.user
 	const userId = req.headers['x-user-id'] as string;
-	
+
 	if (!userId) {
 		return res.status(401).json({ error: 'Unauthorized', message: 'User not authenticated' });
 	}
@@ -26,7 +26,7 @@ async function getActiveClassId(userId: string, requestedClassId?: string): Prom
 		const hasAccess = await verifyTeacherOwnsClass(userId, requestedClassId);
 		return hasAccess ? requestedClassId : null;
 	}
-	
+
 	// Otherwise, get the most recent class the user is a member of
 	const membership = await prisma.classUser.findFirst({
 		where: { userId },
@@ -133,8 +133,9 @@ router.delete('/sectors/:id', requireTeacher, async (req: Request, res: Response
 	try {
 		const userId = (req as any).userId;
 		const sectorId = req.params.id;
+		const requestedClassId = req.query.classId as string | undefined;
 
-		const classId = await getActiveClassId(userId);
+		const classId = await getActiveClassId(userId, requestedClassId);
 		if (!classId) {
 			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
 		}
@@ -318,6 +319,9 @@ router.post('/missions', requireTeacher, async (req: Request, res: Response) => 
 			hungerBoost = 0,
 			happinessBoost = 0,
 			cleanlinessBoost = 0,
+			cooldownHours = 24,
+			maxCompletions = null,
+			category = 'THIRST',
 		} = req.body;
 
 		// Validation
@@ -359,6 +363,9 @@ router.post('/missions', requireTeacher, async (req: Request, res: Response) => 
 				hungerBoost,
 				happinessBoost,
 				cleanlinessBoost,
+				cooldownHours,
+				maxCompletions,
+				category,
 			},
 			include: {
 				sector: {
@@ -539,6 +546,137 @@ router.post('/initialize', requireTeacher, async (req: Request, res: Response) =
 	} catch (error) {
 		console.error('Error initializing class:', error);
 		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to initialize class' });
+	}
+});
+
+// ==================== DECORATIONS ====================
+
+// GET /api/teacher/decorations - Returns all decorations for teacher's class
+router.get('/decorations', requireTeacher, async (req: Request, res: Response) => {
+	try {
+		const userId = (req as any).userId;
+		const requestedClassId = req.query.classId as string | undefined;
+
+		const classId = await getActiveClassId(userId, requestedClassId);
+		if (!classId) {
+			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
+		}
+
+		const decorations = await prisma.mapDecoration.findMany({
+			where: { classId },
+			orderBy: { createdAt: 'asc' },
+		});
+
+		res.json(decorations);
+	} catch (error) {
+		console.error('Error fetching decorations:', error);
+		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch decorations' });
+	}
+});
+
+// POST /api/teacher/decorations - Create a new decoration
+router.post('/decorations', requireTeacher, async (req: Request, res: Response) => {
+	try {
+		const userId = (req as any).userId;
+		const requestedClassId = req.query.classId as string | undefined;
+		const { type, gridX, gridY, gridWidth, gridHeight, label } = req.body;
+
+		const validTypes = ['BUILDING', 'PAVEMENT', 'PARKING', 'FENCE', 'ENTRANCE', 'BENCH', 'TRASH_BIN', 'BIKE_RACK'];
+		if (!type || !validTypes.includes(type)) {
+			return res.status(400).json({ error: 'Bad Request', message: 'Invalid decoration type' });
+		}
+
+		const classId = await getActiveClassId(userId, requestedClassId);
+		if (!classId) {
+			return res.status(404).json({ error: 'Not Found', message: 'No class found for this teacher' });
+		}
+
+		const decoration = await prisma.mapDecoration.create({
+			data: {
+				classId,
+				type,
+				gridX: gridX ?? 0,
+				gridY: gridY ?? 0,
+				gridWidth: gridWidth ?? 2,
+				gridHeight: gridHeight ?? 2,
+				label: label || null,
+			},
+		});
+
+		console.log('Created decoration:', decoration.id, 'type:', type, 'at', gridX, gridY);
+		res.status(201).json(decoration);
+	} catch (error) {
+		console.error('Error creating decoration:', error);
+		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to create decoration' });
+	}
+});
+
+// PATCH /api/teacher/decorations/:id/position - Update decoration position and size
+router.patch('/decorations/:id/position', requireTeacher, async (req: Request, res: Response) => {
+	try {
+		const userId = (req as any).userId;
+		const decorationId = req.params.id;
+		const { gridX, gridY, gridWidth, gridHeight } = req.body;
+
+		const decoration = await prisma.mapDecoration.findUnique({
+			where: { id: decorationId },
+		});
+
+		if (!decoration) {
+			return res.status(404).json({ error: 'Not Found', message: 'Decoration not found' });
+		}
+
+		const hasAccess = await verifyTeacherOwnsClass(userId, decoration.classId);
+		if (!hasAccess) {
+			return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to this decoration' });
+		}
+
+		const updateData: any = {};
+		if (gridX !== undefined) updateData.gridX = gridX;
+		if (gridY !== undefined) updateData.gridY = gridY;
+		if (gridWidth !== undefined) updateData.gridWidth = gridWidth;
+		if (gridHeight !== undefined) updateData.gridHeight = gridHeight;
+
+		const updated = await prisma.mapDecoration.update({
+			where: { id: decorationId },
+			data: updateData,
+		});
+
+		res.json(updated);
+	} catch (error) {
+		console.error('Error updating decoration position:', error);
+		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update decoration position' });
+	}
+});
+
+// DELETE /api/teacher/decorations/:id - Delete a decoration
+router.delete('/decorations/:id', requireTeacher, async (req: Request, res: Response) => {
+	try {
+		const userId = (req as any).userId;
+		const decorationId = req.params.id;
+
+		const decoration = await prisma.mapDecoration.findUnique({
+			where: { id: decorationId },
+		});
+
+		if (!decoration) {
+			return res.status(404).json({ error: 'Not Found', message: 'Decoration not found' });
+		}
+
+		const hasAccess = await verifyTeacherOwnsClass(userId, decoration.classId);
+		if (!hasAccess) {
+			return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to this decoration' });
+		}
+
+		await prisma.mapDecoration.delete({
+			where: { id: decorationId },
+		});
+
+		console.log('Deleted decoration:', decorationId);
+		res.json({ success: true, message: 'Decoration deleted successfully' });
+	} catch (error) {
+		console.error('Error deleting decoration:', error);
+		res.status(500).json({ error: 'Internal Server Error', message: 'Failed to delete decoration' });
 	}
 });
 

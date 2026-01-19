@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "npx prisma generate && tsx watch src/start.ts",
-    "build": "npx prisma generate && tsc",
+    "dev": "npx prisma generate --schema=./prisma/schema.prisma && tsx watch src/start.ts",
+    "build": "npx prisma generate --schema=./prisma/schema.prisma && tsc",
     "start": "tsx src/start.ts",
     "test": "vitest",
     "seed": "ts-node src/seed.ts"

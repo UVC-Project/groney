@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 const prisma: PrismaClient = new PrismaClient(); import crypto from "crypto";
 import bcrypt from "bcrypt";
-import { sendResetPasswordEmail } from "../../utils/mailer";
+import { sendResetPasswordEmail } from "../../utils/ResetPasswordMailer";
 
 export default class PasswordResetController {
     /**

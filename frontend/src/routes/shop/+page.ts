@@ -1,41 +1,49 @@
 import type { PageLoad } from './$types';
+import { browser } from '$app/environment';
+import { MASCOT_ENGINE_URL } from '$lib/config';
 
-const API_URL = 'http://localhost:3005';
+const GATEWAY = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+
+// Disable SSR since we need localStorage
+export const ssr = false;
 
 export const load: PageLoad = async ({ fetch }) => {
-    const userId = 'user-1';
-    const classId = 'class-1';
-
-    try {
-        const [itemsRes, mascotRes] = await Promise.all([
-            fetch(`${API_URL}/api/shop/items?userId=${userId}`),
-            fetch(`${API_URL}/api/mascot/${classId}`)
-        ]);
-
-        if (itemsRes.ok && mascotRes.ok) {
-            const items = await itemsRes.json();
-            const mascot = await mascotRes.json();
-
-            return {
-                coins: mascot.coins,
-                items,
-                userId,
-                classId
-            };
-        } else {
-            console.error('Failed to load shop data', {
-                itemsStatus: itemsRes.status,
-                mascotStatus: mascotRes.status
-            });
+    // Get userId from auth storage (same pattern as homepage)
+    let userId = '';
+    if (browser) {
+        try {
+            const authData = localStorage.getItem('auth');
+            if (authData) {
+                const parsed = JSON.parse(authData);
+                userId = parsed?.user?.id ?? '';
+            }
+        } catch {
+            userId = localStorage.getItem('userId') ?? '';
         }
-    } catch (err) {
-        console.error('Error loading shop data', err);
+    }
+    console.log('[shop load] userId:', userId);
+
+    const itemsRes = await fetch(
+      userId
+        ? `${GATEWAY}/api/shop/items?userId=${encodeURIComponent(userId)}`
+        : `${GATEWAY}/api/shop/items`
+    );
+    const items = itemsRes.ok ? await itemsRes.json() : [];
+
+    let coins = 0;
+    let classId: string | null = null;
+
+    if (userId) {
+        // Fetch from mascot-engine to get accurate coin balance
+        const mascotRes = await fetch(`${MASCOT_ENGINE_URL}/api/mascot/by-user/${encodeURIComponent(userId)}`);
+        console.log('[shop load] mascot status:', mascotRes.status);
+
+        if (mascotRes.ok) {
+            const mascot = await mascotRes.json();
+            coins = mascot?.coins ?? 0;
+            classId = mascot?.classId ?? null;
+        }
     }
 
-    return {
-        coins: 0,
-        items: [],
-        userId,
-        classId
-    };
+    return { coins, items, userId: userId || null, classId };
 };

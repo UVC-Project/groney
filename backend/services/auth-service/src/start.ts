@@ -1,10 +1,11 @@
 import express from 'express';
 import { config } from 'dotenv';
+import teacherRoutes from './routes/teacher.routes';
 import RegisterController from './app/Controllers/RegisterController';
 import LoginController from './app/Controllers/LoginController';
-import LogoutController from './app/Controllers/LogoutController';
 import PasswordResetController from './app/Controllers/PasswordResetController';
-import teacherRoutes from './routes/teacher.routes';
+import ProfileController from './app/Controllers/ProfileController';
+import EmailVerificationController from './app/Controllers/EmailVerificationController';
 
 config();
 
@@ -31,15 +32,24 @@ app.get('/health', (_req, res) => {
 app.use('/api/teacher', teacherRoutes);
 
 // Auth routes
-app.post("/login", LoginController.login);
+app.post('/api/auth/login', LoginController.login);
+app.get('/api/auth/verify', LoginController.verifyToken);
+app.post('/api/auth/register/teacher', RegisterController.registerTeacher);
+app.post('/api/auth/register/student', RegisterController.registerStudent);
 
-app.post("/register/teacher", RegisterController.registerTeacher);
-app.post("/register/student", RegisterController.registerStudent);
+app.post('/api/auth/password-reset/request', PasswordResetController.requestReset);
+app.post('/api/auth/password-reset/reset', PasswordResetController.resetPassword);
 
-app.post("/logout", LogoutController.logout);
+app.get('/api/auth/profile', ProfileController.getProfile);
+app.put('/api/auth/profile/update', ProfileController.updateProfile);
 
-app.post("/password/forgot", PasswordResetController.requestReset);
-app.post("/password/reset", PasswordResetController.resetPassword);
+app.get('/api/auth/verify-email', EmailVerificationController.verify);
+app.post('/api/auth/resend-verification', EmailVerificationController.resend);
+
+// Legacy routes (for backwards compatibility)
+app.post('/login', LoginController.login);
+app.post('/register/teacher', RegisterController.registerTeacher);
+app.post('/register/student', RegisterController.registerStudent);
 
 // 404 handler for undefined routes
 app.use((_req, res) => {

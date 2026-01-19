@@ -1,15 +1,14 @@
 import { Router } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import { requireAuth } from '../middleware/authMiddleware';
-import { requireTeacher } from '../middleware/requireTeacher';
-import { passAuthContext } from '../middleware/passAuthContext';
+import { requireAuth, requireTeacher, passAuthContext } from '../middleware/auth.middleware';
 
 const router = Router();
 
 // Service URLs from environment variables
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
-const MISSION_SERVICE_URL = process.env.MISSION_SERVICE_URL || 'http://localhost:3003';
-const SUBMISSION_SERVICE_URL = process.env.SUBMISSION_SERVICE_URL || 'http://localhost:3004';
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+const MISSION_SERVICE_URL = process.env.MISSION_SERVICE_URL || 'http://mission-service:3003';
+const SUBMISSION_SERVICE_URL = process.env.SUBMISSION_SERVICE_URL || 'http://submission-service:3004';
+const MASCOT_ENGINE_URL = process.env.MASCOT_ENGINE_URL || 'http://mascot-engine:3002';
 
 // Apply authentication middleware to all teacher routes
 router.use(requireAuth);
@@ -162,6 +161,32 @@ router.use(
 );
 
 router.use(
+	'/decorations',
+	createProxyMiddleware({
+		target: MISSION_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/teacher/decorations': '/api/teacher/decorations',
+		},
+		onProxyReq: (proxyReq, req) => {
+			if (req.headers['x-user-id']) {
+				proxyReq.setHeader('x-user-id', req.headers['x-user-id'] as string);
+			}
+			if (req.headers['x-user-role']) {
+				proxyReq.setHeader('x-user-role', req.headers['x-user-role'] as string);
+			}
+			// Forward JSON body for POST/PATCH requests
+			if (req.body && Object.keys(req.body).length > 0) {
+				const bodyData = JSON.stringify(req.body);
+				proxyReq.setHeader('Content-Type', 'application/json');
+				proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+				proxyReq.write(bodyData);
+			}
+		},
+	})
+);
+
+router.use(
 	'/missions',
 	createProxyMiddleware({
 		target: MISSION_SERVICE_URL,
@@ -230,6 +255,61 @@ router.use(
 				proxyReq.setHeader('x-user-role', req.headers['x-user-role'] as string);
 			}
 			// Forward JSON body for POST requests (review submissions)
+			if (req.body && Object.keys(req.body).length > 0) {
+				const bodyData = JSON.stringify(req.body);
+				proxyReq.setHeader('Content-Type', 'application/json');
+				proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+				proxyReq.write(bodyData);
+			}
+		},
+	})
+);
+
+// Supply Service routes - Teacher view (approve / reject requests)
+router.use(
+	'/supply-requests',
+	createProxyMiddleware({
+		target: process.env.SUPPLY_SERVICE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/teacher/supply-requests': '/api/teacher/supply-requests',
+		},
+		onProxyReq: (proxyReq, req) => {
+			if (req.headers['x-user-id']) {
+				proxyReq.setHeader('x-user-id', req.headers['x-user-id'] as string);
+			}
+			if (req.headers['x-user-role']) {
+				proxyReq.setHeader('x-user-role', req.headers['x-user-role'] as string);
+			}
+
+			// Forward JSON body if present
+			if (req.body && Object.keys(req.body).length > 0) {
+				const bodyData = JSON.stringify(req.body);
+				proxyReq.setHeader('Content-Type', 'application/json');
+				proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+				proxyReq.write(bodyData);
+			}
+		},
+	})
+);
+
+// Mascot Engine routes - Decay rate customization
+router.use(
+	'/mascot',
+	createProxyMiddleware({
+		target: MASCOT_ENGINE_URL,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api/teacher/mascot': '/api/mascot',
+		},
+		onProxyReq: (proxyReq, req) => {
+			if (req.headers['x-user-id']) {
+				proxyReq.setHeader('x-user-id', req.headers['x-user-id'] as string);
+			}
+			if (req.headers['x-user-role']) {
+				proxyReq.setHeader('x-user-role', req.headers['x-user-role'] as string);
+			}
+			// Forward JSON body for PATCH requests
 			if (req.body && Object.keys(req.body).length > 0) {
 				const bodyData = JSON.stringify(req.body);
 				proxyReq.setHeader('Content-Type', 'application/json');

@@ -7,122 +7,154 @@
   import BowTieImg from '$lib/assets/images/shop/bow-tie.png';
   import SunglassesImg from '$lib/assets/images/shop/sunglasses.png';
 
-  export let data: PageData;
+  let { data }: { data: PageData } = $props();
 
-  type Tab = 'groeny' | 'schoolyard';
-  let activeTab: Tab = 'groeny';
+  // IDs provided by +page.ts
+  const userId = data.userId;
+  const classId = data.classId;
 
   type Item = PageData['items'][number];
 
   const imageMap: Record<string, string> = {
-    'red-cap': RedCapImg,
-    'blue-cap': BlueCapImg,
-    'bow-tie': BowTieImg,
-    sunglasses: SunglassesImg
+    'hat-red-cap': RedCapImg,
+    'hat-blue-cap': BlueCapImg,
+    'acc-bow-tie': BowTieImg,
+    'acc-sunglasses': SunglassesImg
   };
 
   function getItemImage(item: Item): string | null {
     if (imageMap[item.id]) return imageMap[item.id];
-    // @ts-expect-error backend imageUrl fallback
+    // backend fallback
+    // @ts-expect-error imageUrl comes from backend
     if (item.imageUrl) return item.imageUrl;
     return null;
   }
 
-  const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3005';
+  const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
-  let coins = data.coins;
-  let items = data.items.slice();
+  let coins = $state(data.coins);
+  let items = $state([...data.items]);
 
-  let bannerMsg: string | null = null;
-  let bannerType: 'error' | 'success' = 'error';
+  // Feedback state
+  let bannerMsg = $state<string | null>(null);
+  let bannerType = $state<'error' | 'success'>('error');
+  let bannerEmoji = $state('');
+  let bannerTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  function showBanner(msg: string, type: 'error' | 'success' = 'error') {
+  // Loading states - track per item to prevent double actions
+  let buyingItemId = $state<string | null>(null);
+  let applyingItemId = $state<string | null>(null);
+
+  function showBanner(msg: string, type: 'error' | 'success' = 'error', emoji = '') {
+    // Clear any existing timeout to prevent glitchy disappearing
+    if (bannerTimeout) {
+      clearTimeout(bannerTimeout);
+    }
+    
     bannerMsg = msg;
     bannerType = type;
-    window.setTimeout(() => (bannerMsg = null), 3500);
+    bannerEmoji = emoji || (type === 'success' ? '🎉' : '😕');
+    
+    bannerTimeout = setTimeout(() => {
+      bannerMsg = null;
+      bannerTimeout = null;
+    }, 3500);
   }
 
-  async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 6000) {
+  type FetchOptions = {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+  };
+
+  async function fetchWithTimeout(
+    url: string,
+    options: FetchOptions = {},
+    timeoutMs = 6000
+  ) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       return await fetch(url, { ...options, signal: controller.signal });
     } finally {
-      clearTimeout(timeout);
+      window.clearTimeout(timeout);
     }
   }
 
-  function getNetworkErrorMessage(err: unknown) {
+  function getKidFriendlyError(err: unknown, fallback: string) {
     if (err instanceof DOMException && err.name === 'AbortError') {
-      return 'Request timed out. The gateway/service may be slow or down.';
+      return 'Oops! That took too long. Try again?';
     }
-    return 'Service is offline or unreachable. Please try again.';
+    return fallback;
   }
 
   async function onBuyClick(id: string) {
     const item = items.find((i) => i.id === id);
-    if (!item || item.owned) return;
+    if (!item || item.owned || buyingItemId) return;
+
+    buyingItemId = id;
 
     try {
-      const res = await fetchWithTimeout(
-        `${API_BASE}/api/shop/purchase`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: 'user-1',
-            classId: 'class-1',
-            itemId: id
-          })
-        },
-        6000
-      );
+      const res = await fetchWithTimeout(`${API_BASE}/api/shop/purchase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          classId,
+          itemId: id
+        })
+      });
 
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        showBanner((json as any).message ?? 'Failed to purchase item');
+        showBanner(json.message ?? "Couldn't buy that right now. Try again!", 'error', '😅');
         return;
       }
 
-      coins = (json as any).mascot.coins;
-      items = items.map((i) => (i.id === id ? { ...i, owned: true } : i));
-      showBanner('Purchased!', 'success');
+      coins = json.mascot.coins;
+      items = items.map((i) =>
+        i.id === id ? { ...i, owned: true } : i
+      );
+
+      showBanner(`You got ${item.name}!`, 'success', '🛍️');
     } catch (err) {
-      showBanner(getNetworkErrorMessage(err));
+      showBanner(getKidFriendlyError(err, 'Something went wrong. Try again!'), 'error');
+    } finally {
+      buyingItemId = null;
     }
   }
 
   async function onApplyClick(id: string) {
     const item = items.find((i) => i.id === id);
-    if (!item || !item.owned) return;
+    if (!item || !item.owned || applyingItemId) return;
+
+    applyingItemId = id;
 
     try {
-      const res = await fetchWithTimeout(
-        `${API_BASE}/api/mascot/equip`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            classId: 'class-1',
-            itemId: id
-          })
-        },
-        6000
-      );
+      const res = await fetchWithTimeout(`${API_BASE}/api/mascot/equip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          classId,
+          itemId: id
+        })
+      });
 
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        showBanner((json as any).message ?? 'Failed to equip item');
+        showBanner(json.message ?? "Couldn't equip that. Try again!", 'error', '😅');
         return;
       }
 
       localStorage.setItem('wardrobe:selectedItemId', id);
-      showBanner('Equipped!', 'success');
+      showBanner(`Groeny is now wearing ${item.name}!`, 'success', '✨');
     } catch (err) {
-      showBanner(getNetworkErrorMessage(err));
+      showBanner(getKidFriendlyError(err, 'Something went wrong. Try again!'), 'error');
+    } finally {
+      applyingItemId = null;
     }
   }
 </script>
@@ -130,105 +162,70 @@
 <PageWrapper title="Shop">
   {#if bannerMsg}
     <div class="flex justify-center mb-4">
-      <div
-        class={`px-5 py-2 rounded-full shadow-md text-sm font-semibold ${
-          bannerType === 'success'
-            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-            : 'bg-rose-100 text-rose-800 border border-rose-200'
-        }`}
-      >
-        {bannerMsg}
+      <div class={bannerType === 'success' ? 'feedback-toast-success' : 'feedback-toast-error'}>
+        <span>{bannerEmoji}</span>
+        <span>{bannerMsg}</span>
       </div>
     </div>
   {/if}
 
+  <!-- Seed Balance -->
   <div class="flex justify-center mb-6">
-    <div
-      class="bg-yellow-300 rounded-full px-8 py-3 shadow-lg flex items-center gap-3 border-2 border-yellow-400"
-    >
-      <span class="text-2xl">🪙</span>
-      <span class="font-semibold text-xl">{coins}</span>
+    <div class="badge-playful bg-gradient-to-r from-emerald-300 to-green-400 text-emerald-900 shadow-emerald-400/30 text-lg px-6 py-2">
+      <span class="text-xl">🌱</span>
+      <span class="font-bold">{coins}</span>
+      <span class="text-emerald-700 text-sm font-medium">seeds</span>
     </div>
   </div>
 
-  <div class="flex justify-center mb-8">
-    <div class="bg-white rounded-full shadow-inner flex overflow-hidden border border-green-300">
-      <button
-        class={`px-6 py-2 text-sm font-semibold transition-colors ${
-          activeTab === 'groeny'
-            ? 'bg-green-400 text-white'
-            : 'text-gray-600 hover:bg-gray-100'
-        }`}
-        on:click={() => (activeTab = 'groeny')}
-      >
-        Groeny Items
-      </button>
-
-      <button
-        class={`px-6 py-2 text-sm font-semibold transition-colors ${
-          activeTab === 'schoolyard'
-            ? 'bg-green-400 text-white'
-            : 'text-gray-600 hover:bg-gray-100'
-        }`}
-        on:click={() => (activeTab = 'schoolyard')}
-      >
-        Schoolyard Supplies
-      </button>
-    </div>
-  </div>
-
-  {#if activeTab === 'groeny'}
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-10">
-      {#each items as item}
-        <article
-          class="bg-white rounded-3xl shadow-md border-4 border-amber-300 flex flex-col overflow-hidden"
-        >
-          <div class="flex-1 flex flex-col items-center justify-center p-6">
+  <!-- Shop Grid -->
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {#each items as item}
+      <article class="card-item-amber flex flex-col">
+        <!-- Item Display -->
+        <div class="flex-1 flex flex-col items-center justify-center p-5 bg-gradient-to-br from-amber-50/50 to-white">
+          <div class="w-20 h-20 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-3 border border-amber-100">
             {#if getItemImage(item)}
-              <div class="h-24 mb-4 flex items-center justify-center">
-                <img src={getItemImage(item)} alt={item.name} class="max-h-24" />
-              </div>
-            {/if}
-
-            <h3 class="font-semibold text-gray-800">{item.name}</h3>
-            <p class="text-xs text-gray-500 text-center mt-1">{item.description}</p>
-          </div>
-
-          <div class="px-6 py-3 bg-sky-100 flex items-center justify-between">
-            {#if item.owned}
-              <span class="text-xs font-semibold text-emerald-600">Owned</span>
+              <img src={getItemImage(item)} alt={item.name} class="h-14" />
             {:else}
-              <span class="text-sm flex items-center gap-1 text-gray-700">
-                <span>🪙</span>{item.price}
-              </span>
+              <span class="text-3xl">🎁</span>
             {/if}
+          </div>
+          <h3 class="text-base font-bold text-gray-800">{item.name}</h3>
+          <p class="text-xs text-gray-500 text-center mt-1 leading-relaxed">{item.description}</p>
+        </div>
 
-            {#if item.owned}
-              <button
-                type="button"
-                class="text-xs font-semibold rounded-full px-4 py-1 bg-emerald-400 text-white hover:bg-emerald-500 transition-colors"
-                on:click={() => onApplyClick(item.id)}
-              >
+        <!-- Action Footer -->
+        <div class="px-4 py-3 bg-gradient-to-r from-sky-50 to-blue-50 border-t border-sky-100 flex items-center justify-between">
+          {#if item.owned}
+            <span class="badge-playful bg-emerald-100 text-emerald-700 text-xs py-1 px-3">✓ Owned</span>
+            <button
+              class="btn-action-green"
+              onclick={() => onApplyClick(item.id)}
+              disabled={applyingItemId === item.id}
+            >
+              {#if applyingItemId === item.id}
+                <span class="spinner-sm"></span>
+              {:else}
                 Apply
-              </button>
-            {:else}
-              <button
-                type="button"
-                class="text-xs font-semibold rounded-full px-4 py-1 bg-blue-400 text-white hover:bg-blue-500 transition-colors disabled:opacity-60"
-                on:click={() => onBuyClick(item.id)}
-                disabled={coins < item.price}
-              >
+              {/if}
+            </button>
+          {:else}
+            <span class="badge-playful bg-emerald-100 text-emerald-800 text-sm py-1 px-3">🌱 {item.price}</span>
+            <button
+              class="btn-action-blue"
+              onclick={() => onBuyClick(item.id)}
+              disabled={coins < item.price || buyingItemId === item.id}
+            >
+              {#if buyingItemId === item.id}
+                <span class="spinner-sm"></span>
+              {:else}
                 Buy
-              </button>
-            {/if}
-          </div>
-        </article>
-      {/each}
-    </div>
-  {:else}
-    <div class="text-center text-gray-500 pb-10">
-      <p class="font-medium mb-1">Schoolyard Supplies</p>
-      <p class="text-sm">This section will be implemented in a later sprint.</p>
-    </div>
-  {/if}
+              {/if}
+            </button>
+          {/if}
+        </div>
+      </article>
+    {/each}
+  </div>
 </PageWrapper>

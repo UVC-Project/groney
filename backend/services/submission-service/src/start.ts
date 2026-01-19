@@ -1,6 +1,9 @@
 import express from 'express';
 import { config } from 'dotenv';
 import teacherRoutes from './routes/teacher.routes';
+import studentRoutes from './routes/student.routes';
+import filesRoutes from './routes/files.routes';
+import { ensureBucketExists } from './lib/s3';
 
 config();
 
@@ -26,6 +29,12 @@ app.get('/health', (_req, res) => {
 // Teacher routes
 app.use('/api/teacher', teacherRoutes);
 
+// Student routes (for photo uploads)
+app.use('/api/student', studentRoutes);
+
+// File serving routes (proxy to MinIO)
+app.use('/api/files', filesRoutes);
+
 // 404 handler for undefined routes
 app.use((_req, res) => {
   res.status(404).json({
@@ -34,6 +43,18 @@ app.use((_req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Submission Service running on port ${PORT}`);
-});
+// Initialize S3 bucket and start server
+async function start() {
+  try {
+    await ensureBucketExists();
+    console.log('✅ S3/MinIO initialized');
+  } catch (error) {
+    console.warn('⚠️ Could not initialize S3/MinIO bucket. File uploads may fail:', error);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Submission Service running on port ${PORT}`);
+  });
+}
+
+start();

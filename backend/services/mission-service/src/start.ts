@@ -1,6 +1,6 @@
 import express from 'express';
-import mapRoutes from './routes/map.routes';
 import teacherRoutes from './routes/teacher.routes';
+import studentRoutes from './routes/student.routes';
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -24,7 +24,8 @@ app.get('/health', (_req, res) => {
 // Teacher routes
 app.use('/api/teacher', teacherRoutes);
 
-app.use('/map', mapRoutes);
+// Student routes
+app.use('/api/student', studentRoutes);
 
 // 404 handler for undefined routes
 app.use((_req, res) => {

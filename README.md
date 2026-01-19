@@ -53,7 +53,8 @@ docker-compose up
 │   ├── shop-service/        # Shop items and purchases
 │   └── calculation-service/ # CO2 impact calculations
 ├── GreenSchoolyardICT/      # Legacy monolithic app (prototype)
-└── docker-compose.yml       # Docker orchestration
+├── docker-compose.yml       # Docker orchestration
+└── design.md                # 📘 Technical Architecture & Cloudflare Setup
 ```
 
 ## 🚀 Getting Started for New Developers
@@ -219,6 +220,20 @@ npm run build
 ```
 
 ## 🐳 Docker Troubleshooting
+
+### New Package Added to a Service
+
+If a new npm package was added to a service (e.g., after pulling from main), rebuild with fresh volumes:
+
+```bash
+# Rebuild a specific service with new dependencies
+docker compose up -d --build -V auth-service
+
+# Or for any other service
+docker compose up -d --build -V <service-name>
+```
+
+The `-V` flag recreates anonymous volumes, ensuring `node_modules` is rebuilt.
 
 ### Prisma Client Issues in Docker
 

@@ -15,31 +15,300 @@
 }
 
 @layer components {
-  /* Game-style button */
+  /* ============================================
+     BUTTON SYSTEM - Kid-friendly, consistent
+     ============================================ */
+  
+  /* Primary Button - Main actions (Save, Submit, Accept) */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply bg-gradient-to-r from-emerald-500 to-teal-600 text-white;
+    @apply font-bold py-3 px-6 rounded-2xl;
+    @apply shadow-lg shadow-emerald-500/25;
+    @apply hover:from-emerald-600 hover:to-teal-700;
+    @apply active:scale-[0.98] transition-all duration-150;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+    @apply min-h-[48px];
+    @apply focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-2;
+  }
+
+  /* Secondary Button - Alternative actions (Close, Cancel) */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply bg-white text-gray-700 border-2 border-gray-200;
+    @apply font-bold py-3 px-6 rounded-2xl;
+    @apply hover:bg-gray-50 hover:border-gray-300;
+    @apply active:scale-[0.98] transition-all duration-150;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+    @apply min-h-[48px];
+    @apply focus:outline-none focus-visible:ring-4 focus-visible:ring-gray-400/40 focus-visible:ring-offset-2;
+  }
+
+  /* Action Button - Card actions (Buy, Apply, Request) - pill shaped */
+  .btn-action {
+    @apply inline-flex items-center justify-center gap-1.5;
+    @apply font-bold text-sm py-2.5 px-5 rounded-full;
+    @apply active:scale-[0.97] transition-all duration-150;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+    @apply min-h-[44px];
+    @apply focus:outline-none focus-visible:ring-4 focus-visible:ring-offset-2;
+  }
+
+  .btn-action-green {
+    @apply btn-action bg-emerald-500 text-white;
+    @apply hover:bg-emerald-600 shadow-md shadow-emerald-500/20;
+    @apply focus-visible:ring-emerald-500/40;
+  }
+
+  .btn-action-blue {
+    @apply btn-action bg-blue-500 text-white;
+    @apply hover:bg-blue-600 shadow-md shadow-blue-500/20;
+    @apply focus-visible:ring-blue-500/40;
+  }
+
+  /* Danger Button - Destructive actions (Remove, Delete) */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply bg-white text-gray-700 border-2 border-gray-200;
+    @apply font-bold py-2.5 px-5 rounded-full;
+    @apply hover:bg-red-500 hover:text-white hover:border-red-500;
+    @apply active:scale-[0.97] transition-all duration-150;
+    @apply min-h-[44px];
+    @apply focus:outline-none focus-visible:ring-4 focus-visible:ring-red-500/40 focus-visible:ring-offset-2;
+  }
+
+  /* Chip/Tab Button - Toggle buttons (activity filter) */
+  .btn-chip {
+    @apply px-4 py-2 rounded-xl text-sm font-bold;
+    @apply transition-all duration-200;
+    @apply min-h-[40px];
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400/50 focus-visible:ring-offset-1;
+  }
+
+  .btn-chip-active {
+    @apply btn-chip bg-white text-gray-800 shadow-sm;
+  }
+
+  .btn-chip-inactive {
+    @apply btn-chip text-gray-500 hover:text-gray-700 hover:bg-white/50;
+  }
+
+  /* Legacy game-style buttons (kept for compatibility) */
   .btn-game {
     @apply bg-grass-green text-white font-bold py-3 px-6 rounded-game shadow-game;
-    @apply hover:bg-grass-green-dark active:scale-95 transition-all;
+    @apply hover:bg-grass-green-dark active:scale-[0.98] transition-all;
     @apply min-h-touch-target min-w-touch-target;
   }
 
   .btn-game-secondary {
     @apply bg-sky-blue text-white font-bold py-3 px-6 rounded-game shadow-game;
-    @apply hover:bg-sky-blue-dark active:scale-95 transition-all;
+    @apply hover:bg-sky-blue-dark active:scale-[0.98] transition-all;
     @apply min-h-touch-target min-w-touch-target;
   }
 
-  /* Card styles */
+  /* ============================================
+     CARD SYSTEM
+     ============================================ */
+  
+  /* Base card - clean, rounded, subtle shadow */
+  .card-playful {
+    @apply bg-white rounded-3xl shadow-lg p-5;
+    @apply border-2 border-white;
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.07),
+      0 2px 4px -1px rgba(0, 0, 0, 0.04),
+      0 0 0 1px rgba(0, 0, 0, 0.03);
+  }
+
+  /* Item card - for shop/supplies with colorful top accent */
+  .card-item {
+    @apply bg-white rounded-3xl overflow-hidden;
+    @apply border-2 border-gray-100;
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.07),
+      0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+  .card-item-amber {
+    @apply card-item border-amber-200;
+    box-shadow: 
+      0 4px 12px -2px rgba(251, 191, 36, 0.15),
+      0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+
+  .card-item-green {
+    @apply card-item border-emerald-200;
+    box-shadow: 
+      0 4px 12px -2px rgba(16, 185, 129, 0.15),
+      0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+
+  .card-item-blue {
+    @apply card-item border-sky-200;
+    box-shadow: 
+      0 4px 12px -2px rgba(56, 189, 248, 0.15),
+      0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Stat card - for mascot stats with bottom color accent */
+  .card-stat {
+    @apply bg-white rounded-3xl p-4 text-center;
+    @apply border-b-4;
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.07),
+      0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Activity card - for feed items */
+  .card-activity {
+    @apply bg-white rounded-3xl p-4;
+    @apply border border-gray-100;
+    @apply transition-all duration-200;
+    @apply hover:shadow-lg hover:-translate-y-0.5;
+    box-shadow: 
+      0 2px 4px -1px rgba(0, 0, 0, 0.05),
+      0 1px 2px -1px rgba(0, 0, 0, 0.03);
+  }
+
+  /* Accordion card - for wiki/expandable sections */
+  .card-accordion {
+    @apply bg-white rounded-2xl overflow-hidden;
+    @apply border border-gray-100;
+    box-shadow: 
+      0 1px 3px 0 rgba(0, 0, 0, 0.05),
+      0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  }
+
+  /* Surface for info sections */
+  .surface-info {
+    @apply bg-gray-50/80 rounded-2xl px-4 py-3;
+    @apply border border-gray-100;
+  }
+
+  /* Badge/pill for status indicators */
+  .badge-playful {
+    @apply inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full;
+    @apply text-sm font-bold;
+    @apply shadow-sm;
+  }
+  /* Empty state styling */
+  .empty-state {
+    @apply text-center py-10 rounded-3xl;
+    @apply bg-gradient-to-br from-gray-50 to-gray-100/50;
+    @apply border-2 border-dashed border-gray-200;
+  }
+
+  /* Modal card styling */
+  .card-modal {
+    @apply bg-white rounded-3xl shadow-2xl overflow-hidden;
+    @apply border border-white/20;
+  }
+
+  /* Legacy game card (kept for compatibility) */
   .card-game {
     @apply bg-white rounded-game shadow-game-lg p-6;
   }
 
-  /* Stat bar */
+  /* ============================================
+     STAT BAR
+     ============================================ */
   .stat-bar {
     @apply h-4 bg-gray-200 rounded-full overflow-hidden;
   }
 
   .stat-bar-fill {
     @apply h-full transition-all duration-300 ease-out;
+  }
+
+  /* ============================================
+     FEEDBACK SYSTEM
+     ======================================== */
+  
+  /* Toast/Banner - appears at top of content */
+  .feedback-toast {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-full;
+    @apply text-sm font-bold shadow-lg;
+    @apply animate-bounce-in;
+  }
+
+  .feedback-toast-success {
+    @apply feedback-toast;
+    @apply bg-emerald-100 text-emerald-800 border-2 border-emerald-200;
+  }
+
+  .feedback-toast-error {
+    @apply feedback-toast;
+    @apply bg-rose-100 text-rose-800 border-2 border-rose-200;
+  }
+
+  .feedback-toast-info {
+    @apply feedback-toast;
+    @apply bg-sky-100 text-sky-800 border-2 border-sky-200;
+  }
+
+  /* Inline feedback boxes - for form/modal feedback */
+  .feedback-box {
+    @apply p-3.5 rounded-2xl text-sm font-medium;
+    @apply flex items-start gap-2.5;
+  }
+
+  .feedback-box-success {
+    @apply feedback-box;
+    @apply bg-emerald-50 border-2 border-emerald-200 text-emerald-700;
+  }
+
+  .feedback-box-error {
+    @apply feedback-box;
+    @apply bg-rose-50 border-2 border-rose-200 text-rose-700;
+  }
+
+  .feedback-box-warning {
+    @apply feedback-box;
+    @apply bg-amber-50 border-2 border-amber-200 text-amber-700;
+  }
+
+  .feedback-box-info {
+    @apply feedback-box;
+    @apply bg-sky-50 border-2 border-sky-200 text-sky-700;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    @apply w-5 h-5 border-2 border-current border-t-transparent rounded-full;
+    animation: spin 0.7s linear infinite;
+  }
+
+  .spinner-sm {
+    @apply w-4 h-4 border-2 border-current border-t-transparent rounded-full;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 rounded-2xl;
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Button loading state helper */
+  .btn-loading {
+    @apply relative pointer-events-none;
+  }
+
+  .btn-loading > *:not(.spinner) {
+    @apply opacity-0;
+  }
+
+  .btn-loading > .spinner {
+    @apply absolute inset-0 m-auto;
   }
 }
 
@@ -52,6 +321,92 @@
   
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Bounce-in animation for milestone rewards */
+  .animate-bounce-in {
+    animation: bounce-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes bounce-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.9) translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  /* Slide-down animation for notifications */
+  .animate-slide-down {
+    animation: slide-down 0.3s ease-out;
+  }
+
+  @keyframes slide-down {
+    0% {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Groeny jump animation */
+  .groeny-jump {
+    animation: groeny-jump 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes groeny-jump {
+    0%, 100% {
+      transform: translateY(0) scale(1);
+    }
+    30% {
+      transform: translateY(-30px) scale(1.05);
+    }
+    50% {
+      transform: translateY(-35px) scale(1.08);
+    }
+    70% {
+      transform: translateY(-20px) scale(1.03);
+    }
+  }
+
+  /* Float up animation for pet feedback */
+  .animate-float-up {
+    animation: float-up 1.5s ease-out forwards;
+  }
+
+  @keyframes float-up {
+    0% {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-40px);
+    }
+  }
+
+  /* On mobile, slide up from bottom */
+  @media (max-width: 639px) {
+    .animate-bounce-in {
+      animation: slide-up 0.3s ease-out;
+    }
+
+    @keyframes slide-up {
+      0% {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   }
 
   /* Respect reduced motion preference */

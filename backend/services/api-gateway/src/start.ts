@@ -5,8 +5,12 @@ import { config } from 'dotenv';
 import shopRoutes from './routes/shopRoutes';
 import teacherRoutes from './routes/teacherRoutes';
 import authRoutes from './routes/authRoutes';
-import { noAuthMiddleware } from './middleware/noAuthMiddleware';
-import mapRoutes from './routes/mapRoutes';
+import studentRoutes from './routes/studentRoutes';
+import supplyRoutes from './routes/supplyRoutes';
+import mascotRoutes from './routes/mascotRoutes';
+import filesRoutes from './routes/filesRoutes';
+import calculationRoutes from './routes/calculationRoutes';
+
 
 config();
 
@@ -15,18 +19,29 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(morgan('dev'));
+
+// 1. Auth & Proxy routes (Must come before express.json() for proxying)
+app.use('/api/auth', authRoutes);
+app.use('/api/teacher', teacherRoutes);
+app.use('/api/student', studentRoutes);
+app.use('/api/files', filesRoutes);
+
+// 2. Body Parser for standard API routes
 app.use(express.json());
 
-// Shop endpoints
+// 3. Service routes
 app.use('/api', shopRoutes);
+app.use('/api', mascotRoutes);
+app.use('/api', supplyRoutes);
+app.use('/api', calculationRoutes);
 
-app.use('/api/auth', noAuthMiddleware, authRoutes);
+// 4. Health Checks (Available at both locations for compatibility)
+const healthHandler = (_req: any, res: any) => {
+  res.json({ status: 'ok', service: 'api-gateway', version: '1.0.0' });
+};
 
-// Teacher endpoints (protected with auth middleware)
-app.use('/api/teacher', teacherRoutes);
-
-// Mission endpoints
-app.use('/map', mapRoutes);
+app.get('/api/health', healthHandler);
+app.get('/health', healthHandler);
 
 app.get('/', (_req, res) => {
   res.json({
@@ -36,15 +51,11 @@ app.get('/', (_req, res) => {
   });
 });
 
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'api-gateway' });
-});
-
 // 404 fallback MUST be last
 app.use((_req, res) => {
   res.status(404).json({
     error: 'Not Found',
-    message: 'The requested endpoint does not exist',
+    message: 'The requested gateway endpoint does not exist',
   });
 });
 

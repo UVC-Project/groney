@@ -10,7 +10,7 @@ async function createTestData() {
     // 1. Create test teacher
     console.log('👩‍🏫 Creating test teacher...');
     const hashedPassword = await bcrypt.hash('password123', 10);
-    
+
     const teacher = await prisma.user.upsert({
       where: { username: 'teacher1' },
       update: {},
@@ -101,36 +101,79 @@ async function createTestData() {
 
     // 5. Create missions for each sector
     console.log('\n🎯 Creating missions...');
-    const missionTemplates = [
-      { title: 'Water the trees', description: 'Help keep our trees healthy by watering them', xp: 15, coins: 10, thirst: 5, coordinates_x: 25.0, coordinates_y: 30.0, category: MissionCategory.THIRST},
-      { title: 'Plant new flowers', description: 'Add beautiful flowers to our garden', xp: 20, coins: 15, happiness: 10, coordinates_x: 40.0, coordinates_y: 50.0, category: MissionCategory.HAPPINESS},
-      { title: 'Feed the ducks', description: 'Give the ducks their daily food', xp: 10, coins: 5, hunger: 5, coordinates_x: 60.0, coordinates_y: 20.0, category: MissionCategory.HUNGER},
-      { title: 'Collect eggs', description: 'Gather fresh eggs from the chicken coop', xp: 15, coins: 20, hunger: 10, coordinates_x: 15.0, coordinates_y: 70.0, category: MissionCategory.HUNGER},
-      { title: 'Weed the garden', description: 'Remove weeds from the vegetable garden', xp: 25, coins: 15, cleanliness: 15, coordinates_x: 80.0, coordinates_y: 40.0, category: MissionCategory.CLEANLINESS},
-    ];
+
+    const sectorMissionsData = {
+      "Forest Area": [
+        { title: 'Path Clearer', description: 'Move fallen branches off the walking path.', xp: 15, coins: 5, category: MissionCategory.CLEANLINESS, cleanliness: 15 },
+        { title: 'Big Tree Drink', description: 'Pour a bucket of water on the roots of the biggest tree.', xp: 20, coins: 15, category: MissionCategory.THIRST, thirst: 20 },
+        { title: 'Acorn Hunter', description: 'Find 3 acorns or pinecones (food for squirrels!).', xp: 20, coins: 15, category: MissionCategory.HUNGER, hunger: 15 },
+        { title: 'Mud Check', description: 'Check if the ground is too muddy to walk on.', xp: 10, coins: 5, category: MissionCategory.HAPPINESS, happiness: 5 },
+        { title: 'Sign Cleaner', description: 'Wipe dirt off the area sign so it is easy to read.', xp: 10, coins: 5, category: MissionCategory.CLEANLINESS, cleanliness: 10 },
+      ],
+      "Flower Garden": [
+        { title: 'Petal Pickup', description: 'Pick up fallen petals from the soil to keep it tidy.', xp: 10, coins: 5, category: MissionCategory.CLEANLINESS, cleanliness: 10 },
+        { title: 'Soil Moisture', description: 'Touch the soil. If it is dry and dusty, water it.', xp: 15, coins: 10, category: MissionCategory.THIRST, thirst: 15 },
+        { title: 'Plant Food', description: 'Sprinkle a little compost around the base (a snack for the plant).', xp: 20, coins: 15, category: MissionCategory.HUNGER, hunger: 10 },
+        { title: 'Bug Check', description: 'Check leaves for holes (signs of bugs eating them).', xp: 15, coins: 10, category: MissionCategory.HAPPINESS, happiness: 15 },
+        { title: 'Deadhead', description: 'Pinch off brown, dry flower heads.', xp: 25, coins: 20, category: MissionCategory.CLEANLINESS, cleanliness: 20 },
+      ],
+      "Vegetable Garden": [
+        { title: 'Vegetable Harvest', description: 'Find a vegetable that is ready and pick it.', xp: 25, coins: 20, category: MissionCategory.HUNGER, hunger: 20 },
+        { title: 'Water Can Fill', description: 'Fill the watering can and water the rows.', xp: 15, coins: 10, category: MissionCategory.THIRST, thirst: 15 },
+        { title: 'Rock Remover', description: 'Remove stones from the vegetable beds.', xp: 10, coins: 5, category: MissionCategory.CLEANLINESS, cleanliness: 10 },
+        { title: 'Leaf Scout', description: 'Find the biggest, healthiest green leaf you can.', xp: 10, coins: 5, category: MissionCategory.HAPPINESS, happiness: 10 },
+        { title: 'Compost Check', description: 'Take old plant scraps to the compost bin.', xp: 20, coins: 15, category: MissionCategory.CLEANLINESS, cleanliness: 20 },
+      ],
+      "Duck Pond": [
+        { title: 'Surface Skim', description: 'Use the net to remove leaves floating on top.', xp: 20, coins: 15, category: MissionCategory.CLEANLINESS, cleanliness: 20 },
+        { title: 'Water Level', description: 'Check if the water level is high enough.', xp: 10, coins: 5, category: MissionCategory.THIRST, thirst: 5 },
+        { title: 'Duck Food', description: 'Toss food pellets into the water.', xp: 15, coins: 10, category: MissionCategory.HUNGER, hunger: 15 },
+        { title: 'Ripple Maker', description: 'Throw a small pebble in the middle and watch the ripples.', xp: 10, coins: 5, category: MissionCategory.HAPPINESS, happiness: 10 },
+        { title: 'Edge Cleanup', description: 'Remove trash from the grassy edge of the pond.', xp: 15, coins: 10, category: MissionCategory.CLEANLINESS, cleanliness: 15 },
+      ],
+      "Chicken Coop": [
+        { title: 'Water Refill', description: 'Fill the chicken waterer with fresh water.', xp: 20, coins: 15, category: MissionCategory.THIRST, thirst: 20 },
+        { title: 'Feed Scoop', description: 'Add a scoop of grain to the feeder.', xp: 15, coins: 10, category: MissionCategory.HUNGER, hunger: 20 },
+        { title: 'Door Check', description: 'Make sure the coop door latch works properly.', xp: 10, coins: 5, category: MissionCategory.HAPPINESS, happiness: 15 },
+        { title: 'Straw Check', description: 'Check if the straw bedding is dry.', xp: 10, coins: 5, category: MissionCategory.CLEANLINESS, cleanliness: 10 },
+        { title: 'Egg Search', description: 'Look in the nesting boxes for eggs.', xp: 25, coins: 20, category: MissionCategory.HUNGER, hunger: 15 },
+      ],
+    };
 
     const missions = [];
-    for (let i = 0; i < sectors.length; i++) {
-      const template = missionTemplates[i];
-      const mission = await prisma.mission.create({
-        data: {
-          sectorId: sectors[i].id,
-          title: template.title,
-          description: template.description,
-          xpReward: template.xp,
-          coinReward: template.coins,
-          thirstBoost: template.thirst || 0,
-          hungerBoost: template.hunger || 0,
-          happinessBoost: template.happiness || 0,
-          cleanlinessBoost: template.cleanliness || 0,
-          requiresPhoto: true,
-          coordinates_x: template.coordinates_x || 0,
-          coordinates_y: template.coordinates_y || 0,
-          category: template.category,
-        },
+    for (const [sectorName, missionList] of Object.entries(sectorMissionsData)) {
+
+      const sector = await prisma.sector.findFirst({
+        where: { name: sectorName }
       });
-      missions.push(mission);
-      console.log(`   ✅ Mission: ${mission.title}`);
+
+      if (!sector) {
+        console.log(`⚠️  Sector "${sectorName}" not found in DB. Skipping.`);
+        continue;
+      }
+
+      console.log(`📍 Seeding missions for: ${sectorName}...`);
+
+      for (const template of missionList) {
+        const mission = await prisma.mission.create({
+          data: {
+            sectorId: sector.id,
+            title: template.title,
+            description: template.description,
+            xpReward: template.xp,
+            coinReward: template.coins,
+            thirstBoost: template.thirst || 0,
+            hungerBoost: template.hunger || 0,
+            happinessBoost: template.happiness || 0,
+            cleanlinessBoost: template.cleanliness || 0,
+            requiresPhoto: true,
+            category: template.category,
+            status: 'AVAILABLE',
+          },
+        });
+        missions.push(mission);
+        console.log(`   ✅ Mission: ${mission.title}`);
+      }
     }
 
     // 6. Create test students
@@ -141,7 +184,7 @@ async function createTestData() {
       { username: 'student3', firstName: 'Charlie', lastName: 'Brown' },
     ];
     const students = [];
-    
+
     for (const data of studentNames) {
       const student = await prisma.user.upsert({
         where: { username: data.username },
@@ -154,7 +197,7 @@ async function createTestData() {
           role: 'STUDENT',
         },
       });
-      
+
       // Add student as a member of the class
       await prisma.classUser.upsert({
         where: {
@@ -169,7 +212,7 @@ async function createTestData() {
           userId: student.id,
         },
       });
-      
+
       students.push(student);
       console.log(`   ✅ Student: ${student.username}`);
     }
@@ -188,6 +231,84 @@ async function createTestData() {
       });
       console.log(`   ✅ Submission from ${students[i].username} for "${missions[i].title}"`);
     }
+
+    console.log('\n🛒 Seeding shop items...');
+    try {
+      const result = await prisma.shopItem.createMany({
+        data: [
+          {
+            id: 'hat-red-cap',
+            name: 'Red Cap',
+            description: 'A stylish red cap for Groeny.',
+            type: 'HAT',
+            price: 50,
+            imageUrl: '/assets/shop/red-cap.png'
+          },
+          {
+            id: 'hat-blue-cap',
+            name: 'Blue Cap',
+            description: 'A cool blue cap for Groeny.',
+            type: 'HAT',
+            price: 50,
+            imageUrl: '/assets/shop/blue-cap.png'
+          },
+          {
+            id: 'acc-bow-tie',
+            name: 'Bow Tie',
+            description: 'A fancy bow tie accessory.',
+            type: 'ACCESSORY',
+            price: 75,
+            imageUrl: '/assets/shop/bow-tie.png'
+          },
+          {
+            id: 'acc-sunglasses',
+            name: 'Sunglasses',
+            description: 'Looks cool in the sun.',
+            type: 'ACCESSORY',
+            price: 90,
+            imageUrl: '/assets/shop/sunglasses.png'
+          }
+        ],
+        skipDuplicates: true
+      });
+
+      console.log(`   ✅ Shop items seeded. Inserted: ${result.count}`);
+    } catch (e) {
+      console.error('   ❌ Shop seeding failed:', e);
+    }
+
+    console.log('\n🧤 Seeding schoolyard supplies...');
+    try {
+      const result = await prisma.supply.createMany({
+        data: [
+          {
+            id: 'gloves',
+            name: 'Gloves',
+            description: 'Protect hands while working in the garden.',
+            imageUrl: '/src/lib/assets/images/supplies/gloves.png'
+          },
+          {
+            id: 'seeds',
+            name: 'Seeds',
+            description: 'Seeds for planting new flowers or vegetables.',
+            imageUrl: '/src/lib/assets/images/supplies/seeds.png'
+          },
+          {
+            id: 'watering-can',
+            name: 'Watering can',
+            description: 'For watering plants.',
+            imageUrl: '/src/lib/assets/images/supplies/watering-can.png'
+          }
+        ],
+        skipDuplicates: true
+      });
+
+      console.log(`   ✅ Supplies seeded. Inserted: ${result.count}`);
+    } catch (e) {
+      console.error('   ❌ Supplies seeding failed:', e);
+    }
+
+
 
     // Summary
     console.log('\n' + '='.repeat(50));
