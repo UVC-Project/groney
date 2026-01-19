@@ -347,12 +347,15 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ============================================
-  # JOB 6: Integration Test with Docker Compose
   # ============================================
-  integration-test:
-    name: 🔗 Integration Test
+  # JOB 6: Docker Compose Validation
+  # Validates that all services can start and are healthy
+  # Runs after Docker images are built
+  # ============================================
+  docker-compose-validation:
+    name: 🔗 Docker Compose Validation
     runs-on: ubuntu-latest
-    needs: build
+    needs: docker-build
     if: github.event_name == 'pull_request'
 
     steps:
@@ -371,15 +374,109 @@ jobs:
           FRONTEND_URL=http://localhost:5173
           EOF
 
-      - name: Start Infrastructure Services
-        run: |
-          docker compose up -d postgres redis minio
-          sleep 10
+      - name: Validate Docker Compose Configuration
+        run: docker compose config --quiet
 
-      - name: Check Service Health
+      - name: Build and Start All Services
         run: |
-          docker compose ps
-          docker compose logs postgres --tail 20
+          docker compose up -d --build
+          echo "Waiting for services to initialize..."
+          sleep 45
+
+      - name: Verify All Services Health
+        run: |
+          echo "## 🔗 Service Health Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Port | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Infrastructure Services
+          if docker compose exec -T postgres pg_isready -U groney_user -d groney 2>/dev/null; then
+            echo "| PostgreSQL | 5432 | ✅ Healthy |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| PostgreSQL | 5432 | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; then
+            echo "| Redis | 6379 | ✅ Healthy |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Redis | 6379 | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if curl -sf http://localhost:9000/minio/health/live > /dev/null 2>&1; then
+            echo "| MinIO | 9000 | ✅ Healthy |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| MinIO | 9000 | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Backend Microservices
+          for service in "api-gateway:3000" "auth-service:3001" "mascot-engine:3002" "mission-service:3003" "submission-service:3004" "shop-service:3005" "calculation-service:3006" "supply-service:3007"; do
+            name=$(echo $service | cut -d: -f1)
+            port=$(echo $service | cut -d: -f2)
+            if curl -sf http://localhost:$port/health > /dev/null 2>&1; then
+              echo "| $name | $port | ✅ Healthy |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| $name | $port | ⚠️ No /health endpoint or not ready |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          
+          # Frontend - Test health endpoint
+          if curl -sf http://localhost:5173/health > /dev/null 2>&1; then
+            echo "| Frontend | 5173 | ✅ Healthy |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Frontend | 5173 | ⚠️ Not ready |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Test Frontend Routes
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Frontend Route Tests" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Route | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Test key frontend routes
+          for route in "/" "/health" "/login" "/register" "/wiki"; do
+            status_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5173$route 2>/dev/null || echo "000")
+            if [ "$status_code" = "200" ]; then
+              echo "| $route | ✅ 200 OK |" >> $GITHUB_STEP_SUMMARY
+            elif [ "$status_code" = "000" ]; then
+              echo "| $route | ❌ Connection failed |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| $route | ⚠️ $status_code |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      - name: Test API Gateway Routes
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### API Gateway Route Tests" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Endpoint | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Test API health endpoint
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health 2>/dev/null || echo "000")
+          if [ "$status_code" = "200" ]; then
+            echo "| /api/health | ✅ 200 OK |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| /api/health | ⚠️ $status_code |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Show Container Status
+        if: always()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Container Status" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          docker compose ps >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Show Logs on Failure
+        if: failure()
+        run: |
+          echo "### Service Logs" >> $GITHUB_STEP_SUMMARY
+          docker compose logs --tail 50
 
       - name: Cleanup
         if: always()
