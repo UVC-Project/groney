@@ -1,9 +1,6 @@
-import RedCapImg from '$lib/assets/images/shop/red-cap.png';
-import BlueCapImg from '$lib/assets/images/shop/blue-cap.png';
-import BowTieImg from '$lib/assets/images/shop/bow-tie.png';
-import SunglassesImg from '$lib/assets/images/shop/sunglasses.png';
+// src/lib/shop/mockData.ts
 
-export type ShopItemType = 'hat' | 'accessory';
+export type ShopItemType = 'hat' | 'accessory' | 'color';
 
 export interface ShopItem {
     id: string;
@@ -20,8 +17,9 @@ export interface ShopPageData {
     items: ShopItem[];
 }
 
+// Sprint 1: in-memory catalog (frontend only)
 export const mockShopData: ShopPageData = {
-    coins: 200,
+    coins: 5,
     items: [
         {
             id: 'red-cap',
@@ -29,7 +27,7 @@ export const mockShopData: ShopPageData = {
             description: 'A stylish red cap for Groeny',
             type: 'hat',
             price: 50,
-            imageUrl: RedCapImg,
+            imageUrl: '/assets/shop/red-cap.png.png',
             owned: false
         },
         {
@@ -38,7 +36,7 @@ export const mockShopData: ShopPageData = {
             description: 'A cool blue cap for Groeny',
             type: 'hat',
             price: 50,
-            imageUrl: BlueCapImg,
+            imageUrl: '/assets/shop/blue-cap.png.png',
             owned: false
         },
         {
@@ -47,7 +45,7 @@ export const mockShopData: ShopPageData = {
             description: 'A fancy bow tie accessory',
             type: 'accessory',
             price: 60,
-            imageUrl: BowTieImg,
+            imageUrl: '/assets/shop/bow-tie.png.png',
             owned: true
         },
         {
@@ -56,8 +54,17 @@ export const mockShopData: ShopPageData = {
             description: 'Cool sunglasses for sunny days',
             type: 'accessory',
             price: 40,
-            imageUrl: SunglassesImg,
+            imageUrl: '/assets/shop/sunglasses.png.png',
             owned: true
+        },
+        {
+            id: 'rainbow-colors',
+            name: 'Rainbow Colors',
+            description: 'Change Groeny to rainbow colors!',
+            type: 'color',
+            price: 100,
+            imageUrl: '/assets/shop/rainbow-colors.png.png',
+            owned: false
         }
     ]
 };

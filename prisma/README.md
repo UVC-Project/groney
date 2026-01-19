@@ -2,15 +2,6 @@
 
 This project uses Prisma ORM for database management.
 
-## Single Shared Schema
-
-This is the **only** Prisma schema in the project. All backend services share this schema:
-- Schema file: `prisma/schema.prisma` (this folder)
-- Shared client: `backend/services/shared/prisma.ts`
-- Docker: The root `prisma/` folder is mounted into each container
-
-There are no per-service schema files — all schema changes happen here.
-
 ## Quick Start
 
 ### Generate Prisma Client

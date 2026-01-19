@@ -8,9 +8,9 @@ services:
     environment:
       POSTGRES_DB: groney
       POSTGRES_USER: groney_user
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-groney_password}
+      POSTGRES_PASSWORD: groney_password
     ports:
-      - "${POSTGRES_PORT_MAP:-5432:5432}"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,18 +18,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
   # Redis for sessions and caching
   redis:
     image: redis:7-alpine
     container_name: groney-redis
     ports:
-      - "${REDIS_PORT_MAP:-6379:6379}"
+      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -37,237 +32,173 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
   # API Gateway
   api-gateway:
-    image: ghcr.io/uvc-project/groney/api-gateway:latest
     build:
-      context: .
-      dockerfile: backend/Dockerfile.prod
-      args:
-        - SERVICE_PATH=backend/services/api-gateway
+      context: ./backend/services/api-gateway
+      dockerfile: Dockerfile
     container_name: groney-api-gateway
     ports:
-      - "${GATEWAY_PORT_MAP:-3000:3000}"
+      - "3000:3000"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: development
       PORT: 3000
-      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL:-http://auth-service:3001}
-      MASCOT_SERVICE_URL: ${MASCOT_SERVICE_URL:-http://mascot-engine:3002}
-      MISSION_SERVICE_URL: ${MISSION_SERVICE_URL:-http://mission-service:3003}
-      SUBMISSION_SERVICE_URL: ${SUBMISSION_SERVICE_URL:-http://submission-service:3004}
-      SHOP_SERVICE_URL: ${SHOP_SERVICE_URL:-http://shop-service:3005}
-      CALCULATION_SERVICE_URL: ${CALCULATION_SERVICE_URL:-http://calculation-service:3006}
-      SUPPLY_SERVICE_URL: ${SUPPLY_SERVICE_URL:-http://supply-service:3007}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      MASCOT_SERVICE_URL: http://mascot-engine:3002
+      MISSION_SERVICE_URL: http://mission-service:3003
+      SUBMISSION_SERVICE_URL: http://submission-service:3004
+      SHOP_SERVICE_URL: http://shop-service:3005
+      CALCULATION_SERVICE_URL: http://calculation-service:3006
+      REDIS_URL: redis://redis:6379
     depends_on:
       redis:
         condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    volumes:
+      - ./backend/services/api-gateway:/app
+      - /app/node_modules
 
   # Auth Service
   auth-service:
-    image: ghcr.io/uvc-project/groney/auth-service:latest
     build:
-      context: .
-      dockerfile: backend/Dockerfile.prod
-      args:
-        - SERVICE_PATH=backend/services/auth-service
+      context: ./backend/services/auth-service
+      dockerfile: Dockerfile
     container_name: groney-auth-service
     ports:
-      - "${AUTH_PORT_MAP:-3001:3001}"
+      - "3001:3001"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: development
       PORT: 3001
-      DATABASE_URL: postgresql://groney_user:${POSTGRES_PASSWORD:-groney_password}@postgres:5432/groney
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
-      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      DATABASE_URL: postgresql://groney_user:groney_password@postgres:5432/groney
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-secret-key-change-in-production
       JWT_EXPIRES_IN: 7d
-      SMTP_HOST: ${SMTP_HOST:-sandbox.smtp.mailtrap.io}
-      SMTP_PORT: ${SMTP_PORT:-2525}
-      SMTP_USER: ${SMTP_USER:-132f44a394fcd2}
-      SMTP_PASS: ${SMTP_PASS:-c98e703d22cdef}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    volumes:
+      - ./backend/services/auth-service:/app
+      - ./prisma:/app/prisma:ro
+      - /app/node_modules
 
   # Mascot Engine Service
   mascot-engine:
-    image: ghcr.io/uvc-project/groney/mascot-engine:latest
     build:
-      context: .
-      dockerfile: backend/Dockerfile.prod
-      args:
-        - SERVICE_PATH=backend/services/mascot-engine
+      context: ./backend/services/mascot-engine
+      dockerfile: Dockerfile
     container_name: groney-mascot-engine
     ports:
-      - "${MASCOT_PORT_MAP:-3002:3002}"
+      - "3002:3002"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: development
       PORT: 3002
-      DATABASE_URL: postgresql://groney_user:${POSTGRES_PASSWORD:-groney_password}@postgres:5432/groney
+      DATABASE_URL: postgresql://groney_user:groney_password@postgres:5432/groney
     depends_on:
       postgres:
         condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    volumes:
+      - ./backend/services/mascot-engine:/app
+      - ./prisma:/app/prisma:ro
+      - /app/node_modules
 
   # Mission Service
   mission-service:
-    image: ghcr.io/uvc-project/groney/mission-service:latest
     build:
-      context: .
-      dockerfile: backend/Dockerfile.prod
-      args:
-        - SERVICE_PATH=backend/services/mission-service
+      context: ./backend/services/mission-service
+      dockerfile: Dockerfile
     container_name: groney-mission-service
     ports:
-      - "${MISSION_PORT_MAP:-3003:3003}"
+      - "3003:3003"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: development
       PORT: 3003
-      DATABASE_URL: postgresql://groney_user:${POSTGRES_PASSWORD:-groney_password}@postgres:5432/groney
+      DATABASE_URL: postgresql://groney_user:groney_password@postgres:5432/groney
     depends_on:
       postgres:
         condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    volumes:
+      - ./backend/services/mission-service:/app
+      - ./prisma:/app/prisma:ro
+      - /app/node_modules
 
   # Submission Service
   submission-service:
-    image: ghcr.io/uvc-project/groney/submission-service:latest
     build:
-      context: .
-      dockerfile: backend/Dockerfile.prod
-      args:
-        - SERVICE_PATH=backend/services/submission-service
+      context: ./backend/services/submission-service
+      dockerfile: Dockerfile
     container_name: groney-submission-service
     ports:
-      - "${SUBMISSION_PORT_MAP:-3004:3004}"
+      - "3004:3004"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: development
       PORT: 3004
-      DATABASE_URL: postgresql://groney_user:${POSTGRES_PASSWORD:-groney_password}@postgres:5432/groney
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
-      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+      DATABASE_URL: postgresql://groney_user:groney_password@postgres:5432/groney
       S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: groney-uploads
     depends_on:
       postgres:
         condition: service_healthy
       minio:
-        condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+        condition: service_started
+    volumes:
+      - ./backend/services/submission-service:/app
+      - ./prisma:/app/prisma:ro
+      - /app/node_modules
 
   # Shop Service
   shop-service:
-    image: ghcr.io/uvc-project/groney/shop-service:latest
     build:
-      context: .
-      dockerfile: backend/Dockerfile.prod
-      args:
-        - SERVICE_PATH=backend/services/shop-service
+      context: ./backend/services/shop-service
+      dockerfile: Dockerfile
     container_name: groney-shop-service
     ports:
-      - "${SHOP_PORT_MAP:-3005:3005}"
+      - "3005:3005"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: development
       PORT: 3005
-      DATABASE_URL: postgresql://groney_user:${POSTGRES_PASSWORD:-groney_password}@postgres:5432/groney
+      DATABASE_URL: postgresql://groney_user:groney_password@postgres:5432/groney
     depends_on:
       postgres:
         condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    volumes:
+      - ./backend/services/shop-service:/app
+      - ./prisma:/app/prisma:ro
+      - /app/node_modules
 
   # Calculation Service
   calculation-service:
-    image: ghcr.io/uvc-project/groney/calculation-service:latest
     build:
-      context: .
-      dockerfile: backend/Dockerfile.prod
-      args:
-        - SERVICE_PATH=backend/services/calculation-service
+      context: ./backend/services/calculation-service
+      dockerfile: Dockerfile
     container_name: groney-calculation-service
     ports:
-      - "${CALCULATION_PORT_MAP:-3006:3006}"
+      - "3006:3006"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: development
       PORT: 3006
-      DATABASE_URL: postgresql://groney_user:${POSTGRES_PASSWORD:-groney_password}@postgres:5432/groney
+      DATABASE_URL: postgresql://groney_user:groney_password@postgres:5432/groney
     depends_on:
       postgres:
         condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Supply Service
-  supply-service:
-    image: ghcr.io/uvc-project/groney/supply-service:latest
-    build:
-      context: .
-      dockerfile: backend/Dockerfile.prod
-      args:
-        - SERVICE_PATH=backend/services/supply-service
-    container_name: groney-supply-service
-    ports:
-      - "${SUPPLY_PORT_MAP:-3007:3007}"
-    environment:
-      NODE_ENV: ${NODE_ENV:-development}
-      PORT: 3007
-      DATABASE_URL: postgresql://groney_user:${POSTGRES_PASSWORD:-groney_password}@postgres:5432/groney
-    depends_on:
-      postgres:
-        condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
+    volumes:
+      - ./backend/services/calculation-service:/app
+      - ./prisma:/app/prisma:ro
+      - /app/node_modules
 
   # MinIO for object storage (S3-compatible)
   minio:
     image: minio/minio:latest
     container_name: groney-minio
     ports:
-      - "${MINIO_PORT_MAP:-9000:9000}"
-      - "${MINIO_CONSOLE_PORT_MAP:-9001:9001}"
+      - "9000:9000"
+      - "9001:9001"
     environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
@@ -276,53 +207,23 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
   # Frontend (SvelteKit)
   frontend:
-    image: ghcr.io/uvc-project/groney/frontend:latest
     build:
-      context: .
-      dockerfile: frontend/Dockerfile.prod
-      args:
-        - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: groney-frontend
     ports:
-      - "${FRONTEND_PORT_MAP:-5173:5173}"
+      - "5173:5173"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
-      MISSION_SERVICE_URL: http://mission-service:3003
+      NODE_ENV: development
+      VITE_API_URL: http://localhost:3000
     depends_on:
       - api-gateway
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Cloudflare Tunnel for Zero Trust Access
-  tunnel:
-    image: cloudflare/cloudflared:latest
-    container_name: groney-tunnel
-    restart: unless-stopped
-    profiles:
-      - prod
-    command: tunnel run
-    environment:
-      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
-    depends_on:
-      - frontend
-      - api-gateway
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
 
 volumes:
   postgres_data:

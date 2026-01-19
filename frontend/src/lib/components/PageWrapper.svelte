@@ -9,12 +9,12 @@
   let { title, children }: Props = $props();
 </script>
 
-<div class="container mx-auto px-4 py-6 max-w-4xl">
-  <h1 class="text-3xl md:text-4xl font-extrabold text-white drop-shadow-lg mb-6 text-center tracking-tight">
+<div class="container mx-auto px-4 py-6">
+  <h1 class="text-3xl font-bold text-white drop-shadow-lg mb-6 text-center">
     {title}
   </h1>
 
-  <div class="card-playful">
+  <div class="bg-white rounded-game shadow-game-lg p-6 text-center">
     {@render children()}
   </div>
 </div>

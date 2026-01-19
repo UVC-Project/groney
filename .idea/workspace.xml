@@ -4,12 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2f55ad1e-a7d1-415c-8376-e78240547a5e" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/services/supply-service/src/_tests_/supplies.unit.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/services/shop-service/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/backend/services/shop-service/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/services/supply-service/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/backend/services/supply-service/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-    </list>
+    <list default="true" id="2f55ad1e-a7d1-415c-8376-e78240547a5e" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -18,20 +13,9 @@
   <component name="ComposerSettings">
     <execution />
   </component>
-  <component name="Git.Settings">
-    <option name="RECENT_BRANCH_BY_REPOSITORY">
-      <map>
-        <entry key="$PROJECT_DIR$" value="main" />
-      </map>
-    </option>
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
-  </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "Shell Script.setup.sh.executor": "Run",
-    "git-widget-placeholder": "shop-sprint2and3",
     "node.js.selected.package.tslint": "(autodetect)",
-    "prettierjs.PrettierConfiguration.Package": "C:\\Users\\Iva\\PhpstormProjects\\groney\\node_modules\\prettier",
     "ts.external.directory.path": "C:\\Users\\Iva\\PhpstormProjects\\groney\\node_modules\\typescript\\lib"
   }
 }]]></component>
@@ -40,29 +24,6 @@
       <recent name="C:\Users\Iva\PhpstormProjects\groney\frontend\src\lib\assets\images\shop" />
       <recent name="C:\Users\Iva\PhpstormProjects\groney\frontend\static\assets\shop" />
     </key>
-  </component>
-  <component name="RunManager">
-    <configuration name="setup.sh" type="ShConfigurationType" temporary="true">
-      <option name="SCRIPT_TEXT" value="" />
-      <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
-      <option name="SCRIPT_PATH" value="$PROJECT_DIR$/scripts/setup.sh" />
-      <option name="SCRIPT_OPTIONS" value="" />
-      <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
-      <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$/scripts" />
-      <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
-      <option name="INTERPRETER_PATH" value="/bin/bash" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="EXECUTE_IN_TERMINAL" value="true" />
-      <option name="EXECUTE_SCRIPT_FILE" value="true" />
-      <envs />
-      <method v="2" />
-    </configuration>
-    <recent_temporary>
-      <list>
-        <item itemvalue="Shell Script.setup.sh" />
-        <item itemvalue="Shell Script.setup.sh" />
-      </list>
-    </recent_temporary>
   </component>
   <component name="TaskManager">
     <servers />

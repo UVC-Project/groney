@@ -4,16 +4,6 @@
 
 The project now uses **Prisma ORM** for all database operations instead of Drizzle ORM.
 
-## Schema Architecture
-
-There is a **single shared schema** at `prisma/schema.prisma` in the project root. All backend services use this same schema:
-
-- No per-service schema files — everything is centralized
-- Docker containers get the schema via volume mount (`./prisma:/app/prisma:ro`)
-- The shared Prisma client is in `backend/services/shared/prisma.ts`
-
-This means schema changes only need to be made in one place.
-
 ## New Launch Procedure
 
 ### First Time Setup

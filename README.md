@@ -53,8 +53,7 @@ docker-compose up
 │   ├── shop-service/        # Shop items and purchases
 │   └── calculation-service/ # CO2 impact calculations
 ├── GreenSchoolyardICT/      # Legacy monolithic app (prototype)
-├── docker-compose.yml       # Docker orchestration
-└── design.md                # 📘 Technical Architecture & Cloudflare Setup
+└── docker-compose.yml       # Docker orchestration
 ```
 
 ## 🚀 Getting Started for New Developers
@@ -91,31 +90,25 @@ npm run prisma:studio
 
 ### Choose Your Development Approach
 
-#### Option 1: Full Stack with Docker (Uses ~5-8GB RAM)
+#### Option 1: Full Stack with Docker (⚠️ Uses ~5GB RAM)
 
-The project uses a multi-file Docker Compose setup. `docker-compose.yml` contains the production settings, while `docker-compose.override.yml` provides the development optimizations (hot-reloading, local volume mounts).
-
-**For Development (with Hot-Reloading):**
 ```bash
-# Start all services in development mode
-# (docker-compose.override.yml is loaded automatically)
-docker compose up -d
+# Start all services (first build takes 5-10 minutes)
+docker-compose up -d
 
-# Check logs
-docker compose logs -f frontend
-```
-
-**For Production Build (Local Testing):**
-```bash
-# Build and run the production-ready stack locally
-# This ignores the override file and uses production multi-stage builds
-docker compose -f docker-compose.yml up --build -d
-```
-
-**Post-Start Steps (First Time Only):**
-After first start, you may need to generate the Prisma Client for your local development:
-```bash
+# IMPORTANT: After first start, generate Prisma Client in containers
 ./scripts/fix-docker-prisma.sh
+
+# Or manually for each service that uses Prisma:
+docker exec groney-auth-service npx prisma generate --schema=/app/prisma/schema.prisma
+docker exec groney-mission-service npx prisma generate --schema=/app/prisma/schema.prisma
+docker exec groney-submission-service npx prisma generate --schema=/app/prisma/schema.prisma
+
+# Restart services after generating
+docker-compose restart auth-service mission-service submission-service
+
+# Stop all services
+docker-compose down
 ```
 
 **Services will be available at:**
@@ -164,8 +157,6 @@ npm run dev
 
 ### Database Management with Prisma
 
-The project uses a **single shared schema** at `prisma/schema.prisma`. All services share this schema.
-
 ```bash
 # Generate Prisma Client (after schema changes)
 npm run prisma:generate
@@ -184,8 +175,6 @@ npm run prisma:studio
 - `prisma:push` - Quick prototyping, development (no migration history)
 - `prisma:migrate` - Production, team collaboration (creates migration files)
 - `prisma:generate` - After pulling schema changes from git
-
-**Schema location:** `prisma/schema.prisma` (root level only — no per-service schemas)
 
 ### Testing
 
@@ -226,20 +215,6 @@ npm run build
 ```
 
 ## 🐳 Docker Troubleshooting
-
-### New Package Added to a Service
-
-If a new npm package was added to a service (e.g., after pulling from main), rebuild with fresh volumes:
-
-```bash
-# Rebuild a specific service with new dependencies
-docker compose up -d --build -V auth-service
-
-# Or for any other service
-docker compose up -d --build -V <service-name>
-```
-
-The `-V` flag recreates anonymous volumes, ensuring `node_modules` is rebuilt.
 
 ### Prisma Client Issues in Docker
 

@@ -2,32 +2,22 @@
 
 # Fix Prisma Client generation in Docker containers
 # This script generates Prisma Client in each service container
-#
-# NOTE: The root prisma/ folder is mounted into each container at /app/prisma
-# via docker-compose volumes. There are no per-service schema files.
 
 echo "🔧 Fixing Prisma Client in Docker containers..."
-echo ""
-echo "ℹ️  Using shared schema from root prisma/ folder"
-echo "   (mounted at /app/prisma in each container)"
-echo ""
 
-# All services that use Prisma
-SERVICES=("auth-service" "mascot-engine" "mission-service" "submission-service" "shop-service" "calculation-service" "supply-service")
+# Services that need Prisma Client
+SERVICES=("auth-service" "mission-service" "submission-service")
 
 for SERVICE in "${SERVICES[@]}"; do
-  CONTAINER="groney-$SERVICE"
-  
-  # Check if container is running
-  if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
-    echo "⏭️  Skipping $SERVICE (container not running)"
-    continue
-  fi
-  
   echo "📦 Processing $SERVICE..."
   
-  # Generate Prisma Client using the mounted schema
-  docker exec "$CONTAINER" npx prisma generate --schema=/app/prisma/schema.prisma 2>&1 || {
+  # Install dependencies if needed
+  echo "  📥 Installing dependencies..."
+  docker exec "groney-$SERVICE" npm install 2>/dev/null
+  
+  # Generate Prisma Client using the schema directly
+  echo "  ⚙️  Generating Prisma Client..."
+  docker exec "groney-$SERVICE" npx prisma generate --schema=/app/prisma/schema.prisma 2>&1 || {
     echo "  ⚠️  Failed to generate Prisma Client for $SERVICE"
     continue
   }
@@ -37,9 +27,22 @@ done
 
 echo ""
 echo "🔄 Restarting backend services..."
-docker restart groney-auth-service groney-mascot-engine groney-mission-service groney-submission-service groney-shop-service groney-calculation-service groney-supply-service 2>/dev/null
+docker restart groney-auth-service groney-mission-service groney-submission-service
 
 echo ""
+echo "⏳ Waiting for services to start (5 seconds)..."
+sleep 5
+
 echo ""
-echo "✨ Prisma Client fix applied and services restarted!"
-echo "   Run ./scripts/health-check.sh manually after a few seconds to verify status."
+echo "🔍 Checking service health..."
+echo -n "API Gateway: " && curl -s http://localhost:3000/health | grep -o '"status":"[^"]*"' || echo "❌ Not responding"
+echo -n "Auth Service: " && curl -s http://localhost:3001/health | grep -o '"status":"[^"]*"' || echo "❌ Not responding"
+echo -n "Mission Service: " && curl -s http://localhost:3003/health | grep -o '"status":"[^"]*"' || echo "❌ Not responding"
+echo -n "Submission Service: " && curl -s http://localhost:3004/health | grep -o '"status":"[^"]*"' || echo "❌ Not responding"
+
+echo ""
+echo "🧪 Testing API Gateway routing..."
+curl -s -H "x-user-id: test" -H "x-user-role: TEACHER" http://localhost:3000/api/teacher/classes 2>&1 | head -1
+
+echo ""
+echo "✨ Done!"

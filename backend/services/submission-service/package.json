@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "npx prisma generate --schema=./prisma/schema.prisma && tsx watch src/start.ts",
-    "build": "npx prisma generate --schema=./prisma/schema.prisma && tsc",
-    "start": "tsx src/start.ts",
+    "dev": "tsx watch src/start.ts",
+    "build": "tsc",
+    "start": "node dist/start.js",
     "test": "vitest"
   },
   "dependencies": {

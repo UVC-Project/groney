@@ -33,6 +33,10 @@ async function forwardPost(path: string, body: any, res: any) {
     }
 }
 
+router.get('/mascot/:classId', (req, res) => {
+    return forwardGet(`/mascot/${req.params.classId}`, res);
+});
+
 router.get('/shop/items', (req, res) => {
     const query = req.originalUrl.split('?')[1];
     const suffix = query ? `/shop/items?${query}` : '/shop/items';
@@ -45,10 +49,6 @@ router.post('/shop/purchase', (req, res) => {
 
 router.post('/mascot/equip', (req, res) => {
     return forwardPost('/mascot/equip', req.body, res);
-});
-
-router.post('/mascot/unequip', (req, res) => {
-    return forwardPost('/mascot/unequip', req.body, res);
 });
 
 export default router;
