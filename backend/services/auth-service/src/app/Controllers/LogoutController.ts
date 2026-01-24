@@ -9,9 +9,9 @@ export default class LogoutController {
      * Log the user out
      */
     static async logout(req: Request, res: Response) {
-    const authHeader =
+        const authHeader =
             req.headers?.authorization ??
-        (req.headers?.['authorization'] as string | undefined);
+            (req.headers?.['authorization'] as string | undefined);
 
         if (!authHeader) {
             return res.status(400).json({ message: "No token provided" });
@@ -36,6 +36,9 @@ export default class LogoutController {
         } catch (err) {
             console.error("Logout logging failed:", err);
         }
+
+        // Clear HTTP-only cookie
+        res.clearCookie('access_token');
 
         return res.json({
             message: "Logged out successfully",

@@ -43,6 +43,7 @@ describe('LogoutController.logout', () => {
     expect(res.json).toHaveBeenCalledWith({
       message: 'Logged out successfully',
     });
+    expect(res.clearCookie).toHaveBeenCalledWith('access_token');
   });
 
   it('still returns success even if auth log fails', async () => {
@@ -60,5 +61,6 @@ describe('LogoutController.logout', () => {
     expect(res.json).toHaveBeenCalledWith({
       message: 'Logged out successfully',
     });
+    expect(res.clearCookie).toHaveBeenCalledWith('access_token');
   });
 });

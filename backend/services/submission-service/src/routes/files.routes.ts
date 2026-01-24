@@ -11,7 +11,7 @@ router.get('/:key(*)', async (req: Request, res: Response) => {
     const { body, contentType } = await getFile(key);
 
     res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+    res.setHeader('Cache-Control', 'private, max-age=31536000'); // Cache for 1 year
 
     body.pipe(res);
   } catch (error: any) {
